@@ -1,0 +1,3 @@
+<!-- Placeholder para logo INEC -->
+<!-- Substitua este arquivo por inec.png -->
+<!-- Dimensões recomendadas: 200x200px ou similar -->

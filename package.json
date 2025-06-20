@@ -1,0 +1,24 @@
+{
+  "name": "bingo-arraia-inec",
+  "version": "1.0.0",
+  "description": "Site de bingo temático de festa junina para INEC",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 8000",
+    "build": "echo 'No build step required'",
+    "deploy": "netlify deploy --prod --dir ."
+  },
+  "keywords": [
+    "bingo",
+    "festa-junina",
+    "sao-joao",
+    "inec",
+    "sorteio",
+    "javascript"
+  ],
+  "author": "INEC",
+  "license": "MIT",
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}
