@@ -45,6 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let numerosSorteados = [];
     let marcacoes = {};
 
+    // Estados das cartelas para alertas
+    let cartelasArmadas = new Set(); // Cartelas com 23 números
+    let cartelasBingo = new Set(); // Cartelas com BINGO
+    let alertasBingoMostrados = new Set(); // Para evitar spam de alertas
+
     // Inicialização
     function inicializar() {
         verificarCompradorLogado();
@@ -250,6 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Atualizar contador de marcados
             atualizarContadorMarcados(cartela.id);
         });
+        
+        // Verificar status das cartelas após renderização
+        verificarStatusCartelas();
     }
 
     function renderizarCartelaVisual(cartela) {
@@ -356,6 +364,9 @@ document.addEventListener('DOMContentLoaded', () => {
         salvarMarcacoes();
         atualizarNumeroVisual(cartelaId, numero);
         atualizarContadorMarcados(cartelaId);
+        
+        // Verificar status das cartelas (armada/bingo)
+        verificarStatusCartelas();
         
         // Verificar se fez BINGO
         const cartela = cartelasComprador.find(c => c.id === cartelaId);
@@ -493,6 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         salvarMarcacoes();
         renderizarCartelas();
+        verificarStatusCartelas();
         mostrarAlert('Todos os números sorteados foram marcados nas suas cartelas!');
     };
 
@@ -540,6 +552,209 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000);
     }
 
+    function verificarStatusCartelas() {
+        const cartelasAnterioresArmadas = new Set(cartelasArmadas);
+        const cartelasAnterioresBingo = new Set(cartelasBingo);
+        
+        cartelasArmadas.clear();
+        cartelasBingo.clear();
+        
+        cartelasComprador.forEach(cartela => {
+            const numerosPreenchidos = contarNumerosPreenchidos(cartela);
+            const cartelaId = cartela.id;
+            
+            if (numerosPreenchidos === 24) {
+                // BINGO completo (24 números + 1 FREE = 25 total)
+                cartelasBingo.add(cartelaId);
+                
+                // Mostrar alerta apenas se for novo BINGO
+                if (!cartelasAnterioresBingo.has(cartelaId) && !alertasBingoMostrados.has(cartelaId)) {
+                    mostrarAlertaBingo(cartela);
+                    alertasBingoMostrados.add(cartelaId);
+                }
+            } else if (numerosPreenchidos === 23) {
+                // Cartela armada (23 números preenchidos)
+                cartelasArmadas.add(cartelaId);
+                
+                // Mostrar alerta apenas se for nova cartela armada
+                if (!cartelasAnterioresArmadas.has(cartelaId)) {
+                    mostrarAlertaArmada(cartela);
+                }
+            }
+        });
+        
+        // Atualizar indicadores visuais
+        atualizarIndicadoresVisuais();
+    }
+
+    function contarNumerosPreenchidos(cartela) {
+        let preenchidos = 0;
+        const cartelaId = cartela.id;
+        const marcadosCartela = marcacoes[cartelaId] || [];
+
+        // Contar baseado na estrutura da cartela
+        if (Array.isArray(cartela.numeros) && Array.isArray(cartela.numeros[0])) {
+            // Formato matriz 5x5
+            for (let col = 0; col < cartela.numeros.length; col++) {
+                for (let row = 0; row < cartela.numeros[col].length; row++) {
+                    const numero = cartela.numeros[col][row];
+                    if (numero !== 'FREE' && !isNaN(numero)) {
+                        const isSorteado = numerosSorteados.includes(numero);
+                        const isMarcado = marcadosCartela.includes(numero);
+                        if (isSorteado || isMarcado) {
+                            preenchidos++;
+                        }
+                    }
+                }
+            }
+        } else {
+            // Formato array simples
+            const numeros = Array.isArray(cartela.numeros) ? cartela.numeros : [];
+            numeros.forEach(numero => {
+                const isSorteado = numerosSorteados.includes(numero);
+                const isMarcado = marcadosCartela.includes(numero);
+                if (isSorteado || isMarcado) {
+                    preenchidos++;
+                }
+            });
+        }
+
+        return preenchidos;
+    }
+
+    function mostrarAlertaArmada(cartela) {
+        const alertaDiv = criarAlertaFlutuante('armada', {
+            titulo: '⚠️ CARTELA ARMADA!',
+            mensagem: `Cartela #${cartela.numero || cartela.id} está com 23 números!\nApenas 1 número faltando para BINGO!`,
+            comprador: compradorAtual.nome,
+            cor: '#FF6B35'
+        });
+        
+        // Auto remover após 8 segundos
+        setTimeout(() => {
+            if (alertaDiv && alertaDiv.parentNode) {
+                alertaDiv.remove();
+            }
+        }, 8000);
+        
+        // Efeito sonoro de alerta (se disponível)
+        if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+        }
+    }
+
+    function mostrarAlertaBingo(cartela) {
+        const alertaDiv = criarAlertaFlutuante('bingo', {
+            titulo: '🎉 BINGO! 🎉',
+            mensagem: `PARABÉNS! Cartela #${cartela.numero || cartela.id} fez BINGO!\nTodos os 24 números foram preenchidos!`,
+            comprador: compradorAtual.nome,
+            cor: '#FFD700'
+        });
+        
+        // Mostrar modal também
+        mostrarModalBingo(cartela);
+        
+        // Auto remover após 15 segundos
+        setTimeout(() => {
+            if (alertaDiv && alertaDiv.parentNode) {
+                alertaDiv.remove();
+            }
+        }, 15000);
+        
+        // Efeito sonoro de vitória (se disponível)
+        if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200, 100, 200, 100, 500]);
+        }
+        
+        // Criar confete
+        criarConfeteBingo();
+    }
+
+    function criarAlertaFlutuante(tipo, dados) {
+        const alertaDiv = document.createElement('div');
+        alertaDiv.className = `alerta-flutuante alerta-${tipo}`;
+        alertaDiv.innerHTML = `
+            <div class="alerta-header">
+                <h3>${dados.titulo}</h3>
+                <button class="alerta-fechar" onclick="this.parentElement.parentElement.remove()">&times;</button>
+            </div>
+            <div class="alerta-body">
+                <p><strong>👤 ${dados.comprador}</strong></p>
+                <p>${dados.mensagem.replace(/\n/g, '<br>')}</p>
+                <div class="alerta-timestamp">
+                    📅 ${new Date().toLocaleString('pt-BR')}
+                </div>
+            </div>
+        `;
+        
+        // Adicionar à página
+        document.body.appendChild(alertaDiv);
+        
+        // Animação de entrada
+        setTimeout(() => {
+            alertaDiv.classList.add('alerta-show');
+        }, 100);
+        
+        return alertaDiv;
+    }
+
+    function atualizarIndicadoresVisuais() {
+        cartelasComprador.forEach(cartela => {
+            const cartelaDiv = document.getElementById(`cartela-${cartela.id}`);
+            if (!cartelaDiv) return;
+            
+            const cartelaId = cartela.id;
+            const numerosPreenchidos = contarNumerosPreenchidos(cartela);
+            
+            // Remover classes anteriores
+            cartelaDiv.classList.remove('cartela-armada', 'cartela-bingo-completa');
+            
+            // Adicionar classe baseada no status
+            if (numerosPreenchidos === 24) {
+                cartelaDiv.classList.add('cartela-bingo-completa');
+            } else if (numerosPreenchidos === 23) {
+                cartelaDiv.classList.add('cartela-armada');
+            }
+            
+            // Atualizar contador
+            const contadorEl = cartelaDiv.querySelector(`#marcados-${cartelaId}`);
+            if (contadorEl) {
+                contadorEl.textContent = numerosPreenchidos;
+                
+                // Colorir contador baseado no status
+                contadorEl.style.color = numerosPreenchidos === 24 ? '#FFD700' : 
+                                        numerosPreenchidos === 23 ? '#FF6B35' : '#D2691E';
+                contadorEl.style.fontWeight = numerosPreenchidos >= 23 ? 'bold' : 'normal';
+            }
+        });
+    }
+
+    function criarConfeteBingo() {
+        const elementos = ['🎉', '🎊', '✨', '🎈', '🌟', '⭐', '🥳', '🎁', '🏆', '👑'];
+        
+        for (let i = 0; i < 50; i++) {
+            setTimeout(() => {
+                const confete = document.createElement('div');
+                confete.style.position = 'fixed';
+                confete.style.left = Math.random() * 100 + 'vw';
+                confete.style.top = '-50px';
+                confete.style.fontSize = Math.random() * 1.5 + 1.5 + 'em';
+                confete.style.zIndex = '9999';
+                confete.style.pointerEvents = 'none';
+                confete.style.animation = `confetti-fall ${Math.random() * 3 + 3}s linear forwards`;
+                confete.textContent = elementos[Math.floor(Math.random() * elementos.length)];
+                
+                document.body.appendChild(confete);
+                
+                setTimeout(() => {
+                    if (confete.parentNode) {
+                        confete.remove();
+                    }
+                }, 6000);
+            }, i * 100);
+        }
+    }
+
     // Inicializar quando a página carregar
     inicializar();
 
@@ -552,6 +767,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const ultimoTotal = document.getElementById('total-sorteados').textContent;
             if (parseInt(ultimoTotal) !== numerosSorteados.length) {
                 renderizarCartelas();
+                verificarStatusCartelas(); // Verificar status após atualização
             }
         }
     }, 30000);

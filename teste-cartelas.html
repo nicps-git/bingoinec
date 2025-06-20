@@ -47,14 +47,17 @@
         <div class="info">
             <strong>ℹ️ Instruções:</strong><br>
             1. Clique em "Criar Cartelas de Teste" para gerar cartelas de exemplo<br>
-            2. Clique em "Simular Números Sorteados" para adicionar alguns números sorteados<br>
-            3. Vá para a página "Minhas Cartelas" e teste com o telefone: (11) 99999-9999
+            2. Clique em "Simular Cartela Armada" para deixar uma cartela com 23 números (alerta ⚠️)<br>
+            3. Clique em "Simular BINGO!" para completar uma cartela com 24 números (alerta 🎉)<br>
+            4. Vá para a página "Minhas Cartelas" e teste com o telefone: (11) 99999-9999<br>
+            5. Observe os alertas flutuantes e indicadores visuais nas cartelas!
         </div>
 
         <h2>🎫 Gerenciar Dados de Teste</h2>
         
         <button onclick="criarCartelasExemplo()">🎯 Criar Cartelas de Teste</button>
-        <button onclick="simularNumerosSorteados()">🎲 Simular Números Sorteados</button>
+        <button onclick="simularNumerosSorteados()">⚠️ Simular Cartela Armada</button>
+        <button onclick="simularBingo()">🎉 Simular BINGO!</button>
         <button onclick="limparDados()">🗑️ Limpar Todos os Dados</button>
         
         <h2>📊 Status Atual</h2>
@@ -141,11 +144,21 @@
         }
 
         function simularNumerosSorteados() {
-            const numerosSorteados = [1, 17, 31, 46, 2, 18, 32, 6, 21, 36, 11, 26, 41];
+            // Números que irão deixar a primeira cartela "armada" (23 números)
+            const numerosSorteados = [1, 16, 31, 46, 61, 2, 17, 32, 47, 62, 3, 18, 48, 63, 4, 19, 33, 49, 64, 5, 20, 34, 50];
             localStorage.setItem(STORAGE_KEYS.numerosSorteados, JSON.stringify(numerosSorteados));
             
             atualizarStatus();
-            alert('🎲 Números sorteados simulados: ' + numerosSorteados.join(', '));
+            alert('🎲 Números sorteados simulados!\n\nA primeira cartela ficará ARMADA (23 números).\nFalta apenas o número 65 para BINGO!');
+        }
+
+        function simularBingo() {
+            // Adicionar o último número para completar BINGO na primeira cartela
+            const numerosSorteados = [1, 16, 31, 46, 61, 2, 17, 32, 47, 62, 3, 18, 48, 63, 4, 19, 33, 49, 64, 5, 20, 34, 50, 65];
+            localStorage.setItem(STORAGE_KEYS.numerosSorteados, JSON.stringify(numerosSorteados));
+            
+            atualizarStatus();
+            alert('🎉 BINGO simulado!\n\nA primeira cartela agora tem BINGO completo (24 números)!');
         }
 
         function limparDados() {
