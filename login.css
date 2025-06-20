@@ -1,0 +1,528 @@
+/* ===== LOGIN PAGE - FESTA JUNINA THEME ===== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    background: linear-gradient(135deg, #8B4513 0%, #D2691E 20%, #CD853F 40%, #F4A460 60%, #DEB887 80%, #F5DEB3 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Bandeirolas decorativas */
+.bandeirolas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.bandeirola {
+    position: absolute;
+    width: 0;
+    height: 0;
+    top: 0;
+    animation: bandeirola-sway 3s ease-in-out infinite;
+}
+
+.bandeirola-1 { left: 5%; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 40px solid #FF6B35; animation-delay: 0s; }
+.bandeirola-2 { left: 15%; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 40px solid #F7931E; animation-delay: 0.3s; }
+.bandeirola-3 { left: 25%; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 40px solid #FFD23F; animation-delay: 0.6s; }
+.bandeirola-4 { left: 35%; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 40px solid #06FFA5; animation-delay: 0.9s; }
+.bandeirola-5 { left: 45%; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 40px solid #4ECDC4; animation-delay: 1.2s; }
+.bandeirola-6 { left: 55%; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 40px solid #45B7D1; animation-delay: 1.5s; }
+.bandeirola-7 { left: 65%; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 40px solid #96CEB4; animation-delay: 1.8s; }
+.bandeirola-8 { left: 75%; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 40px solid #FFEAA7; animation-delay: 2.1s; }
+.bandeirola-9 { left: 85%; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 40px solid #DDA0DD; animation-delay: 2.4s; }
+.bandeirola-10 { left: 95%; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 40px solid #FF7675; animation-delay: 2.7s; }
+
+@keyframes bandeirola-sway {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(10deg); }
+}
+
+/* Header */
+header {
+    background: linear-gradient(45deg, #8B4513, #CD853F);
+    padding: 80px 20px 40px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.logo-empresa {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+}
+
+.logo-inec {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 4px solid #FFD700;
+    background: white;
+    padding: 8px;
+}
+
+.nav-links {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-nav {
+    background: linear-gradient(45deg, #FF6B35, #F7931E);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border: 3px solid #FFD700;
+    transition: all 0.3s ease;
+}
+
+.btn-nav:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    background: linear-gradient(45deg, #F7931E, #FF6B35);
+}
+
+.chapeu-palha {
+    font-size: 60px;
+    margin-bottom: 20px;
+    animation: chapeu-balance 2s ease-in-out infinite;
+}
+
+@keyframes chapeu-balance {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+}
+
+header h1 {
+    color: #FFD700;
+    font-size: 2.5em;
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+header p {
+    color: #FFF8DC;
+    font-size: 1.2em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Main Content */
+main {
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 200px);
+}
+
+.login-container {
+    max-width: 500px;
+    width: 100%;
+}
+
+.login-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    padding: 40px;
+    border: 4px solid #FFD700;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.1), transparent);
+    animation: card-shine 3s ease-in-out infinite;
+}
+
+@keyframes card-shine {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 2;
+}
+
+.login-header h2 {
+    color: #8B4513;
+    font-size: 1.8em;
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+.login-header p {
+    color: #666;
+    font-size: 1em;
+}
+
+/* Form Styles */
+.login-form {
+    position: relative;
+    z-index: 2;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 25px;
+}
+
+.input-group label {
+    display: block;
+    color: #8B4513;
+    font-weight: bold;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 15px 50px 15px 15px;
+    border: 3px solid #DEB887;
+    border-radius: 12px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: #FFFEF7;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #FFD700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    background: white;
+}
+
+.input-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #8B4513;
+    pointer-events: none;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+    color: #8B4513;
+    transition: all 0.3s ease;
+}
+
+.toggle-password:hover {
+    transform: translateY(-50%) scale(1.2);
+}
+
+.form-actions {
+    margin: 30px 0 20px;
+}
+
+.btn-login {
+    width: 100%;
+    background: linear-gradient(45deg, #FF6B35, #F7931E);
+    color: white;
+    padding: 18px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.3);
+    border: 3px solid #FFD700;
+}
+
+.btn-login:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+    background: linear-gradient(45deg, #F7931E, #FF6B35);
+}
+
+.btn-login:active {
+    transform: translateY(-1px);
+}
+
+.login-info {
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(45deg, #FFF8DC, #FFFACD);
+    border-radius: 10px;
+    border: 2px solid #DEB887;
+    margin-top: 20px;
+}
+
+.login-info p {
+    color: #8B4513;
+    margin: 5px 0;
+    font-size: 0.9em;
+}
+
+.security-info {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 25px;
+    padding: 20px;
+    background: linear-gradient(45deg, #F0F8FF, #E6F3FF);
+    border-radius: 10px;
+    border: 2px solid #87CEEB;
+}
+
+.security-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9em;
+    color: #4682B4;
+    font-weight: bold;
+}
+
+.security-item .icon {
+    font-size: 24px;
+}
+
+/* Alerts */
+.alert {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    display: none;
+    align-items: center;
+    gap: 15px;
+    z-index: 1000;
+    min-width: 350px;
+    border: 3px solid;
+}
+
+.alert-erro {
+    border-color: #FF4757;
+    background: linear-gradient(45deg, #FFF, #FFE8E8);
+}
+
+.alert-sucesso {
+    border-color: #2ED573;
+    background: linear-gradient(45deg, #FFF, #E8FFE8);
+}
+
+.alert-icon {
+    font-size: 24px;
+}
+
+.alert-message {
+    flex: 1;
+    font-weight: bold;
+    color: #333;
+}
+
+.alert-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 5px;
+    line-height: 1;
+}
+
+.alert-close:hover {
+    color: #333;
+    transform: scale(1.2);
+}
+
+/* Elementos decorativos */
+.fogueira {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 3;
+}
+
+.fogo {
+    width: 60px;
+    height: 80px;
+    background: linear-gradient(45deg, #FF4500, #FF6347, #FF8C00, #FFD700);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation: fogo-dance 1.5s ease-in-out infinite alternate;
+}
+
+.lenha {
+    width: 80px;
+    height: 15px;
+    background: #8B4513;
+    border-radius: 8px;
+    margin-top: -10px;
+    position: relative;
+}
+
+.lenha::before {
+    content: '';
+    position: absolute;
+    width: 70px;
+    height: 12px;
+    background: #A0522D;
+    border-radius: 6px;
+    top: -8px;
+    left: 20px;
+    transform: rotate(-20deg);
+}
+
+@keyframes fogo-dance {
+    0% { transform: scale(1) rotate(-2deg); }
+    100% { transform: scale(1.1) rotate(2deg); }
+}
+
+.estrelas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.estrela {
+    position: absolute;
+    font-size: 20px;
+    animation: estrela-brilho 2s ease-in-out infinite;
+}
+
+.estrela-1 { top: 20%; left: 10%; animation-delay: 0s; }
+.estrela-2 { top: 30%; right: 15%; animation-delay: 0.5s; }
+.estrela-3 { top: 60%; left: 5%; animation-delay: 1s; }
+.estrela-4 { top: 70%; right: 10%; animation-delay: 1.5s; }
+.estrela-5 { top: 80%; left: 20%; animation-delay: 2s; }
+
+@keyframes estrela-brilho {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    header {
+        padding: 60px 10px 30px;
+    }
+    
+    .logo-empresa {
+        position: relative;
+        top: auto;
+        left: auto;
+        margin-bottom: 20px;
+    }
+    
+    .nav-links {
+        position: relative;
+        top: auto;
+        right: auto;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+    
+    .btn-nav {
+        padding: 10px 15px;
+        font-size: 12px;
+    }
+    
+    header h1 {
+        font-size: 2em;
+    }
+    
+    .login-card {
+        padding: 30px 20px;
+        margin: 0 10px;
+    }
+    
+    .security-info {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .alert {
+        min-width: 300px;
+        margin: 0 20px;
+    }
+    
+    .fogueira {
+        bottom: 10px;
+        right: 10px;
+        transform: scale(0.8);
+    }
+}
+
+@media (max-width: 480px) {
+    .bandeirola {
+        display: none;
+    }
+    
+    header h1 {
+        font-size: 1.8em;
+    }
+    
+    header p {
+        font-size: 1em;
+    }
+    
+    .chapeu-palha {
+        font-size: 40px;
+    }
+    
+    .login-card {
+        border-radius: 15px;
+        padding: 25px 15px;
+    }
+    
+    .login-header h2 {
+        font-size: 1.5em;
+    }
+    
+    .input-group input {
+        padding: 12px 45px 12px 12px;
+        font-size: 14px;
+    }
+    
+    .btn-login {
+        padding: 15px;
+        font-size: 16px;
+    }
+}

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Simples - Botão Admin</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 50px; text-align: center; }
+        .btn { background: #ff6b35; color: white; padding: 20px 40px; border: none; border-radius: 10px; cursor: pointer; font-size: 18px; font-weight: bold; }
+        .btn:hover { background: #e55a2b; }
+        .info { margin: 20px 0; padding: 15px; background: #f0f8ff; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste Simples do Botão Admin</h1>
+    
+    <div class="info">
+        <p>Este é o mesmo botão que está na página principal:</p>
+    </div>
+    
+    <button onclick="verificarAcessoAdmin()" class="btn">⚙️ Admin</button>
+    
+    <div class="info">
+        <p><strong>Comportamento esperado:</strong></p>
+        <p>• Se não logado → Pergunta se quer ir para login</p>
+        <p>• Se logado → Vai direto para admin.html</p>
+    </div>
+    
+    <script src="login.js"></script>
+    <script src="script.js"></script>
+    
+    <script>
+        // Debug simples
+        setTimeout(() => {
+            console.log('Função verificarAcessoAdmin existe:', typeof verificarAcessoAdmin === 'function');
+            console.log('window.bingoAuth existe:', !!window.bingoAuth);
+        }, 100);
+    </script>
+</body>
+</html>

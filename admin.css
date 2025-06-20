@@ -606,6 +606,76 @@ header p {
     border-left: 4px solid #4CAF50;
 }
 
+/* Navegação e controles de usuário */
+.nav-links {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    z-index: 1000;
+}
+
+.btn-nav {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border: 3px solid #FFD700;
+    transition: all 0.3s ease;
+}
+
+.btn-nav:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    background: linear-gradient(45deg, #20c997, #28a745);
+}
+
+.btn-logout {
+    background: linear-gradient(45deg, #dc3545, #c82333);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    border: 3px solid #FFD700;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+.btn-logout:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    background: linear-gradient(45deg, #c82333, #dc3545);
+}
+
+.user-info {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    font-size: 0.9em;
+    color: #333;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
+}
+
+.user-info span {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .admin-panel {

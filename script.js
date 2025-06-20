@@ -1,3 +1,15 @@
+// ===== FUNÇÕES DE VERIFICAÇÃO DE ACESSO =====
+
+function verificarAcessoAdmin() {
+    if (window.bingoAuth && window.bingoAuth.isAuthenticated()) {
+        window.location.href = 'admin.html';
+    } else {
+        if (confirm('Para acessar a área administrativa, é necessário fazer login. Deseja ir para a página de login?')) {
+            window.location.href = 'login.html';
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const sortearBtn = document.getElementById('sortear-btn');
     const numeroSorteadoEl = document.getElementById('numero-sorteado');
@@ -263,4 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     `;
     document.head.appendChild(style);
+    
+    console.log('Bingo game loaded');
 });

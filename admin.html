@@ -25,9 +25,18 @@
         <div class="logo-empresa">
             <img src="inec.png" alt="Logo INEC" class="logo-inec">
         </div>
+        <div class="nav-links">
+            <a href="index.html" class="btn-nav">🎪 Bingo</a>
+            <a href="cartelas.html" class="btn-nav">🎫 Cartelas</a>
+            <button onclick="logout()" class="btn-logout">🚪 Sair</button>
+        </div>
         <div class="chapeu-palha">👒</div>
         <h1>🔧 Administração do Bingo</h1>
         <p>⚙️ Configure o Arraiá INEC</p>
+        <div class="user-info">
+            <span id="admin-user">👤 Carregando...</span>
+            <span id="session-time">⏰ Carregando...</span>
+        </div>
     </header>
 
     <main>
@@ -139,6 +148,7 @@
         <div class="estrela estrela-5">⭐</div>
     </div>
 
+    <script src="login.js"></script>
     <script src="admin.js"></script>
 </body>
 </html>

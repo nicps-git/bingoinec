@@ -1,4 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ===== VERIFICAÇÃO DE AUTENTICAÇÃO =====
+    // Verificar se o usuário está autenticado antes de carregar a página
+    if (!window.bingoAuth || !window.bingoAuth.isAuthenticated()) {
+        alert('Acesso não autorizado! Você será redirecionado para a página de login.');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Exibir informações do usuário logado
+    updateUserInfo();
+    
+    // ===== ELEMENTOS DO DOM =====
     const numeroInicialInput = document.getElementById('numero-inicial');
     const numeroFinalInput = document.getElementById('numero-final');
     const totalNumerosSpan = document.getElementById('total-numeros');
@@ -211,6 +223,63 @@ document.addEventListener('DOMContentLoaded', () => {
             }, i * 100);
         }
     }
+
+    // ===== FUNÇÕES DE AUTENTICAÇÃO E SESSÃO =====
+
+    function updateUserInfo() {
+        const user = window.bingoAuth.getCurrentUser();
+        if (user) {
+            const adminUserSpan = document.getElementById('admin-user');
+            const sessionTimeSpan = document.getElementById('session-time');
+            
+            if (adminUserSpan) {
+                adminUserSpan.textContent = `👤 ${user.email}`;
+            }
+            
+            if (sessionTimeSpan) {
+                const loginTime = new Date(user.loginTime);
+                const timeString = loginTime.toLocaleTimeString('pt-BR');
+                sessionTimeSpan.textContent = `⏰ Login: ${timeString}`;
+            }
+        }
+    }
+
+    function logout() {
+        if (confirm('Tem certeza que deseja sair da administração?')) {
+            if (window.bingoAuth) {
+                window.bingoAuth.logout();
+            } else {
+                // Fallback se bingoAuth não estiver disponível
+                localStorage.removeItem('bingoAdminSession');
+                window.location.href = 'login.html';
+            }
+        }
+    }
+
+    // Auto-refresh da sessão quando há atividade na página
+    let adminActivityTimer;
+
+    function resetAdminActivityTimer() {
+        clearTimeout(adminActivityTimer);
+        adminActivityTimer = setTimeout(() => {
+            if (window.bingoAuth) {
+                window.bingoAuth.extendSession();
+            }
+        }, 5 * 60 * 1000); // Estender sessão a cada 5 minutos de atividade
+    }
+
+    // Adicionar listeners para atividade do usuário
+    document.addEventListener('mousedown', resetAdminActivityTimer);
+    document.addEventListener('keydown', resetAdminActivityTimer);
+    document.addEventListener('click', resetAdminActivityTimer);
+
+    // Verificar sessão periodicamente
+    setInterval(() => {
+        if (window.bingoAuth && !window.bingoAuth.isAuthenticated()) {
+            alert('Sua sessão expirou! Você será redirecionado para a página de login.');
+            window.location.href = 'login.html';
+        }
+    }, 60000); // Verificar a cada minuto
 
     // Sistema de Cartelas
     function carregarPrecoCartela() {
@@ -474,4 +543,6 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarConfiguracoes();
     carregarPrecoCartela();
     atualizarEstatisticasCartelas();
+    
+    console.log('Admin panel loaded with authentication');
 });

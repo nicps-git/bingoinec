@@ -293,6 +293,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ===== FUNÇÕES DE VERIFICAÇÃO DE ACESSO =====
+
+    function verificarAcessoAdmin() {
+        if (window.bingoAuth && window.bingoAuth.isAuthenticated()) {
+            window.location.href = 'admin.html';
+        } else {
+            if (confirm('Para acessar a área administrativa, é necessário fazer login. Deseja ir para a página de login?')) {
+                window.location.href = 'login.html';
+            }
+        }
+    }
+
     // Event listeners
     gerarPreviewBtn.addEventListener('click', gerarPreview);
     comprarCartelaBtn.addEventListener('click', adicionarAoCarrinho);
@@ -330,4 +342,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Carregar dados ao iniciar
     carregarDados();
+    
+    console.log('Cartelas page loaded');
 });
