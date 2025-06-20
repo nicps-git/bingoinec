@@ -12,12 +12,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const irParaBingoBtn = document.getElementById('ir-para-bingo');
     const limparHistoricoBtn = document.getElementById('limpar-historico');
 
+    // Elementos do sistema de cartelas
+    const precoCartelaInput = document.getElementById('preco-cartela');
+    const gerarCartelaBtn = document.getElementById('gerar-cartela');
+    const verVendasBtn = document.getElementById('ver-vendas');
+    const cartelasGeradasSpan = document.getElementById('cartelas-geradas');
+    const cartelasVendidasSpan = document.getElementById('cartelas-vendidas');
+    const totalArrecadadoSpan = document.getElementById('total-arrecadado');
+    const modalVendas = document.getElementById('modal-vendas');
+    const listaCartelas = document.getElementById('lista-cartelas');
+    const closeModal = document.querySelector('.close');
+
     // Chaves para localStorage
     const STORAGE_KEYS = {
         numeroInicial: 'bingo_numero_inicial',
         numeroFinal: 'bingo_numero_final',
         numerosSorteados: 'bingo_numeros_sorteados',
-        numerosDisponiveis: 'bingo_numeros_disponiveis'
+        numerosDisponiveis: 'bingo_numeros_disponiveis',
+        cartelas: 'bingo_cartelas',
+        precoCartela: 'bingo_preco_cartela'
     };
 
     // Carregar configurações salvas
@@ -199,6 +212,210 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Sistema de Cartelas
+    function carregarPrecoCartela() {
+        const preco = localStorage.getItem(STORAGE_KEYS.precoCartela) || '5.00';
+        precoCartelaInput.value = preco;
+    }
+
+    function salvarPrecoCartela() {
+        localStorage.setItem(STORAGE_KEYS.precoCartela, precoCartelaInput.value);
+    }
+
+    function gerarNumeroCartela() {
+        const cartelas = JSON.parse(localStorage.getItem(STORAGE_KEYS.cartelas) || '[]');
+        return cartelas.length + 1;
+    }
+
+    function gerarCartela() {
+        const inicial = parseInt(numeroInicialInput.value) || 1;
+        const final = parseInt(numeroFinalInput.value) || 75;
+        const preco = parseFloat(precoCartelaInput.value) || 5.00;
+        
+        // Validar range
+        if (final - inicial + 1 < 25) {
+            alert('⚠️ O range deve ter pelo menos 25 números para gerar uma cartela!');
+            return;
+        }
+
+        const numeroCartela = gerarNumeroCartela();
+        const cartela = {
+            id: Date.now(),
+            numero: numeroCartela,
+            preco: preco,
+            numeros: gerarNumerosCartela(inicial, final),
+            dataGeracao: new Date().toISOString(),
+            vendida: false,
+            comprador: null,
+            dataVenda: null
+        };
+
+        // Salvar cartela
+        const cartelas = JSON.parse(localStorage.getItem(STORAGE_KEYS.cartelas) || '[]');
+        cartelas.push(cartela);
+        localStorage.setItem(STORAGE_KEYS.cartelas, JSON.stringify(cartelas));
+
+        // Abrir modal de vendas automaticamente
+        abrirModalVendas();
+        atualizarEstatisticasCartelas();
+        
+        // Feedback
+        gerarCartelaBtn.textContent = '✅ Cartela Gerada!';
+        setTimeout(() => {
+            gerarCartelaBtn.textContent = '🎫 Gerar Nova Cartela';
+        }, 2000);
+    }
+
+    function gerarNumerosCartela(min, max) {
+        // Gerar números para cartela de bingo 5x5
+        const numeros = [];
+        const ranges = [
+            { min: min, max: Math.min(min + 14, max) }, // B
+            { min: Math.min(min + 15, max), max: Math.min(min + 29, max) }, // I  
+            { min: Math.min(min + 30, max), max: Math.min(min + 44, max) }, // N
+            { min: Math.min(min + 45, max), max: Math.min(min + 59, max) }, // G
+            { min: Math.min(min + 60, max), max: max } // O
+        ];
+
+        for (let col = 0; col < 5; col++) {
+            const colNums = [];
+            const range = ranges[col];
+            
+            // Gerar 5 números únicos para cada coluna
+            while (colNums.length < 5) {
+                const num = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+                if (!colNums.includes(num)) {
+                    colNums.push(num);
+                }
+            }
+            
+            colNums.sort((a, b) => a - b);
+            numeros.push(colNums);
+        }
+
+        // Espaço livre no centro
+        numeros[2][2] = 'FREE';
+        
+        return numeros;
+    }
+
+    function abrirModalVendas() {
+        modalVendas.style.display = 'block';
+        carregarListaCartelas();
+    }
+
+    function fecharModalVendas() {
+        modalVendas.style.display = 'none';
+    }
+
+    function carregarListaCartelas() {
+        const cartelas = JSON.parse(localStorage.getItem(STORAGE_KEYS.cartelas) || '[]');
+        listaCartelas.innerHTML = '';
+
+        if (cartelas.length === 0) {
+            listaCartelas.innerHTML = '<p class="sem-historico">Nenhuma cartela gerada ainda</p>';
+            return;
+        }
+
+        cartelas.reverse().forEach(cartela => {
+            const cartelaEl = criarElementoCartela(cartela);
+            listaCartelas.appendChild(cartelaEl);
+        });
+    }
+
+    function criarElementoCartela(cartela) {
+        const div = document.createElement('div');
+        div.className = `cartela-item ${cartela.vendida ? 'vendida' : 'pendente'}`;
+        
+        div.innerHTML = `
+            <div class="cartela-header">
+                <div class="cartela-numero">Cartela #${cartela.numero}</div>
+                <div class="cartela-preco">R$ ${cartela.preco.toFixed(2)}</div>
+                <div class="status-venda ${cartela.vendida ? 'vendida' : 'pendente'}">
+                    ${cartela.vendida ? '✅ Vendida' : '⏳ Pendente'}
+                </div>
+            </div>
+            
+            <div class="cartela-bingo">
+                <div class="cell header">B</div>
+                <div class="cell header">I</div>
+                <div class="cell header">N</div>
+                <div class="cell header">G</div>
+                <div class="cell header">O</div>
+                ${cartela.numeros.map((col, colIndex) => 
+                    col.map((num, rowIndex) => 
+                        `<div class="cell ${num === 'FREE' ? 'free' : ''}">${num === 'FREE' ? '★' : num}</div>`
+                    ).join('')
+                ).join('')}
+            </div>
+            
+            ${cartela.vendida ? `
+                <div class="comprador-info">
+                    <strong>👤 Comprador:</strong> ${cartela.comprador || 'N/A'}<br>
+                    <strong>📅 Data da Venda:</strong> ${new Date(cartela.dataVenda).toLocaleString('pt-BR')}
+                </div>
+            ` : ''}
+            
+            <div class="cartela-actions">
+                ${!cartela.vendida ? `
+                    <button class="btn-confirmar" onclick="confirmarVenda(${cartela.id})">
+                        ✅ Confirmar Venda
+                    </button>
+                ` : ''}
+                <button class="btn-remover" onclick="removerCartela(${cartela.id})">
+                    🗑️ Remover
+                </button>
+            </div>
+        `;
+        
+        return div;
+    }
+
+    function confirmarVenda(cartelaId) {
+        const comprador = prompt('💰 Nome do comprador:');
+        if (!comprador) return;
+
+        const cartelas = JSON.parse(localStorage.getItem(STORAGE_KEYS.cartelas) || '[]');
+        const cartela = cartelas.find(c => c.id === cartelaId);
+        
+        if (cartela) {
+            cartela.vendida = true;
+            cartela.comprador = comprador;
+            cartela.dataVenda = new Date().toISOString();
+            
+            localStorage.setItem(STORAGE_KEYS.cartelas, JSON.stringify(cartelas));
+            carregarListaCartelas();
+            atualizarEstatisticasCartelas();
+            
+            alert(`🎉 Venda confirmada para ${comprador}!`);
+        }
+    }
+
+    function removerCartela(cartelaId) {
+        if (!confirm('🗑️ Tem certeza que deseja remover esta cartela?')) return;
+
+        const cartelas = JSON.parse(localStorage.getItem(STORAGE_KEYS.cartelas) || '[]');
+        const novasCartelas = cartelas.filter(c => c.id !== cartelaId);
+        
+        localStorage.setItem(STORAGE_KEYS.cartelas, JSON.stringify(novasCartelas));
+        carregarListaCartelas();
+        atualizarEstatisticasCartelas();
+    }
+
+    function atualizarEstatisticasCartelas() {
+        const cartelas = JSON.parse(localStorage.getItem(STORAGE_KEYS.cartelas) || '[]');
+        const vendidas = cartelas.filter(c => c.vendida);
+        const totalArrecadado = vendidas.reduce((total, cartela) => total + cartela.preco, 0);
+
+        cartelasGeradasSpan.textContent = cartelas.length;
+        cartelasVendidasSpan.textContent = vendidas.length;
+        totalArrecadadoSpan.textContent = `R$ ${totalArrecadado.toFixed(2)}`;
+    }
+
+    // Tornar funções globais para os botões inline
+    window.confirmarVenda = confirmarVenda;
+    window.removerCartela = removerCartela;
+
     // Event listeners
     numeroInicialInput.addEventListener('input', atualizarInformacoes);
     numeroFinalInput.addEventListener('input', atualizarInformacoes);
@@ -206,6 +423,21 @@ document.addEventListener('DOMContentLoaded', () => {
     resetarJogoBtn.addEventListener('click', resetarJogo);
     irParaBingoBtn.addEventListener('click', irParaBingo);
     limparHistoricoBtn.addEventListener('click', limparHistorico);
+
+    // Event listeners do sistema de cartelas
+    precoCartelaInput.addEventListener('change', salvarPrecoCartela);
+    gerarCartelaBtn.addEventListener('click', gerarCartela);
+    verVendasBtn.addEventListener('click', abrirModalVendas);
+    closeModal.addEventListener('click', fecharModalVendas);
+    
+    // Fechar modal clicando fora
+    window.addEventListener('click', (event) => {
+        if (event.target === modalVendas) {
+            fecharModalVendas();
+        }
+    });
+    gerarCartelaBtn.addEventListener('click', gerarCartela);
+    precoCartelaInput.addEventListener('change', salvarPrecoCartela);
 
     // Validação em tempo real
     numeroInicialInput.addEventListener('blur', () => {
@@ -240,4 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Carregar configurações ao iniciar
     carregarConfiguracoes();
+    carregarPrecoCartela();
+    atualizarEstatisticasCartelas();
 });

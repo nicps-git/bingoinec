@@ -1,0 +1,548 @@
+/* Estilos base (reutilizados) */
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(45deg, #ff6b35, #f7931e, #ffc107);
+    background-size: 400% 400%;
+    animation: gradientShift 6s ease infinite;
+    color: #333;
+    text-align: center;
+    padding: 20px;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Bandeirolas */
+.bandeirolas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.bandeirola {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    animation: balanca 3s ease-in-out infinite;
+}
+
+.bandeirola-1 { border: 25px solid #ff6b35; border-bottom: 15px solid transparent; left: 5%; animation-delay: 0s; }
+.bandeirola-2 { border: 25px solid #ffc107; border-bottom: 15px solid transparent; left: 15%; animation-delay: 0.3s; }
+.bandeirola-3 { border: 25px solid #4CAF50; border-bottom: 15px solid transparent; left: 25%; animation-delay: 0.6s; }
+.bandeirola-4 { border: 25px solid #d32f2f; border-bottom: 15px solid transparent; left: 35%; animation-delay: 0.9s; }
+.bandeirola-5 { border: 25px solid #2196f3; border-bottom: 15px solid transparent; left: 45%; animation-delay: 1.2s; }
+.bandeirola-6 { border: 25px solid #ff9800; border-bottom: 15px solid transparent; left: 55%; animation-delay: 1.5s; }
+.bandeirola-7 { border: 25px solid #9c27b0; border-bottom: 15px solid transparent; left: 65%; animation-delay: 1.8s; }
+.bandeirola-8 { border: 25px solid #ff5722; border-bottom: 15px solid transparent; left: 75%; animation-delay: 2.1s; }
+.bandeirola-9 { border: 25px solid #795548; border-bottom: 15px solid transparent; left: 85%; animation-delay: 2.4s; }
+.bandeirola-10 { border: 25px solid #607d8b; border-bottom: 15px solid transparent; left: 95%; animation-delay: 2.7s; }
+
+@keyframes balanca {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+}
+
+/* Header */
+header {
+    background: linear-gradient(135deg, #ffc107, #ff9800);
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    animation: slideInFromTop 1s ease-out;
+    margin-top: 80px;
+    position: relative;
+}
+
+@keyframes slideInFromTop {
+    0% {
+        transform: translateY(-100px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.logo-empresa {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+}
+
+.logo-inec {
+    width: 80px;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    border: 3px solid #ffc107;
+    background: white;
+    padding: 5px;
+}
+
+.nav-links {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-nav {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 20px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.btn-nav:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.chapeu-palha {
+    font-size: 3em;
+    animation: balanca-suave 3s ease-in-out infinite;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+@keyframes balanca-suave {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+}
+
+h1 {
+    color: #d32f2f;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    margin: 0;
+}
+
+header p {
+    color: #ff5722;
+    font-size: 1.2em;
+    margin: 10px 0 0 0;
+    font-weight: bold;
+}
+
+/* Container principal */
+.compra-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    animation: slideInFromBottom 1s ease-out;
+}
+
+@keyframes slideInFromBottom {
+    0% {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Seções */
+.info-section, .preview-section, .carrinho-section {
+    background: linear-gradient(135deg, #fff, #f8f9fa);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border: 3px solid #ffc107;
+}
+
+.info-section h2, .preview-section h2, .carrinho-section h2 {
+    color: #d32f2f;
+    margin-bottom: 20px;
+}
+
+/* Info section */
+.preco-info, .disponibilidade {
+    display: flex;
+    justify-content: space-between;
+    margin: 15px 0;
+    padding: 10px;
+    background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+    border-radius: 10px;
+    border: 2px solid #4CAF50;
+}
+
+.preco {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+.quantidade {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #2196f3;
+}
+
+/* Preview da cartela */
+.cartela-preview {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.cartela-vazia {
+    background: #f8f9fa;
+    border: 2px dashed #ccc;
+    border-radius: 15px;
+    padding: 40px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.cartela-bingo {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    background: #333;
+    border-radius: 15px;
+    padding: 3px;
+    width: 300px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.cartela-bingo .cell {
+    background: white;
+    padding: 12px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.cartela-bingo .cell.header {
+    background: linear-gradient(135deg, #d32f2f, #b71c1c);
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.cartela-bingo .cell.free {
+    background: linear-gradient(135deg, #ffc107, #ff9800);
+    color: #333;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.cartela-bingo .cell:hover {
+    transform: scale(1.05);
+}
+
+/* Botões */
+.btn-primary, .btn-success, .btn-danger, .btn-secondary {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    margin: 5px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #2196f3, #1976d2);
+    color: white;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    color: white;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    color: white;
+}
+
+.btn-primary:hover, .btn-success:hover, .btn-danger:hover, .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.btn-primary:disabled, .btn-success:disabled {
+    background: linear-gradient(135deg, #ccc, #999);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.preview-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+/* Carrinho */
+.carrinho-lista {
+    min-height: 100px;
+    margin: 15px 0;
+}
+
+.carrinho-vazio {
+    color: #6c757d;
+    font-style: italic;
+    padding: 20px;
+}
+
+.carrinho-item {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.carrinho-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.carrinho-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    border-radius: 10px;
+    border: 2px solid #ff9800;
+    font-size: 1.2em;
+    font-weight: bold;
+    margin: 15px 0;
+}
+
+.total {
+    color: #4CAF50;
+    font-size: 1.4em;
+}
+
+.carrinho-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #fff, #f8f9fa);
+    margin: 5% auto;
+    padding: 30px;
+    border: 3px solid #ffc107;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close:hover {
+    color: #d32f2f;
+}
+
+/* Formulário */
+.input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #495057;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #ff9800;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+}
+
+.resumo-compra {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+    border-left: 4px solid #4CAF50;
+}
+
+.total-final {
+    font-size: 1.3em;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid #ddd;
+    color: #4CAF50;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+/* Elementos decorativos */
+.fogueira {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 500;
+}
+
+.fogo {
+    width: 60px;
+    height: 80px;
+    background: linear-gradient(to top, #ff4500, #ff6500, #ffa500, #ffff00);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation: chamas 1.5s ease-in-out infinite alternate;
+}
+
+.lenha {
+    width: 80px;
+    height: 20px;
+    background: linear-gradient(to right, #8b4513, #a0522d);
+    border-radius: 10px;
+    margin-top: -10px;
+    position: relative;
+}
+
+@keyframes chamas {
+    0% { transform: scale(1) rotate(-2deg); }
+    100% { transform: scale(1.1) rotate(2deg); }
+}
+
+.estrelas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.estrela {
+    position: absolute;
+    font-size: 1.5em;
+    animation: brilha 3s ease-in-out infinite;
+}
+
+.estrela-1 { top: 15%; left: 80%; animation-delay: 0s; }
+.estrela-2 { top: 25%; left: 15%; animation-delay: 1s; }
+.estrela-3 { top: 60%; right: 20%; animation-delay: 2s; }
+.estrela-4 { bottom: 30%; left: 25%; animation-delay: 3s; }
+.estrela-5 { bottom: 15%; right: 15%; animation-delay: 4s; }
+
+@keyframes brilha {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .compra-container {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        margin: 10px;
+    }
+    
+    .cartela-bingo {
+        width: 250px;
+    }
+    
+    .cartela-bingo .cell {
+        padding: 8px;
+        font-size: 14px;
+    }
+    
+    .nav-links {
+        position: relative;
+        margin-bottom: 15px;
+    }
+}

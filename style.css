@@ -607,3 +607,29 @@ header p {
     box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
     background: linear-gradient(135deg, #495057, #343a40);
 }
+
+/* Link para cartelas */
+.cartelas-link {
+    position: absolute;
+    top: 20px;
+    right: 120px;
+    z-index: 1000;
+}
+
+.btn-cartelas {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border: 2px solid #ffc107;
+}
+
+.btn-cartelas:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    background: linear-gradient(135deg, #45a049, #4CAF50);
+}
