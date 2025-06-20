@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Verificação localStorage</title></head>
+<body>
+<script>
+const cartelas = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
+const carrinho = JSON.parse(localStorage.getItem('bingo_carrinho') || '[]');
+console.log('Cartelas vendidas:', cartelas.length);
+console.log('Carrinho:', carrinho.length);
+document.write(`<p>Cartelas vendidas: ${cartelas.length}</p>`);
+document.write(`<p>Itens no carrinho: ${carrinho.length}</p>`);
+if (cartelas.length > 0) {
+    document.write('<h3>Última cartela:</h3>');
+    const ultima = cartelas[cartelas.length - 1];
+    document.write(`<p>Comprador: ${ultima.comprador || 'Não informado'}</p>`);
+    document.write(`<p>Telefone: ${ultima.telefone || 'Não informado'}</p>`);
+    document.write(`<p>Data: ${ultima.dataVenda || ultima.timestamp || 'Não informada'}</p>`);
+}
+</script>
+</body>
+</html>

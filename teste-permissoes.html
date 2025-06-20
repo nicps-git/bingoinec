@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Permissões Firebase</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            max-width: 800px; 
+            margin: 0 auto;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            padding: 12px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #007bff;
+            color: white;
+        }
+        button:hover { background: #0056b3; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔑 Teste de Permissões Firebase - Bingo INEC</h1>
+    
+    <div id="status" class="status info">
+        ⏳ Aguardando teste de permissões...
+    </div>
+    
+    <button onclick="testarPermissoes()">🧪 Testar Permissões Agora</button>
+    <button onclick="testarTodasColecoes()">📋 Testar Todas as Coleções</button>
+    <button onclick="limparLog()">🧹 Limpar Log</button>
+    
+    <div id="log" class="log"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // Configuração Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCWcZMF4Yty2aX7vAHUs_LI5R6N0S8NRy4",
+            authDomain: "bingoinec.firebaseapp.com",
+            projectId: "bingoinec",
+            storageBucket: "bingoinec.firebasestorage.app",
+            messagingSenderId: "483007152008",
+            appId: "1:483007152008:web:6347c02216e162c0a3c43d"
+        };
+
+        let db;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            logs.push(logMessage);
+            
+            const logDiv = document.getElementById('log');
+            logDiv.textContent = logs.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(logMessage);
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+        }
+
+        async function inicializarFirebase() {
+            try {
+                if (!window.firebase) {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                
+                log('✅ Firebase inicializado com sucesso');
+                return true;
+            } catch (error) {
+                log('❌ Erro ao inicializar Firebase: ' + error.message);
+                updateStatus('❌ Falha na inicialização do Firebase', 'error');
+                return false;
+            }
+        }
+
+        async function testarPermissoes() {
+            updateStatus('🔄 Testando permissões...', 'info');
+            log('🚀 Iniciando teste de permissões Firebase');
+            
+            if (!db) {
+                const initialized = await inicializarFirebase();
+                if (!initialized) return;
+            }
+
+            try {
+                // Teste 1: Criar documento
+                log('📝 Teste 1: Tentando criar documento...');
+                const testId = 'teste_permissao_' + Date.now();
+                await db.collection('_teste_permissoes').doc(testId).set({
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    teste: 'permissoes',
+                    status: 'criado'
+                });
+                log('✅ Documento criado com sucesso');
+
+                // Teste 2: Ler documento
+                log('📖 Teste 2: Tentando ler documento...');
+                const doc = await db.collection('_teste_permissoes').doc(testId).get();
+                if (doc.exists) {
+                    log('✅ Documento lido com sucesso');
+                    log('📄 Dados: ' + JSON.stringify(doc.data(), null, 2));
+                } else {
+                    throw new Error('Documento não encontrado após criação');
+                }
+
+                // Teste 3: Atualizar documento
+                log('✏️ Teste 3: Tentando atualizar documento...');
+                await db.collection('_teste_permissoes').doc(testId).update({
+                    status: 'atualizado',
+                    timestampUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                log('✅ Documento atualizado com sucesso');
+
+                // Teste 4: Listar documentos
+                log('📋 Teste 4: Tentando listar documentos...');
+                const snapshot = await db.collection('_teste_permissoes').limit(5).get();
+                log(`✅ Listagem realizada: ${snapshot.size} documentos encontrados`);
+
+                // Teste 5: Deletar documento
+                log('🗑️ Teste 5: Tentando deletar documento...');
+                await db.collection('_teste_permissoes').doc(testId).delete();
+                log('✅ Documento deletado com sucesso');
+
+                // Sucesso geral
+                updateStatus('✅ Todas as permissões funcionando corretamente!', 'success');
+                log('🎉 SUCESSO: Todas as operações CRUD funcionaram!');
+
+            } catch (error) {
+                log('❌ ERRO DE PERMISSÕES: ' + error.message);
+                log('🔍 Código do erro: ' + (error.code || 'N/A'));
+                updateStatus('❌ Erro de permissões: ' + error.message, 'error');
+                
+                // Diagnóstico específico
+                if (error.code === 'permission-denied') {
+                    log('⚠️ DIAGNÓSTICO: As regras do Firestore estão bloqueando o acesso');
+                    log('💡 SOLUÇÃO: Verificar e atualizar firestore.rules');
+                } else if (error.code === 'unavailable') {
+                    log('⚠️ DIAGNÓSTICO: Serviço indisponível - problema de rede');
+                } else if (error.code === 'unauthenticated') {
+                    log('⚠️ DIAGNÓSTICO: Problema de autenticação');
+                }
+            }
+        }
+
+        async function testarTodasColecoes() {
+            updateStatus('🔄 Testando todas as coleções...', 'info');
+            log('🧪 Testando acesso a todas as coleções do sistema');
+            
+            if (!db) {
+                const initialized = await inicializarFirebase();
+                if (!initialized) return;
+            }
+
+            const colecoes = [
+                'configuracoes',
+                'cartelas', 
+                'numeros-sorteados',
+                'alertas',
+                'usuarios'
+            ];
+
+            let sucessos = 0;
+            let erros = 0;
+
+            for (const colecao of colecoes) {
+                try {
+                    log(`📁 Testando coleção: ${colecao}`);
+                    
+                    // Tentar ler a coleção
+                    const snapshot = await db.collection(colecao).limit(1).get();
+                    log(`✅ ${colecao}: Leitura OK (${snapshot.size} docs)`);
+                    
+                    // Tentar escrever na coleção
+                    const testDoc = db.collection(colecao).doc('teste_' + Date.now());
+                    await testDoc.set({
+                        teste: true,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    log(`✅ ${colecao}: Escrita OK`);
+                    
+                    // Limpar teste
+                    await testDoc.delete();
+                    log(`✅ ${colecao}: Remoção OK`);
+                    
+                    sucessos++;
+                    
+                } catch (error) {
+                    log(`❌ ${colecao}: ERRO - ${error.message}`);
+                    erros++;
+                }
+            }
+
+            if (erros === 0) {
+                updateStatus(`✅ Todas as ${colecoes.length} coleções funcionando!`, 'success');
+                log(`🎉 PERFEITO: ${sucessos}/${colecoes.length} coleções funcionando`);
+            } else {
+                updateStatus(`⚠️ ${erros} coleções com problema`, 'warning');
+                log(`⚠️ ATENÇÃO: ${sucessos} sucessos, ${erros} erros`);
+            }
+        }
+
+        function limparLog() {
+            logs = [];
+            document.getElementById('log').textContent = '';
+            updateStatus('📝 Log limpo - pronto para novos testes', 'info');
+        }
+
+        // Auto-inicializar
+        window.addEventListener('load', async () => {
+            log('🔥 Sistema de teste de permissões carregado');
+            log('👈 Clique em "Testar Permissões Agora" para verificar');
+            await inicializarFirebase();
+        });
+    </script>
+</body>
+</html>

@@ -10,7 +10,9 @@ function verificarAcessoAdmin() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Inicializando página de cartelas...');
+    
     const precoCartelaSpan = document.getElementById('preco-cartela');
     const cartelasDisponiveisSpan = document.getElementById('cartelas-disponiveis');
     const cartelaPreview = document.getElementById('cartela-preview');
@@ -24,31 +26,76 @@ document.addEventListener('DOMContentLoaded', () => {
     const formCheckout = document.getElementById('form-checkout');
     const closeModal = document.querySelector('.close');
 
-    // Chaves para localStorage
-    const STORAGE_KEYS = {
-        numeroInicial: 'bingo_numero_inicial',
-        numeroFinal: 'bingo_numero_final',
-        cartelas: 'bingo_cartelas',
-        precoCartela: 'bingo_preco_cartela',
-        carrinho: 'bingo_carrinho'
-    };
+    console.log('📋 Elementos DOM obtidos');
 
     let cartelaAtual = null;
     let carrinho = [];
+    let configuracoes = {};
+
+    console.log('📊 Variáveis inicializadas');
+
+    // Verificar conexão com Firebase
+    console.log('🔥 Verificando conexão com Firebase...');
+    
+    let conexaoOk = false;
+    let statusFirebase = 'desconhecido';
+    
+    try {
+        // Verificar se Firebase está carregado
+        if (typeof firebase === 'undefined') {
+            throw new Error('Firebase SDK não carregado');
+        }
+        
+        if (typeof firebaseService === 'undefined') {
+            throw new Error('Firebase Service não carregado');
+        }
+        
+        // Tentar verificar conexão
+        conexaoOk = await firebaseService.verificarConexao();
+        statusFirebase = conexaoOk ? 'conectado' : 'offline';
+        
+    } catch (error) {
+        console.error('❌ Erro ao verificar conexão Firebase:', error);
+        statusFirebase = 'erro: ' + error.message;
+    }
+    
+    console.log(`🔥 Status Firebase: ${statusFirebase}`);
+    
+    if (!conexaoOk) {
+        console.warn('⚠️ Modo offline - usando armazenamento local como backup');
+    }
 
     // Carregar dados iniciais
-    function carregarDados() {
-        const preco = parseFloat(localStorage.getItem(STORAGE_KEYS.precoCartela)) || 5.00;
+    async function carregarDados() {
+        try {
+            // Tentar carregar configurações do Firebase
+            configuracoes = await firebaseService.carregarConfiguracoes();
+            console.log('✅ Configurações carregadas do Firebase');
+        } catch (error) {
+            console.error('❌ Erro ao carregar configurações do Firebase:', error);
+            // Usar configurações padrão
+            configuracoes = {
+                numeroInicial: 1,
+                numeroFinal: 75,
+                precoCartela: 5.00
+            };
+            console.log('🔧 Usando configurações padrão');
+        }
+        
+        const preco = configuracoes.precoCartela || 5.00;
         precoCartelaSpan.textContent = `R$ ${preco.toFixed(2)}`;
         
-        carrinho = JSON.parse(localStorage.getItem(STORAGE_KEYS.carrinho) || '[]');
+        // Carregar carrinho do localStorage temporariamente (apenas sessão)
+        carrinho = JSON.parse(localStorage.getItem('bingo_carrinho') || '[]');
         atualizarCarrinho();
+        
+        console.log('✅ Dados carregados - sistema pronto');
     }
 
     // Gerar preview da cartela
     function gerarPreview() {
-        const inicial = parseInt(localStorage.getItem(STORAGE_KEYS.numeroInicial)) || 1;
-        const final = parseInt(localStorage.getItem(STORAGE_KEYS.numeroFinal)) || 75;
+        const inicial = configuracoes.numeroInicial || 1;
+        const final = configuracoes.numeroFinal || 75;
         
         if (final - inicial + 1 < 25) {
             alert('⚠️ Range insuficiente para gerar cartela. Configure no painel administrativo.');
@@ -58,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cartelaAtual = {
             id: Date.now(),
             numeros: gerarNumerosCartela(inicial, final),
-            preco: parseFloat(localStorage.getItem(STORAGE_KEYS.precoCartela)) || 5.00
+            preco: configuracoes.precoCartela || 5.00
         };
 
         exibirCartela(cartelaAtual);
@@ -148,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         carrinho.push(item);
-        localStorage.setItem(STORAGE_KEYS.carrinho, JSON.stringify(carrinho));
+        localStorage.setItem('bingo_carrinho', JSON.stringify(carrinho));
         
         atualizarCarrinho();
         
@@ -194,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Remover item do carrinho
     function removerDoCarrinho(index) {
         carrinho.splice(index, 1);
-        localStorage.setItem(STORAGE_KEYS.carrinho, JSON.stringify(carrinho));
+        localStorage.setItem('bingo_carrinho', JSON.stringify(carrinho));
         atualizarCarrinho();
     }
 
@@ -204,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (confirm('🗑️ Deseja limpar todo o carrinho?')) {
             carrinho = [];
-            localStorage.setItem(STORAGE_KEYS.carrinho, JSON.stringify(carrinho));
+            localStorage.setItem('bingo_carrinho', JSON.stringify(carrinho));
             atualizarCarrinho();
         }
     }
@@ -235,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Processar compra
-    function processarCompra(event) {
+    async function processarCompra(event) {
         event.preventDefault();
         
         const formData = new FormData(formCheckout);
@@ -245,41 +292,124 @@ document.addEventListener('DOMContentLoaded', () => {
             email: document.getElementById('email-comprador').value || null
         };
 
-        // Salvar cartelas como vendidas
-        const cartelas = JSON.parse(localStorage.getItem(STORAGE_KEYS.cartelas) || '[]');
-        
-        carrinho.forEach((itemCarrinho, index) => {
-            const cartela = {
-                id: itemCarrinho.id,
-                numero: cartelas.length + index + 1,
-                preco: itemCarrinho.preco,
-                numeros: itemCarrinho.numeros,
-                dataGeracao: itemCarrinho.dataAdicao,
+        // Declarar variável cartelasParaSalvar no topo da função
+        let cartelasParaSalvar = [];
+
+        try {
+            // Desabilitar botão para evitar duplo envio
+            const submitBtn = formCheckout.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processando...';
+
+            console.log('💳 Iniciando processamento da compra...');
+            console.log('🛒 Carrinho:', carrinho);
+            console.log('👤 Comprador:', comprador);
+
+            // Verificar se o carrinho não está vazio
+            if (!carrinho || carrinho.length === 0) {
+                throw new Error('Carrinho está vazio');
+            }
+
+            // Preparar cartelas para salvar no formato correto
+            cartelasParaSalvar = carrinho.map(item => ({
+                id: `cartela_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                numeros: item.numeros,
+                preco: item.preco,
                 vendida: true,
                 comprador: comprador.nome,
                 telefone: comprador.telefone,
                 email: comprador.email,
-                dataVenda: new Date().toISOString()
-            };
+                dataVenda: new Date().toISOString(),
+                timestamp: new Date()
+            }));
+
+            console.log('🎫 Cartelas preparadas para salvar:', cartelasParaSalvar.length);
+
+            // Verificar se o Firebase está disponível
+            let salvoComSucesso = false;
             
-            cartelas.push(cartela);
-        });
+            if (typeof firebaseService !== 'undefined') {
+                try {
+                    // Tentar salvar no Firebase
+                    console.log('🔥 Tentando salvar no Firebase...');
+                    
+                    // Salvar todas as cartelas no Firebase
+                    for (let i = 0; i < cartelasParaSalvar.length; i++) {
+                        const cartela = cartelasParaSalvar[i];
+                        console.log(`💾 Salvando cartela ${i + 1}/${cartelasParaSalvar.length}:`, cartela.id);
+                        
+                        await firebaseService.salvarCartela(cartela);
+                        console.log(`✅ Cartela ${cartela.id} salva com sucesso`);
+                    }
+                    
+                    salvoComSucesso = true;
+                    console.log('✅ Todas as cartelas salvas no Firebase');
+                    
+                } catch (firebaseError) {
+                    console.error('❌ Erro do Firebase:', firebaseError);
+                    console.log('💾 Salvando localmente como backup...');
+                    
+                    // Salvar localmente como fallback
+                    const cartelasLocais = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
+                    cartelasLocais.push(...cartelasParaSalvar);
+                    localStorage.setItem('bingo_cartelas_vendidas', JSON.stringify(cartelasLocais));
+                    
+                    salvoComSucesso = true;
+                    console.log('✅ Cartelas salvas localmente como backup');
+                }
+            } else {
+                console.log('💾 Firebase não disponível, salvando localmente...');
+                
+                // Salvar localmente
+                const cartelasLocais = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
+                cartelasLocais.push(...cartelasParaSalvar);
+                localStorage.setItem('bingo_cartelas_vendidas', JSON.stringify(cartelasLocais));
+                
+                salvoComSucesso = true;
+                console.log('✅ Cartelas salvas localmente');
+            }
+            
+            if (!salvoComSucesso) {
+                throw new Error('Não foi possível salvar as cartelas');
+            }
 
-        localStorage.setItem(STORAGE_KEYS.cartelas, JSON.stringify(cartelas));
+            // Limpar carrinho
+            carrinho = [];
+            localStorage.setItem('bingo_carrinho', JSON.stringify(carrinho));
 
-        // Limpar carrinho
-        carrinho = [];
-        localStorage.setItem(STORAGE_KEYS.carrinho, JSON.stringify(carrinho));
+            // Fechar modal
+            fecharCheckout();
+            atualizarCarrinho();
 
-        // Fechar modal
-        fecharCheckout();
-        atualizarCarrinho();
+            // Sucesso
+            alert(`🎉 Compra realizada com sucesso!\n\n👤 Comprador: ${comprador.nome}\n📱 Telefone: ${comprador.telefone}\n🎫 Cartelas: ${cartelasParaSalvar.length}\n\nSuas cartelas foram registradas no sistema!`);
+            
+            // Criar confete
+            criarConfeteSucesso();
 
-        // Sucesso
-        alert(`🎉 Compra realizada com sucesso!\n\n👤 Comprador: ${comprador.nome}\n📱 Telefone: ${comprador.telefone}\n🎫 Cartelas: ${cartelas.length}\n\nSuas cartelas foram registradas no sistema!`);
-        
-        // Criar confete
-        criarConfeteSucesso();
+        } catch (error) {
+            console.error('❌ Erro detalhado ao processar compra:', error);
+            console.error('❌ Stack trace:', error.stack);
+            
+            // Mostrar erro mais específico
+            let mensagemErro = 'Erro ao processar compra. ';
+            if (error.message.includes('Firebase Service')) {
+                mensagemErro += 'Sistema offline. Verifique sua conexão.';
+            } else if (error.message.includes('Permission denied')) {
+                mensagemErro += 'Problema de permissão no banco de dados.';
+            } else if (error.message.includes('Network')) {
+                mensagemErro += 'Problema de conexão. Verifique sua internet.';
+            } else {
+                mensagemErro += `Detalhes: ${error.message}`;
+            }
+            
+            alert('❌ ' + mensagemErro);
+        } finally {
+            // Reabilitar botão
+            const submitBtn = formCheckout.querySelector('button[type="submit"]');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '🎉 Finalizar Compra';
+        }
     }
 
     // Criar confete de sucesso
@@ -306,8 +436,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Event listeners
-    gerarPreviewBtn.addEventListener('click', gerarPreview);
-    comprarCartelaBtn.addEventListener('click', adicionarAoCarrinho);
+    console.log('🔗 Configurando event listeners...');
+    
+    gerarPreviewBtn.addEventListener('click', () => {
+        console.log('🎯 Botão Gerar Preview clicado!');
+        gerarPreview();
+    });
+    
+    comprarCartelaBtn.addEventListener('click', () => {
+        console.log('🛒 Botão Comprar clicado!');
+        adicionarAoCarrinho();
+    });
+    
     finalizarCompraBtn.addEventListener('click', abrirCheckout);
     limparCarrinhoBtn.addEventListener('click', limparCarrinho);
     formCheckout.addEventListener('submit', processarCompra);
@@ -341,7 +481,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.head.appendChild(style);
 
     // Carregar dados ao iniciar
-    carregarDados();
+    console.log('📊 Carregando dados iniciais...');
+    await carregarDados();
     
-    console.log('Cartelas page loaded');
+    console.log('✅ Cartelas page loaded - Sistema pronto!');
 });

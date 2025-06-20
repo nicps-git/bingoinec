@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Exibição Vendas - Bingo INEC</title>
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        body {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-weight: bold;
+        }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .log {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+    </style>
+
+    <!-- Firebase App (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <!-- Firebase Firestore (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config-unified.js"></script>
+    <script src="firebase-service.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste de Exibição de Vendas</h1>
+        
+        <div class="test-section">
+            <h3>📊 Status do Sistema</h3>
+            <div><strong>Firebase:</strong> <span id="firebase-status">Verificando...</span></div>
+            <div><strong>Cartelas Carregadas:</strong> <span id="cartelas-count">0</span></div>
+            <div><strong>Cartelas Vendidas:</strong> <span id="vendidas-count">0</span></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🛠️ Ações de Teste</h3>
+            <button onclick="carregarDados()" class="btn btn-success">🔄 Carregar Dados</button>
+            <button onclick="criarCartelaTeste()" class="btn">🎫 Criar Cartela de Teste</button>
+            <button onclick="mostrarVendas()" class="btn">👁️ Mostrar Vendas</button>
+            <button onclick="limparTestes()" class="btn btn-danger">🗑️ Limpar Testes</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Log de Debug</h3>
+            <div id="log" class="log"></div>
+        </div>
+
+        <!-- Modal de Vendas (usando mesmo estilo do admin) -->
+        <div id="modal-vendas" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 style="color: #2E7D32; margin-bottom: 20px;">📋 Cartelas Vendidas</h2>
+                <div id="lista-cartelas"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let logElement;
+        let cartelas = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`${prefix} ${message}`);
+        }
+
+        async function carregarDados() {
+            log('🔄 Carregando dados...');
+            
+            try {
+                // Verificar Firebase
+                if (typeof firebaseService !== 'undefined') {
+                    document.getElementById('firebase-status').textContent = 'Conectado';
+                    
+                    // Carregar cartelas do Firebase
+                    const cartelasFirebase = await firebaseService.carregarCartelas();
+                    log(`📥 ${cartelasFirebase.length} cartelas carregadas do Firebase`);
+                    cartelas = [...cartelasFirebase];
+                } else {
+                    document.getElementById('firebase-status').textContent = 'Offline';
+                    log('⚠️ Firebase Service não disponível', 'warning');
+                }
+                
+                // Carregar também do localStorage
+                const cartelasLocais = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
+                if (cartelasLocais.length > 0) {
+                    log(`📦 ${cartelasLocais.length} cartelas encontradas no localStorage`);
+                    
+                    // Adicionar cartelas locais que não estão no Firebase
+                    cartelasLocais.forEach(cartelaLocal => {
+                        const jaExiste = cartelas.find(c => c.id === cartelaLocal.id);
+                        if (!jaExiste) {
+                            cartelas.push(cartelaLocal);
+                            log(`📎 Cartela local adicionada: ${cartelaLocal.id}`);
+                        }
+                    });
+                }
+                
+                const vendidasCount = cartelas.filter(c => c.vendida).length;
+                
+                document.getElementById('cartelas-count').textContent = cartelas.length;
+                document.getElementById('vendidas-count').textContent = vendidasCount;
+                
+                log(`✅ Total: ${cartelas.length} cartelas, ${vendidasCount} vendidas`, 'success');
+                
+                // Log detalhado das cartelas vendidas
+                cartelas.filter(c => c.vendida).forEach((cartela, index) => {
+                    log(`🎫 Cartela ${index + 1}: ${cartela.comprador || 'Sem nome'} - ${Array.isArray(cartela.numeros) ? cartela.numeros.length : 0} números`);
+                });
+                
+            } catch (error) {
+                log(`❌ Erro ao carregar dados: ${error.message}`, 'error');
+                document.getElementById('firebase-status').textContent = 'Erro';
+            }
+        }
+
+        function criarCartelaTeste() {
+            log('🎫 Criando cartela de teste...');
+            
+            const cartelaTeste = {
+                id: `teste_vendas_${Date.now()}`,
+                numeros: [5, 12, 23, 34, 45, 56, 67, 78, 1, 13, 25, 37, 49, 61, 73, 2, 14, 26, 38, 50, 62, 74, 3, 15, 27],
+                preco: 5.00,
+                vendida: true,
+                comprador: 'João Teste da Silva',
+                telefone: '(85) 99999-9999',
+                email: 'joao.teste@email.com',
+                dataVenda: new Date().toISOString(),
+                timestamp: new Date()
+            };
+            
+            cartelas.push(cartelaTeste);
+            
+            // Salvar no localStorage
+            const cartelasLocais = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
+            cartelasLocais.push(cartelaTeste);
+            localStorage.setItem('bingo_cartelas_vendidas', JSON.stringify(cartelasLocais));
+            
+            const vendidasCount = cartelas.filter(c => c.vendida).length;
+            document.getElementById('cartelas-count').textContent = cartelas.length;
+            document.getElementById('vendidas-count').textContent = vendidasCount;
+            
+            log(`✅ Cartela de teste criada: ${cartelaTeste.id}`, 'success');
+            log(`📊 Agora há ${vendidasCount} cartela(s) vendida(s)`);
+        }
+
+        function mostrarVendas() {
+            log('👁️ Exibindo vendas...');
+            
+            const cartelasVendidas = cartelas.filter(c => c.vendida);
+            
+            if (cartelasVendidas.length === 0) {
+                log('⚠️ Nenhuma cartela vendida encontrada', 'warning');
+                alert('📋 Nenhuma cartela vendida ainda.');
+                return;
+            }
+
+            log(`📋 Preparando exibição de ${cartelasVendidas.length} cartela(s) vendida(s)`);
+
+            let html = '<div class="lista-vendas">';
+            cartelasVendidas.forEach((cartela, index) => {
+                // Verificar se cartela tem dados válidos
+                const numerosCartela = Array.isArray(cartela.numeros) ? cartela.numeros : [];
+                const dataVenda = cartela.dataVenda || cartela.timestamp || cartela.dataReferencia;
+                const dataFormatada = dataVenda ? new Date(dataVenda).toLocaleString() : 'Data não informada';
+                
+                log(`🔍 Cartela ${index + 1}: ${cartela.comprador || 'Sem nome'} - ${numerosCartela.length} números`);
+                
+                html += `
+                    <div class="venda-item">
+                        <h4>Cartela #${index + 1}</h4>
+                        <p><strong>ID:</strong> ${cartela.id || 'Não informado'}</p>
+                        <p><strong>Comprador:</strong> ${cartela.comprador || 'Não informado'}</p>
+                        <p><strong>Telefone:</strong> ${cartela.telefone || 'Não informado'}</p>
+                        <p><strong>Email:</strong> ${cartela.email || 'Não informado'}</p>
+                        <p><strong>Preço:</strong> R$ ${(cartela.preco || 0).toFixed(2)}</p>
+                        <p><strong>Data:</strong> ${dataFormatada}</p>
+                        <div class="cartela-numeros">
+                            <strong>Números da Cartela:</strong>
+                            <div class="numeros-grid">
+                                ${numerosCartela.map(num => `<span class="numero-cartela">${num}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            document.getElementById('lista-cartelas').innerHTML = html;
+            document.getElementById('modal-vendas').style.display = 'block';
+            
+            log('✅ Modal de vendas exibido', 'success');
+        }
+
+        function limparTestes() {
+            if (!confirm('⚠️ Isso vai limpar todas as cartelas de teste. Confirma?')) {
+                return;
+            }
+            
+            log('🗑️ Limpando cartelas de teste...');
+            
+            // Remover cartelas que começam com "teste_"
+            cartelas = cartelas.filter(c => !c.id.startsWith('teste_'));
+            
+            // Limpar localStorage
+            const cartelasLocais = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
+            const cartelasLimpas = cartelasLocais.filter(c => !c.id.startsWith('teste_'));
+            localStorage.setItem('bingo_cartelas_vendidas', JSON.stringify(cartelasLimpas));
+            
+            const vendidasCount = cartelas.filter(c => c.vendida).length;
+            document.getElementById('cartelas-count').textContent = cartelas.length;
+            document.getElementById('vendidas-count').textContent = vendidasCount;
+            
+            log('✅ Cartelas de teste removidas', 'success');
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', async () => {
+            logElement = document.getElementById('log');
+            
+            log('🧪 Página de teste carregada');
+            
+            // Configurar modal
+            const modal = document.getElementById('modal-vendas');
+            const closeBtn = document.querySelector('.close');
+            
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+                log('❌ Modal fechado');
+            });
+            
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                    log('❌ Modal fechado (clique fora)');
+                }
+            });
+            
+            // Carregar dados iniciais
+            await carregarDados();
+        });
+    </script>
+</body>
+</html>

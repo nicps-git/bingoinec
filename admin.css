@@ -606,6 +606,121 @@ header p {
     border-left: 4px solid #4CAF50;
 }
 
+/* Estilos para Modal de Vendas */
+.lista-vendas {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.venda-item {
+    background: linear-gradient(135deg, #e8f5e8, #f1f8e9);
+    border: 2px solid #4CAF50;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.venda-item::before {
+    content: '🎫';
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 24px;
+    opacity: 0.3;
+}
+
+.venda-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+    border-color: #2E7D32;
+}
+
+.venda-item h4 {
+    color: #2E7D32;
+    margin: 0 0 15px 0;
+    font-size: 1.4em;
+    border-bottom: 2px solid #4CAF50;
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.venda-item h4::before {
+    content: '🏷️';
+    font-size: 20px;
+}
+
+.venda-item p {
+    margin: 8px 0;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.venda-item p strong {
+    color: #1B5E20;
+    font-weight: 600;
+    min-width: 80px;
+    display: inline-block;
+}
+
+.cartela-numeros {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 15px;
+    border: 1px dashed #4CAF50;
+    position: relative;
+}
+
+.cartela-numeros::before {
+    content: '🔢';
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 18px;
+    opacity: 0.5;
+}
+
+.cartela-numeros strong {
+    color: #2E7D32;
+    font-size: 16px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.numeros-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.numero-cartela {
+    background: linear-gradient(135deg, #4CAF50, #66BB6A);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 25px;
+    font-weight: bold;
+    font-size: 14px;
+    min-width: 35px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+}
+
+.numero-cartela:hover {
+    transform: scale(1.1);
+    background: linear-gradient(135deg, #2E7D32, #4CAF50);
+}
+
 /* Navegação e controles de usuário */
 .nav-links {
     position: absolute;
@@ -691,5 +806,30 @@ header p {
     .btn-primary, .btn-warning, .btn-success, .btn-danger {
         width: 100%;
         max-width: 250px;
+    }
+    
+    .modal-content {
+        margin: 2% auto;
+        width: 95%;
+        padding: 20px;
+    }
+    
+    .venda-item {
+        padding: 15px;
+    }
+    
+    .venda-item h4 {
+        font-size: 1.2em;
+    }
+    
+    .numero-cartela {
+        padding: 6px 8px;
+        font-size: 12px;
+        min-width: 30px;
+    }
+    
+    .lista-vendas {
+        max-height: 300px;
+        gap: 15px;
     }
 }

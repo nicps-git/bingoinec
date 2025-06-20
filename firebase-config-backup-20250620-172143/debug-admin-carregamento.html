@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Admin - Debug Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .debug-section {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .error {
+            border-left-color: #dc3545;
+            background: #ffe6e6;
+        }
+        
+        .success {
+            border-left-color: #28a745;
+            background: #e6ffe6;
+        }
+        
+        .warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        
+        #status {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
+    <!-- Firebase SDK v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config-fixed.js"></script>
+    <script src="firebase-service.js"></script>
+    <script src="login.js"></script>
+</head>
+<body>
+    <h1>🔧 Debug Admin - Teste de Carregamento</h1>
+    
+    <div class="debug-section">
+        <div id="status">🔄 Verificando carregamento...</div>
+        <div id="details"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>📊 Status dos Scripts</h3>
+        <div id="scripts-status"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>🔥 Status Firebase</h3>
+        <div id="firebase-status"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>🔐 Status Autenticação</h3>
+        <div id="auth-status"></div>
+    </div>
+
+    <script>
+        // Debug de carregamento
+        console.log('🚀 Iniciando debug admin...');
+        
+        function updateStatus(message, isError = false) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = isError ? 'error' : '';
+            console.log(message);
+        }
+        
+        function updateSection(sectionId, content, className = '') {
+            const el = document.getElementById(sectionId);
+            el.innerHTML = content;
+            if (className) {
+                el.parentElement.className = `debug-section ${className}`;
+            }
+        }
+        
+        // Verificar scripts carregados
+        function checkScripts() {
+            let scriptsHtml = '';
+            
+            // Verificar Firebase
+            if (typeof firebase !== 'undefined') {
+                scriptsHtml += '✅ Firebase SDK carregado<br>';
+            } else {
+                scriptsHtml += '❌ Firebase SDK não encontrado<br>';
+            }
+            
+            // Verificar configuração Firebase
+            if (typeof firebaseConfig !== 'undefined') {
+                scriptsHtml += '✅ Firebase Config carregado<br>';
+            } else {
+                scriptsHtml += '❌ Firebase Config não encontrado<br>';
+            }
+            
+            // Verificar Firebase Service
+            if (typeof window.waitForFirebase !== 'undefined') {
+                scriptsHtml += '✅ Firebase Service carregado<br>';
+            } else {
+                scriptsHtml += '❌ Firebase Service não encontrado<br>';
+            }
+            
+            // Verificar login system
+            if (typeof window.bingoAuth !== 'undefined') {
+                scriptsHtml += '✅ Bingo Auth carregado<br>';
+            } else {
+                scriptsHtml += '❌ Bingo Auth não encontrado<br>';
+            }
+            
+            updateSection('scripts-status', scriptsHtml);
+        }
+        
+        // Verificar Firebase
+        async function checkFirebase() {
+            try {
+                updateSection('firebase-status', '🔄 Testando Firebase...');
+                
+                if (typeof window.waitForFirebase === 'undefined') {
+                    updateSection('firebase-status', '❌ waitForFirebase não disponível', 'error');
+                    return;
+                }
+                
+                const service = await window.waitForFirebase(10000);
+                updateSection('firebase-status', '✅ Firebase conectado com sucesso!', 'success');
+                
+                // Testar operação básica
+                try {
+                    await service.testConnection();
+                    updateSection('firebase-status', '✅ Firebase conectado e testado com sucesso!', 'success');
+                } catch (testError) {
+                    updateSection('firebase-status', `⚠️ Firebase conectado mas teste falhou: ${testError.message}`, 'warning');
+                }
+                
+            } catch (error) {
+                updateSection('firebase-status', `❌ Erro Firebase: ${error.message}`, 'error');
+            }
+        }
+        
+        // Verificar autenticação
+        function checkAuth() {
+            try {
+                if (typeof window.bingoAuth === 'undefined') {
+                    updateSection('auth-status', '❌ Sistema de autenticação não carregado', 'error');
+                    return;
+                }
+                
+                const isAuth = window.bingoAuth.isAuthenticated();
+                if (isAuth) {
+                    const user = window.bingoAuth.getCurrentUser();
+                    updateSection('auth-status', `✅ Usuário autenticado: ${user.email}`, 'success');
+                } else {
+                    updateSection('auth-status', '⚠️ Usuário não autenticado (necessário fazer login)', 'warning');
+                }
+                
+            } catch (error) {
+                updateSection('auth-status', `❌ Erro na autenticação: ${error.message}`, 'error');
+            }
+        }
+        
+        // Executar testes
+        async function runTests() {
+            updateStatus('🔄 Executando testes...');
+            
+            // Aguardar um pouco para garantir que scripts carregaram
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            checkScripts();
+            await checkFirebase();
+            checkAuth();
+            
+            updateStatus('✅ Testes concluídos!');
+        }
+        
+        // Iniciar quando página carregar
+        document.addEventListener('DOMContentLoaded', runTests);
+        
+        // Debug de erros
+        window.addEventListener('error', (e) => {
+            console.error('🔥 Erro na página:', e.error);
+            updateSection('details', `❌ Erro detectado: ${e.error.message}<br><pre>${e.error.stack}</pre>`, 'error');
+        });
+        
+        // Debug de promises rejeitadas
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('🔥 Promise rejeitada:', e.reason);
+            updateSection('details', `❌ Promise rejeitada: ${e.reason}`, 'error');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Completo Firebase</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .teste { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .sucesso { background: #d4edda; border-color: #c3e6cb; }
+        .erro { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .log { font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 10px; margin: 10px 0; border: 1px solid #dee2e6; height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Diagnóstico Completo Firebase</h1>
+    
+    <div id="status-container">
+        <div id="status-firebase" class="teste">⏳ Verificando Firebase...</div>
+        <div id="status-config" class="teste">⏳ Verificando configuração...</div>
+        <div id="status-conexao" class="teste">⏳ Testando conexão...</div>
+        <div id="status-escrita" class="teste">⏳ Testando escrita...</div>
+        <div id="status-leitura" class="teste">⏳ Testando leitura...</div>
+    </div>
+
+    <div>
+        <button onclick="executarTestes()">🔄 Executar Todos os Testes</button>
+        <button onclick="testarEscrita()">✍️ Testar Só Escrita</button>
+        <button onclick="testarLeitura()">📖 Testar Só Leitura</button>
+        <button onclick="limparLogs()">🧹 Limpar Logs</button>
+    </div>
+
+    <div id="logs" class="log"></div>
+
+    <!-- Firebase SDK v8 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config-unified.js"></script>
+
+    <script>
+        let logs = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            logs.push(logMessage);
+            
+            console.log(logMessage);
+            
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML = logs.join('\n');
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function updateStatus(elementId, message, success = null) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            
+            if (success === true) {
+                element.className = 'teste sucesso';
+            } else if (success === false) {
+                element.className = 'teste erro';
+            } else {
+                element.className = 'teste info';
+            }
+        }
+
+        async function executarTestes() {
+            log('🚀 Iniciando diagnóstico completo...');
+            
+            // Teste 1: Verificar se Firebase está carregado
+            log('📋 Teste 1: Verificando carregamento do Firebase...');
+            try {
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase não está definido');
+                }
+                
+                if (typeof firebase.firestore === 'undefined') {
+                    throw new Error('Firebase Firestore não está disponível');
+                }
+                
+                updateStatus('status-firebase', '✅ Firebase carregado corretamente', true);
+                log('✅ Firebase SDK carregado com sucesso');
+            } catch (error) {
+                updateStatus('status-firebase', '❌ Firebase não carregado: ' + error.message, false);
+                log('❌ Erro no Firebase: ' + error.message);
+                return;
+            }
+
+            // Teste 2: Verificar configuração
+            log('📋 Teste 2: Verificando configuração...');
+            try {
+                const app = firebase.apps[0];
+                if (!app) {
+                    throw new Error('Firebase não foi inicializado');
+                }
+                
+                const config = app.options;
+                log('🔧 Configuração detectada:');
+                log(`   ProjectID: ${config.projectId}`);
+                log(`   AuthDomain: ${config.authDomain}`);
+                log(`   API Key: ${config.apiKey ? 'Configurada' : 'Não configurada'}`);
+                
+                updateStatus('status-config', '✅ Configuração válida', true);
+            } catch (error) {
+                updateStatus('status-config', '❌ Configuração inválida: ' + error.message, false);
+                log('❌ Erro na configuração: ' + error.message);
+                return;
+            }
+
+            // Teste 3: Testar conexão básica
+            log('📋 Teste 3: Testando conexão...');
+            try {
+                const db = firebase.firestore();
+                
+                // Tentar fazer uma operação simples de teste
+                const testDoc = db.collection('_test').doc('connection');
+                await testDoc.set({
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    test: 'connection_test'
+                });
+                
+                // Limpar o documento de teste
+                await testDoc.delete();
+                
+                updateStatus('status-conexao', '✅ Conexão estabelecida', true);
+                log('✅ Conexão com Firestore OK');
+            } catch (error) {
+                updateStatus('status-conexao', '❌ Erro de conexão: ' + error.message, false);
+                log('❌ Erro de conexão: ' + error.message);
+                log('🔍 Código do erro: ' + (error.code || 'N/A'));
+                
+                if (error.code === 'permission-denied') {
+                    log('⚠️ Erro de permissão - verifique as regras do Firestore');
+                } else if (error.code === 'unavailable') {
+                    log('⚠️ Serviço indisponível - problema de rede ou Firebase');
+                }
+            }
+
+            // Teste 4: Testar escrita de dados
+            await testarEscrita();
+
+            // Teste 5: Testar leitura de dados
+            await testarLeitura();
+
+            log('🏁 Diagnóstico completo finalizado!');
+        }
+
+        async function testarEscrita() {
+            log('📋 Teste 4: Testando escrita de dados...');
+            try {
+                const db = firebase.firestore();
+                const testId = 'teste_' + Date.now();
+                
+                const cartelaTeste = {
+                    id: testId,
+                    numeros: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+                    preco: 5.00,
+                    vendida: true,
+                    comprador: 'Teste Diagnóstico',
+                    telefone: '(11) 99999-9999',
+                    email: 'teste@diagnostico.com',
+                    dataVenda: new Date().toISOString(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                log('💾 Tentando salvar cartela de teste...');
+                await db.collection('cartelas').doc(testId).set(cartelaTeste);
+                
+                updateStatus('status-escrita', '✅ Escrita realizada com sucesso', true);
+                log('✅ Cartela de teste salva com ID: ' + testId);
+                
+                // Salvar o ID para o teste de leitura
+                window.lastTestId = testId;
+                
+            } catch (error) {
+                updateStatus('status-escrita', '❌ Erro na escrita: ' + error.message, false);
+                log('❌ Erro ao escrever: ' + error.message);
+                log('🔍 Código do erro: ' + (error.code || 'N/A'));
+            }
+        }
+
+        async function testarLeitura() {
+            log('📋 Teste 5: Testando leitura de dados...');
+            try {
+                const db = firebase.firestore();
+                
+                // Tentar ler a cartela que acabamos de criar
+                if (window.lastTestId) {
+                    log('📖 Tentando ler cartela criada no teste anterior...');
+                    const doc = await db.collection('cartelas').doc(window.lastTestId).get();
+                    
+                    if (doc.exists) {
+                        const data = doc.data();
+                        log('✅ Cartela lida com sucesso');
+                        log('📄 Dados: ' + JSON.stringify(data, null, 2));
+                        
+                        // Limpar a cartela de teste
+                        await db.collection('cartelas').doc(window.lastTestId).delete();
+                        log('🗑️ Cartela de teste removida');
+                    } else {
+                        log('⚠️ Cartela de teste não encontrada');
+                    }
+                }
+                
+                // Tentar listar algumas cartelas existentes
+                log('📖 Tentando listar cartelas existentes...');
+                const snapshot = await db.collection('cartelas').limit(5).get();
+                
+                updateStatus('status-leitura', `✅ Leitura OK - ${snapshot.size} documentos encontrados`, true);
+                log(`✅ Encontradas ${snapshot.size} cartelas no banco`);
+                
+                if (snapshot.size > 0) {
+                    snapshot.forEach((doc, index) => {
+                        log(`📄 Cartela ${index + 1}: ${doc.id}`);
+                    });
+                }
+                
+            } catch (error) {
+                updateStatus('status-leitura', '❌ Erro na leitura: ' + error.message, false);
+                log('❌ Erro ao ler: ' + error.message);
+                log('🔍 Código do erro: ' + (error.code || 'N/A'));
+            }
+        }
+
+        function limparLogs() {
+            logs = [];
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        // Executar teste automático quando a página carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🔥 Página carregada - aguardando Firebase...');
+            
+            // Aguardar um pouco para Firebase carregar completamente
+            setTimeout(() => {
+                executarTestes();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

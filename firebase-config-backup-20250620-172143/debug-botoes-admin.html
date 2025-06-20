@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Botões Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .debug-section {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .error { border-left-color: #dc3545; background: #ffe6e6; }
+        .success { border-left-color: #28a745; background: #e6ffe6; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; }
+        
+        button { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            background: #007bff; 
+            color: white;
+        }
+        
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        
+        .element-check {
+            display: inline-block;
+            margin: 5px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .found { background: #d4edda; color: #155724; }
+        .missing { background: #f8d7da; color: #721c24; }
+    </style>
+    
+    <!-- Firebase SDK v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config-fixed.js"></script>
+    <script src="firebase-service.js"></script>
+    <script src="login.js"></script>
+</head>
+<body>
+    <h1>🔧 Debug Botões Admin</h1>
+    
+    <div class="debug-section">
+        <h3>📋 Status Geral</h3>
+        <div id="status">🔄 Verificando...</div>
+    </div>
+
+    <div class="debug-section">
+        <h3>🔍 Elementos DOM</h3>
+        <div id="elements-check"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>🧪 Teste de Botões Simulados</h3>
+        <p>Estes botões têm os mesmos IDs da página admin:</p>
+        <button id="salvar-config">💾 Salvar Config</button>
+        <button id="resetar-jogo">🔄 Resetar</button>
+        <button id="ir-para-bingo">🎪 Ir Bingo</button>
+        <button id="gerar-cartela">🎫 Gerar Cartela</button>
+        <button id="ver-vendas">💰 Ver Vendas</button>
+        <div id="test-results"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>🔐 Sistema de Autenticação</h3>
+        <button onclick="simularLogin()">Fazer Login</button>
+        <div id="auth-status"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>📊 Logs</h3>
+        <pre id="logs"></pre>
+    </div>
+
+    <!-- Inputs ocultos para teste -->
+    <input type="hidden" id="numero-inicial" value="1">
+    <input type="hidden" id="numero-final" value="75">
+    <input type="hidden" id="preco-cartela" value="5.00">
+    <div id="modal-vendas" style="display: none;">
+        <div class="close">&times;</div>
+        <div id="lista-cartelas"></div>
+    </div>
+
+    <script>
+        let logs = '';
+        
+        function log(message) {
+            console.log(message);
+            logs += new Date().toLocaleTimeString() + ': ' + message + '\\n';
+            document.getElementById('logs').textContent = logs;
+        }
+        
+        function updateStatus(message, className = '') {
+            const el = document.getElementById('status');
+            el.textContent = message;
+            if (className) {
+                el.parentElement.className = `debug-section ${className}`;
+            }
+            log(message);
+        }
+        
+        function checkElements() {
+            const elementsToCheck = [
+                'numero-inicial',
+                'numero-final',
+                'salvar-config',
+                'resetar-jogo',
+                'ir-para-bingo',
+                'limpar-historico',
+                'preco-cartela',
+                'gerar-cartela',
+                'ver-vendas',
+                'modal-vendas',
+                'lista-cartelas'
+            ];
+            
+            let html = '';
+            let foundCount = 0;
+            
+            elementsToCheck.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    html += `<span class="element-check found">✅ ${id}</span>`;
+                    foundCount++;
+                } else {
+                    html += `<span class="element-check missing">❌ ${id}</span>`;
+                }
+            });
+            
+            document.getElementById('elements-check').innerHTML = html;
+            log(`Elementos encontrados: ${foundCount}/${elementsToCheck.length}`);
+            
+            return foundCount === elementsToCheck.length;
+        }
+        
+        function simularLogin() {
+            try {
+                const session = {
+                    email: 'admin@bingoinec.org.br',
+                    loginTime: Date.now(),
+                    expiryTime: Date.now() + (8 * 60 * 60 * 1000)
+                };
+                
+                localStorage.setItem('bingoAdminSession', JSON.stringify(session));
+                document.getElementById('auth-status').innerHTML = '✅ Login simulado com sucesso!';
+                log('✅ Login simulado');
+                
+                setTimeout(() => {
+                    if (window.bingoAuth && window.bingoAuth.isAuthenticated()) {
+                        document.getElementById('auth-status').innerHTML = '✅ Autenticação verificada!';
+                    }
+                }, 500);
+                
+            } catch (error) {
+                document.getElementById('auth-status').innerHTML = `❌ Erro: ${error.message}`;
+                log(`❌ Erro no login: ${error.message}`);
+            }
+        }
+        
+        function testarEventListeners() {
+            log('🧪 Testando event listeners...');
+            
+            const buttons = [
+                'salvar-config',
+                'resetar-jogo', 
+                'ir-para-bingo',
+                'gerar-cartela',
+                'ver-vendas'
+            ];
+            
+            let results = '';
+            let workingCount = 0;
+            
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    // Adicionar listener de teste
+                    btn.addEventListener('click', function() {
+                        log(`✅ Botão ${id} funcionando!`);
+                        results += `<div style="color: green;">✅ ${id} - OK</div>`;
+                        document.getElementById('test-results').innerHTML = results;
+                    });
+                    
+                    workingCount++;
+                    results += `<div style="color: blue;">🔧 ${id} - Listener adicionado</div>`;
+                } else {
+                    results += `<div style="color: red;">❌ ${id} - Elemento não encontrado</div>`;
+                }
+            });
+            
+            document.getElementById('test-results').innerHTML = results;
+            log(`Event listeners configurados: ${workingCount}/${buttons.length}`);
+        }
+        
+        async function inicializarTeste() {
+            updateStatus('🚀 Iniciando testes...');
+            
+            // Aguardar scripts carregarem
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Verificar elementos
+            const elementsOk = checkElements();
+            
+            // Verificar Firebase
+            let firebaseOk = false;
+            try {
+                if (typeof window.waitForFirebase !== 'undefined') {
+                    const service = await window.waitForFirebase(5000);
+                    log('✅ Firebase Service disponível');
+                    firebaseOk = true;
+                } else {
+                    log('❌ waitForFirebase não disponível');
+                }
+            } catch (error) {
+                log(`❌ Firebase falhou: ${error.message}`);
+            }
+            
+            // Verificar autenticação
+            let authOk = false;
+            if (typeof window.bingoAuth !== 'undefined') {
+                log('✅ Sistema de autenticação carregado');
+                authOk = true;
+            } else {
+                log('❌ Sistema de autenticação não carregado');
+            }
+            
+            // Configurar event listeners de teste
+            testarEventListeners();
+            
+            // Status final
+            if (elementsOk && firebaseOk && authOk) {
+                updateStatus('✅ Todos os sistemas OK - botões devem funcionar!', 'success');
+            } else {
+                updateStatus('⚠️ Alguns problemas detectados', 'warning');
+            }
+            
+            log('🎯 Teste concluído. Clique nos botões acima para testar!');
+        }
+        
+        // Capturar erros
+        window.addEventListener('error', (e) => {
+            log(`🔥 Erro capturado: ${e.error.message}`);
+            updateStatus('❌ Erro detectado', 'error');
+        });
+        
+        document.addEventListener('DOMContentLoaded', inicializarTeste);
+    </script>
+</body>
+</html>

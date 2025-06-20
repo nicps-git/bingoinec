@@ -10,7 +10,7 @@ function verificarAcessoAdmin() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const sortearBtn = document.getElementById('sortear-btn');
     const numeroSorteadoEl = document.getElementById('numero-sorteado');
     const numerosAnterioresEl = document.getElementById('numeros-anteriores');
@@ -22,49 +22,87 @@ document.addEventListener('DOMContentLoaded', () => {
     let cartelasBingo = new Set(); // Cartelas com BINGO
     let alertasBingoMostrados = new Set(); // Para evitar spam de alertas
     
-    // Chaves para localStorage
-    const STORAGE_KEYS = {
-        numeroInicial: 'bingo_numero_inicial',
-        numeroFinal: 'bingo_numero_final',
-        numerosSorteados: 'bingo_numeros_sorteados',
-        numerosDisponiveis: 'bingo_numeros_disponiveis'
-    };
-
     let numerosSorteados = [];
     let numerosDisponiveis = [];
+    let configuracoes = {};
+
+    // Verificar conexão com Firebase
+    console.log('🔥 Verificando conexão com Firebase...');
+    const conexaoOk = await firebaseService.verificarConexao();
+    if (!conexaoOk) {
+        alert('❌ Erro de conexão com Firebase. Verifique sua conexão com a internet.');
+        return;
+    }
 
     // Carregar configurações e dados salvos
-    function carregarDados() {
-        const numeroInicial = parseInt(localStorage.getItem(STORAGE_KEYS.numeroInicial)) || 1;
-        const numeroFinal = parseInt(localStorage.getItem(STORAGE_KEYS.numeroFinal)) || 75;
-        
-        // Carregar números sorteados
-        numerosSorteados = JSON.parse(localStorage.getItem(STORAGE_KEYS.numerosSorteados) || '[]');
-        
-        // Carregar números disponíveis ou criar se não existir
-        const numerosDisponiveisSalvos = localStorage.getItem(STORAGE_KEYS.numerosDisponiveis);
-        if (numerosDisponiveisSalvos) {
-            numerosDisponiveis = JSON.parse(numerosDisponiveisSalvos);
-        } else {
-            // Criar range baseado nas configurações
-            numerosDisponiveis = Array.from({ length: numeroFinal - numeroInicial + 1 }, (_, i) => i + numeroInicial);
-            localStorage.setItem(STORAGE_KEYS.numerosDisponiveis, JSON.stringify(numerosDisponiveis));
+    async function carregarDados() {
+        try {
+            // Carregar configurações
+            configuracoes = await firebaseService.carregarConfiguracoes();
+            console.log('✅ Configurações carregadas:', configuracoes);
+            
+            // Carregar números sorteados
+            numerosSorteados = await firebaseService.carregarNumerosSorteados();
+            console.log('✅ Números sorteados carregados:', numerosSorteados.length);
+            
+            // Criar números disponíveis baseado nas configurações
+            const numeroInicial = configuracoes.numeroInicial || 1;
+            const numeroFinal = configuracoes.numeroFinal || 75;
+            const todosNumeros = Array.from({ length: numeroFinal - numeroInicial + 1 }, (_, i) => i + numeroInicial);
+            numerosDisponiveis = todosNumeros.filter(num => !numerosSorteados.includes(num));
+            
+            // Restaurar números sorteados na tela
+            numerosAnterioresEl.innerHTML = '';
+            numerosSorteados.forEach(numero => {
+                const li = document.createElement('li');
+                li.textContent = numero;
+                numerosAnterioresEl.appendChild(li);
+            });
+            
+            atualizarContador();
+            
+            // Configurar listeners em tempo real
+            configurarListeners();
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar dados:', error);
+            alert('Erro ao carregar dados do Firebase. Tente recarregar a página.');
         }
-        
-        // Restaurar números sorteados na tela
+    }
+
+    // Configurar listeners em tempo real
+    function configurarListeners() {
+        // Escutar mudanças nos números sorteados
+        firebaseService.escutarNumerosSorteados((numeros) => {
+            if (JSON.stringify(numeros) !== JSON.stringify(numerosSorteados)) {
+                console.log('🔄 Números sorteados atualizados em tempo real');
+                numerosSorteados = numeros;
+                
+                // Atualizar números disponíveis
+                const numeroInicial = configuracoes.numeroInicial || 1;
+                const numeroFinal = configuracoes.numeroFinal || 75;
+                const todosNumeros = Array.from({ length: numeroFinal - numeroInicial + 1 }, (_, i) => i + numeroInicial);
+                numerosDisponiveis = todosNumeros.filter(num => !numerosSorteados.includes(num));
+                
+                // Atualizar interface
+                atualizarInterfaceNumeros();
+                atualizarContador();
+                
+                // Verificar cartelas após mudança
+                setTimeout(() => {
+                    verificarStatusCartelas();
+                }, 1000);
+            }
+        });
+    }
+
+    function atualizarInterfaceNumeros() {
+        numerosAnterioresEl.innerHTML = '';
         numerosSorteados.forEach(numero => {
             const li = document.createElement('li');
             li.textContent = numero;
             numerosAnterioresEl.appendChild(li);
         });
-        
-        atualizarContador();
-    }
-
-    // Salvar dados no localStorage
-    function salvarDados() {
-        localStorage.setItem(STORAGE_KEYS.numerosSorteados, JSON.stringify(numerosSorteados));
-        localStorage.setItem(STORAGE_KEYS.numerosDisponiveis, JSON.stringify(numerosDisponiveis));
     }
 
     // Sons de festa junina (simulados com vibração se disponível)

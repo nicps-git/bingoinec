@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Geração de Cartela</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin: 20px 0; }
+        .numero { border: 1px solid #ccc; padding: 10px; text-align: center; background: #f0f0f0; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Teste Geração de Cartela</h1>
+    <button id="gerar-cartela">Gerar Cartela</button>
+    <div id="cartela-preview"></div>
+
+    <script>
+        function gerarNumerosCartela(min, max) {
+            const numeros = [];
+            const totalRange = max - min + 1;
+            const colSize = Math.floor(totalRange / 5);
+            
+            const ranges = [
+                { min: min, max: Math.min(min + colSize - 1, max) },
+                { min: Math.min(min + colSize, max), max: Math.min(min + (colSize * 2) - 1, max) },
+                { min: Math.min(min + (colSize * 2), max), max: Math.min(min + (colSize * 3) - 1, max) },
+                { min: Math.min(min + (colSize * 3), max), max: Math.min(min + (colSize * 4) - 1, max) },
+                { min: Math.min(min + (colSize * 4), max), max: max }
+            ];
+
+            for (let col = 0; col < 5; col++) {
+                const colNums = [];
+                const range = ranges[col];
+                
+                if (range.min > range.max) continue;
+                
+                while (colNums.length < 5) {
+                    const num = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+                    if (!colNums.includes(num)) {
+                        colNums.push(num);
+                    }
+                }
+                
+                colNums.sort((a, b) => a - b);
+                numeros.push(...colNums);
+            }
+            
+            return numeros;
+        }
+
+        function exibirCartela(numeros) {
+            const preview = document.getElementById('cartela-preview');
+            
+            let html = '<div class="cartela">';
+            numeros.forEach(numero => {
+                html += `<div class="numero">${numero}</div>`;
+            });
+            html += '</div>';
+            
+            preview.innerHTML = html;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const button = document.getElementById('gerar-cartela');
+            
+            button.addEventListener('click', () => {
+                console.log('Botão clicado!');
+                
+                try {
+                    const numeros = gerarNumerosCartela(1, 75);
+                    console.log('Números gerados:', numeros);
+                    exibirCartela(numeros);
+                } catch (error) {
+                    console.error('Erro ao gerar cartela:', error);
+                    alert('Erro: ' + error.message);
+                }
+            });
+            
+            console.log('Página carregada, botão configurado');
+        });
+    </script>
+</body>
+</html>

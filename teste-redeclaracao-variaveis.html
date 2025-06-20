@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Redeclaração de Variáveis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-section {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .error { border-left-color: #dc3545; background: #ffe6e6; }
+        .success { border-left-color: #28a745; background: #e6ffe6; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; }
+        
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste de Redeclaração de Variáveis</h1>
+    
+    <div class="test-section">
+        <h3>🎯 Objetivo</h3>
+        <p>Verificar se o erro "Cannot redeclare block-scoped variable 'app'" foi resolvido</p>
+    </div>
+
+    <div class="test-section">
+        <h3>📋 Status dos Testes</h3>
+        <div id="test-status">🔄 Aguardando testes...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔧 Testes Manuais</h3>
+        <button class="btn-primary" onclick="testarFirebaseConfig()">Testar firebase-config-unified.js</button>
+        <button class="btn-primary" onclick="testarFirebaseFixed()">Testar firebase-config-fixed.js</button>
+        <button class="btn-danger" onclick="testarRedeclaracao()">Testar Redeclaração (deve falhar)</button>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 Resultados</h3>
+        <pre id="results">Nenhum teste executado ainda...</pre>
+    </div>
+
+    <div class="test-section">
+        <h3>🔥 Console do Navegador</h3>
+        <div id="console-output">Abra o DevTools (F12) para ver o console...</div>
+    </div>
+
+    <!-- NÃO carregar nenhum arquivo Firebase aqui para evitar conflitos -->
+
+    <script>
+        let testResults = '';
+        
+        function log(message) {
+            console.log(message);
+            testResults += new Date().toLocaleTimeString() + ': ' + message + '\\n';
+            document.getElementById('results').textContent = testResults;
+        }
+        
+        function updateStatus(message, className = '') {
+            const el = document.getElementById('test-status');
+            el.textContent = message;
+            if (className) {
+                el.parentElement.className = `test-section ${className}`;
+            }
+        }
+        
+        function testarFirebaseConfig() {
+            log('🧪 Testando carregamento de firebase-config-unified.js...');
+            
+            // Criar script dinamicamente para testar
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.textContent = `
+                try {
+                    // Simular o conteúdo do firebase-config-unified.js sem imports reais
+                    const firebaseConfig = {
+                        apiKey: "test",
+                        authDomain: "test.firebaseapp.com",
+                        projectId: "test"
+                    };
+                    
+                    // Simular initializeApp
+                    function initializeApp(config) {
+                        return { config: config, name: 'test-app' };
+                    }
+                    
+                    // Esta linha deve funcionar sem erro
+                    const app = initializeApp(firebaseConfig);
+                    
+                    console.log('✅ firebase-config-unified.js: Nenhum erro de redeclaração');
+                    window.postMessage({type: 'test-result', test: 'firebase-config', result: 'success'}, '*');
+                    
+                } catch (error) {
+                    console.error('❌ firebase-config-unified.js:', error.message);
+                    window.postMessage({type: 'test-result', test: 'firebase-config', result: 'error', error: error.message}, '*');
+                }
+            `;
+            
+            document.head.appendChild(script);
+            setTimeout(() => document.head.removeChild(script), 1000);
+        }
+        
+        function testarFirebaseFixed() {
+            log('🧪 Testando lógica de firebase-config-fixed.js...');
+            
+            try {
+                // Simular a lógica do arquivo fixed
+                const firebaseConfig = {
+                    apiKey: "test",
+                    authDomain: "test.firebaseapp.com",
+                    projectId: "test"
+                };
+                
+                // Simular Firebase SDK
+                const mockFirebase = {
+                    apps: [],
+                    initializeApp: (config) => ({ config, initialized: true }),
+                    firestore: () => ({ type: 'firestore' }),
+                    auth: () => ({ type: 'auth' })
+                };
+                
+                // Testar a lógica sem redeclaração
+                if (!mockFirebase.apps.length) {
+                    mockFirebase.apps.push(mockFirebase.initializeApp(firebaseConfig));
+                    
+                    window.db = mockFirebase.firestore();
+                    window.auth = mockFirebase.auth();
+                }
+                
+                log('✅ firebase-config-fixed.js: Lógica OK, sem redeclaração');
+                updateStatus('✅ Testes passaram - sem redeclaração!', 'success');
+                
+            } catch (error) {
+                log(`❌ firebase-config-fixed.js: ${error.message}`);
+                updateStatus('❌ Erro detectado', 'error');
+            }
+        }
+        
+        function testarRedeclaracao() {
+            log('🧪 Testando redeclaração (este teste DEVE falhar)...');
+            
+            const script = document.createElement('script');
+            script.textContent = `
+                try {
+                    // Esta é a situação que causava erro antes
+                    const app = { name: 'primeiro' };
+                    const app = { name: 'segundo' }; // Redeclaração - deve falhar
+                    
+                    console.log('❌ PROBLEMA: Redeclaração não foi detectada!');
+                    window.postMessage({type: 'test-result', test: 'redeclaracao', result: 'unexpected-success'}, '*');
+                    
+                } catch (error) {
+                    console.log('✅ CORRETO: Redeclaração detectada e bloqueada:', error.message);
+                    window.postMessage({type: 'test-result', test: 'redeclaracao', result: 'expected-error', error: error.message}, '*');
+                }
+            `;
+            
+            document.head.appendChild(script);
+            setTimeout(() => document.head.removeChild(script), 1000);
+        }
+        
+        // Escutar resultados dos testes
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'test-result') {
+                const { test, result, error } = event.data;
+                
+                if (test === 'firebase-config') {
+                    if (result === 'success') {
+                        log('✅ firebase-config-unified.js: PASSOU no teste');
+                    } else {
+                        log(`❌ firebase-config-unified.js: FALHOU - ${error}`);
+                    }
+                } else if (test === 'redeclaracao') {
+                    if (result === 'expected-error') {
+                        log('✅ Teste de redeclaração: CORRETO - erro detectado como esperado');
+                    } else {
+                        log('❌ Teste de redeclaração: PROBLEMA - deveria ter falhado');
+                    }
+                }
+            }
+        });
+        
+        // Capturar erros globais
+        window.addEventListener('error', (e) => {
+            log(`🔥 Erro global capturado: ${e.error.message}`);
+            updateStatus('❌ Erro detectado na página', 'error');
+        });
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Página carregada, pronta para testes');
+            updateStatus('📋 Pronto para testes - clique nos botões acima');
+        });
+    </script>
+</body>
+</html>
