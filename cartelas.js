@@ -1,3 +1,15 @@
+// ===== FUNÇÕES DE VERIFICAÇÃO DE ACESSO =====
+
+function verificarAcessoAdmin() {
+    if (window.bingoAuth && window.bingoAuth.isAuthenticated()) {
+        window.location.href = 'admin.html';
+    } else {
+        if (confirm('Para acessar a área administrativa, é necessário fazer login. Deseja ir para a página de login?')) {
+            window.location.href = 'login.html';
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const precoCartelaSpan = document.getElementById('preco-cartela');
     const cartelasDisponiveisSpan = document.getElementById('cartelas-disponiveis');
@@ -290,18 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 setTimeout(() => confete.remove(), 4000);
             }, i * 100);
-        }
-    }
-
-    // ===== FUNÇÕES DE VERIFICAÇÃO DE ACESSO =====
-
-    function verificarAcessoAdmin() {
-        if (window.bingoAuth && window.bingoAuth.isAuthenticated()) {
-            window.location.href = 'admin.html';
-        } else {
-            if (confirm('Para acessar a área administrativa, é necessário fazer login. Deseja ir para a página de login?')) {
-                window.location.href = 'login.html';
-            }
         }
     }
 

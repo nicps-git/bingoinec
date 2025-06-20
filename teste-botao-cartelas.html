@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Teste Botão Admin - Cartelas</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 30px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        .teste-btn { background: linear-gradient(45deg, #28a745, #20c997); color: white; padding: 15px 30px; border: none; border-radius: 8px; margin: 10px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .teste-btn:hover { transform: translateY(-2px); }
+        .info { background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8; }
+        .sucesso { background: #d4edda; border-left-color: #28a745; }
+        .erro { background: #f8d7da; border-left-color: #dc3545; }
+        .debug { background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste do Botão Admin - Página Cartelas</h1>
+        
+        <div class="info">
+            <h3>📋 Status do Sistema:</h3>
+            <div id="status-sistema">Carregando...</div>
+        </div>
+        
+        <div class="info">
+            <h3>🔘 Botão de Teste:</h3>
+            <p>Este é o mesmo botão que está na página cartelas.html:</p>
+            <button onclick="verificarAcessoAdmin()" class="teste-btn">⚙️ Admin</button>
+        </div>
+        
+        <div class="info">
+            <h3>🎯 Comportamento Esperado:</h3>
+            <ul>
+                <li><strong>Se não logado:</strong> Pergunta se quer ir para login</li>
+                <li><strong>Se já logado:</strong> Vai direto para admin.html</li>
+            </ul>
+        </div>
+        
+        <div class="info">
+            <h3>🔧 Debug Técnico:</h3>
+            <div id="debug-info" class="debug">Carregando informações...</div>
+        </div>
+        
+        <div class="info">
+            <h3>🚀 Outros Testes:</h3>
+            <button onclick="testarFuncaoExiste()" class="teste-btn">🔍 Verificar se Função Existe</button>
+            <button onclick="testarWindowBingoAuth()" class="teste-btn">🪟 Verificar window.bingoAuth</button>
+            <button onclick="irParaCartelas()" class="teste-btn">🎫 Ir para Cartelas Real</button>
+        </div>
+        
+        <div id="resultado" style="display: none;" class="info">
+            <h3>📋 Resultado do Teste:</h3>
+            <div id="resultado-conteudo"></div>
+        </div>
+    </div>
+
+    <!-- Mesmos scripts da página cartelas -->
+    <script src="login.js"></script>
+    <script src="cartelas.js"></script>
+    
+    <script>
+        function atualizarStatus() {
+            const statusDiv = document.getElementById('status-sistema');
+            const debugDiv = document.getElementById('debug-info');
+            
+            let statusHtml = '';
+            let debugHtml = '';
+            
+            // Verificar se função existe
+            const funcaoExiste = typeof verificarAcessoAdmin === 'function';
+            statusHtml += `🔧 Função verificarAcessoAdmin: ${funcaoExiste ? '<span style="color: green;">✅ Existe</span>' : '<span style="color: red;">❌ Não existe</span>'}<br>`;
+            
+            // Verificar window.bingoAuth
+            const authExiste = !!window.bingoAuth;
+            statusHtml += `🔐 window.bingoAuth: ${authExiste ? '<span style="color: green;">✅ Carregado</span>' : '<span style="color: red;">❌ Não carregado</span>'}<br>`;
+            
+            if (authExiste) {
+                try {
+                    const isAuth = window.bingoAuth.isAuthenticated();
+                    statusHtml += `👤 Status de login: ${isAuth ? '<span style="color: green;">✅ Logado</span>' : '<span style="color: orange;">⚠️ Não logado</span>'}<br>`;
+                } catch (e) {
+                    statusHtml += `👤 Status de login: <span style="color: red;">❌ Erro: ${e.message}</span><br>`;
+                }
+            }
+            
+            // Debug técnico
+            debugHtml += `typeof verificarAcessoAdmin: ${typeof verificarAcessoAdmin}\n`;
+            debugHtml += `window.bingoAuth exists: ${!!window.bingoAuth}\n`;
+            debugHtml += `Scripts carregados: login.js + cartelas.js\n`;
+            debugHtml += `Página atual: ${window.location.pathname}\n`;
+            debugHtml += `User Agent: ${navigator.userAgent.substring(0, 50)}...\n`;
+            
+            statusDiv.innerHTML = statusHtml;
+            debugDiv.textContent = debugHtml;
+        }
+        
+        function testarFuncaoExiste() {
+            mostrarResultado(
+                typeof verificarAcessoAdmin === 'function' ? 
+                '✅ Função verificarAcessoAdmin existe e está acessível!' : 
+                '❌ Função verificarAcessoAdmin NÃO foi encontrada!'
+            );
+        }
+        
+        function testarWindowBingoAuth() {
+            let resultado = '';
+            if (window.bingoAuth) {
+                resultado += '✅ window.bingoAuth existe\n';
+                try {
+                    const isAuth = window.bingoAuth.isAuthenticated();
+                    resultado += `✅ isAuthenticated() retornou: ${isAuth}\n`;
+                } catch (e) {
+                    resultado += `❌ Erro ao chamar isAuthenticated(): ${e.message}\n`;
+                }
+            } else {
+                resultado += '❌ window.bingoAuth não existe\n';
+            }
+            mostrarResultado(resultado);
+        }
+        
+        function irParaCartelas() {
+            window.location.href = 'cartelas.html';
+        }
+        
+        function mostrarResultado(conteudo) {
+            const resultado = document.getElementById('resultado');
+            const conteudoDiv = document.getElementById('resultado-conteudo');
+            conteudoDiv.innerHTML = conteudo.replace(/\n/g, '<br>');
+            resultado.style.display = 'block';
+            
+            setTimeout(() => {
+                resultado.style.display = 'none';
+            }, 8000);
+        }
+        
+        // Atualizar status quando carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(atualizarStatus, 500);
+        });
+    </script>
+</body>
+</html>
