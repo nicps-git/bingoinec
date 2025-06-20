@@ -614,6 +614,8 @@ header p {
     top: 20px;
     right: 120px;
     z-index: 1000;
+    display: flex;
+    gap: 10px;
 }
 
 .btn-cartelas {
@@ -626,6 +628,7 @@ header p {
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     border: 2px solid #ffc107;
+    font-size: 14px;
 }
 
 .btn-cartelas:hover {

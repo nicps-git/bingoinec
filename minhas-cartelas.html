@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎫 Minhas Cartelas - Bingo Arraiá INEC</title>
+    <link rel="stylesheet" href="minhas-cartelas.css">
+</head>
+<body>
+    <!-- Bandeirolas -->
+    <div class="bandeirolas">
+        <div class="bandeirola bandeirola-1"></div>
+        <div class="bandeirola bandeirola-2"></div>
+        <div class="bandeirola bandeirola-3"></div>
+        <div class="bandeirola bandeirola-4"></div>
+        <div class="bandeirola bandeirola-5"></div>
+        <div class="bandeirola bandeirola-6"></div>
+        <div class="bandeirola bandeirola-7"></div>
+        <div class="bandeirola bandeirola-8"></div>
+        <div class="bandeirola bandeirola-9"></div>
+        <div class="bandeirola bandeirola-10"></div>
+    </div>
+
+    <header>
+        <div class="logo-empresa">
+            <img src="inec.png" alt="Logo INEC" class="logo-inec">
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="btn-nav">🎪 Bingo</a>
+            <a href="cartelas.html" class="btn-nav">🎫 Comprar</a>
+            <a href="#" onclick="verificarAcessoAdmin()" class="btn-nav">⚙️ Admin</a>
+        </div>
+        <div class="chapeu-palha">👒</div>
+        <h1>🎫 Minhas Cartelas</h1>
+        <p>🎊 Acompanhe suas cartelas no Arraiá INEC!</p>
+    </header>
+
+    <main>
+        <!-- Tela de Login do Comprador -->
+        <div id="login-comprador" class="login-section">
+            <div class="login-card">
+                <div class="login-header">
+                    <h2>🔍 Consultar Minhas Cartelas</h2>
+                    <p>Digite seus dados para ver suas cartelas compradas</p>
+                </div>
+
+                <form id="form-consulta" class="consulta-form">
+                    <div class="input-group">
+                        <label for="consulta-telefone">📱 Telefone:</label>
+                        <input type="tel" id="consulta-telefone" name="telefone" required 
+                               placeholder="(11) 99999-9999" maxlength="15">
+                        <span class="input-icon">📞</span>
+                    </div>
+
+                    <div class="ou-divider">
+                        <span>OU</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="consulta-email">📧 E-mail:</label>
+                        <input type="email" id="consulta-email" name="email" 
+                               placeholder="seu@email.com">
+                        <span class="input-icon">✉️</span>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-consultar">🔍 Consultar Cartelas</button>
+                    </div>
+
+                    <div class="info-consulta">
+                        <p>💡 <strong>Dica:</strong> Use o telefone ou e-mail que você cadastrou na compra</p>
+                        <p>📞 Problemas? Entre em contato com a organização</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tela de Cartelas do Comprador -->
+        <div id="area-cartelas" class="cartelas-section" style="display: none;">
+            <div class="comprador-info">
+                <div class="info-header">
+                    <h2>👤 <span id="nome-comprador-logado">Carregando...</span></h2>
+                    <button onclick="fazerLogout()" class="btn-logout-comprador">🚪 Sair</button>
+                </div>
+                <div class="info-detalhes">
+                    <span id="telefone-comprador-logado">📱 Carregando...</span>
+                    <span id="email-comprador-logado">📧 Carregando...</span>
+                    <span id="total-cartelas-comprador">🎫 Carregando...</span>
+                </div>
+            </div>
+
+            <!-- Status do Sorteio -->
+            <div class="sorteio-status">
+                <div class="status-header">
+                    <h3>🎲 Status do Sorteio</h3>
+                    <button onclick="atualizarSorteio()" class="btn-atualizar">🔄 Atualizar</button>
+                </div>
+                <div class="status-info">
+                    <div class="status-item">
+                        <span class="label">Último número sorteado:</span>
+                        <span id="ultimo-numero" class="numero-destaque">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Total de números sorteados:</span>
+                        <span id="total-sorteados">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Números sorteados:</span>
+                        <div id="numeros-sorteados-lista" class="numeros-lista">Nenhum número sorteado ainda</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Cartelas -->
+            <div class="cartelas-container">
+                <h3>🎫 Suas Cartelas</h3>
+                <div id="lista-cartelas-comprador" class="cartelas-grid">
+                    <!-- Cartelas serão inseridas aqui via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="acoes-container">
+                <button onclick="marcarTodosNumeros()" class="btn-acao">✅ Marcar Todos os Sorteados</button>
+                <button onclick="limparMarcacoes()" class="btn-acao">🗑️ Limpar Marcações</button>
+                <button onclick="verificarBingo()" class="btn-acao btn-bingo">🎉 Verificar BINGO!</button>
+            </div>
+        </div>
+
+        <!-- Modal de BINGO -->
+        <div id="modal-bingo" class="modal" style="display: none;">
+            <div class="modal-content modal-bingo">
+                <h2>🎉 BINGO! 🎉</h2>
+                <p>Parabéns! Você fez BINGO com a cartela:</p>
+                <div id="cartela-bingo-info"></div>
+                <div class="modal-actions">
+                    <button onclick="fecharModalBingo()" class="btn-modal">🎊 Continuar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert de mensagens -->
+        <div id="alert-msg" class="alert" style="display: none;">
+            <span class="alert-icon">ℹ️</span>
+            <span class="alert-message">Mensagem</span>
+            <button class="alert-close" onclick="fecharAlert()">&times;</button>
+        </div>
+    </main>
+
+    <!-- Elementos decorativos -->
+    <div class="fogueira">
+        <div class="fogo"></div>
+        <div class="lenha"></div>
+    </div>
+
+    <div class="estrelas">
+        <div class="estrela estrela-1">⭐</div>
+        <div class="estrela estrela-2">✨</div>
+        <div class="estrela estrela-3">⭐</div>
+        <div class="estrela estrela-4">✨</div>
+        <div class="estrela estrela-5">⭐</div>
+    </div>
+
+    <script src="login.js"></script>
+    <script src="minhas-cartelas.js"></script>
+</body>
+</html>
