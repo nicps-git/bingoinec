@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎪 Bingo Arraiá INEC - VERSÃO ROBUSTA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Decorações de Festa Junina -->
+    <div class="bandeirolas">
+        <div class="bandeirola bandeirola-1"></div>
+        <div class="bandeirola bandeirola-2"></div>
+        <div class="bandeirola bandeirola-3"></div>
+    </div>
+    
+    <div class="fogueira">
+        <div class="fogo"></div>
+        <div class="lenha"></div>
+    </div>
+
+    <header>
+        <div class="logo-empresa">
+            <img src="inec.png" alt="Logo INEC" class="logo-inec">
+        </div>
+        <div class="admin-link">
+            <a href="#" onclick="verificarAcessoAdmin()" class="btn-admin">⚙️ Admin</a>
+        </div>
+        <div class="cartelas-link">
+            <a href="cartelas.html" class="btn-cartelas">🎫 Comprar</a>
+            <a href="minhas-cartelas.html" class="btn-cartelas">👀 Minhas Cartelas</a>
+        </div>
+        <h1>🌽 Bingo Arraiá INEC 🌽</h1>
+        <p>🎊 Festa Junina com Diversão Garantida! 🎊</p>
+    </header>
+
+    <main>
+        <div class="bingo-card">
+            <h2>🎯 Número Sorteado</h2>
+            <div id="numero-sorteado" class="numero-destaque">Clique em Sortear</div>
+            <button id="sortear-btn">🎲 Sortear</button>
+        </div>
+        
+        <div class="barraca-bingo">
+            <div class="numeros-sorteados">
+                <h2>📋 Números Anteriores</h2>
+                <div class="contador">
+                    <span id="contador-numeros">0</span> números sorteados
+                </div>
+                <ul id="numeros-anteriores"></ul>
+            </div>
+        </div>
+        
+        <!-- Debug Info -->
+        <div style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; max-width: 300px; z-index: 9999;">
+            <div id="debug-info">🔄 Carregando...</div>
+        </div>
+    </main>
+    
+    <div id="fogos"></div>
+
+    <!-- Firebase SDK v8 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+
+    <script>
+        // ===== VERSÃO ROBUSTA E SIMPLIFICADA =====
+        
+        function verificarAcessoAdmin() {
+            if (window.bingoAuth && window.bingoAuth.isAuthenticated()) {
+                window.location.href = 'admin.html';
+            } else {
+                if (confirm('Para acessar a área administrativa, é necessário fazer login. Deseja ir para a página de login?')) {
+                    window.location.href = 'login.html';
+                }
+            }
+        }
+        
+        // Estado global simples
+        let sistemaRobusto = {
+            botao: null,
+            numeroEl: null,
+            listaEl: null,
+            contadorEl: null,
+            numerosSorteados: [],
+            numerosDisponiveis: [],
+            inicializado: false
+        };
+        
+        // Função de sorteio robusta
+        function sortearNumeroRobusto() {
+            console.log('🎲 sortearNumeroRobusto executada!');
+            atualizarDebug('🎲 Função executada!');
+            
+            if (sistemaRobusto.numerosDisponiveis.length === 0) {
+                alert('Todos os números já foram sorteados!');
+                return;
+            }
+            
+            // Desabilitar botão temporariamente
+            sistemaRobusto.botao.disabled = true;
+            sistemaRobusto.botao.textContent = '🎲 Sorteando...';
+            
+            // Sortear número
+            const randomIndex = Math.floor(Math.random() * sistemaRobusto.numerosDisponiveis.length);
+            const numero = sistemaRobusto.numerosDisponiveis.splice(randomIndex, 1)[0];
+            
+            setTimeout(() => {
+                // Atualizar display
+                sistemaRobusto.numeroEl.textContent = numero;
+                sistemaRobusto.numerosSorteados.push(numero);
+                
+                // Adicionar à lista
+                const li = document.createElement('li');
+                li.textContent = numero;
+                sistemaRobusto.listaEl.appendChild(li);
+                
+                // Atualizar contador
+                sistemaRobusto.contadorEl.textContent = sistemaRobusto.numerosSorteados.length;
+                
+                // Salvar no Firebase (se disponível)
+                if (typeof window.firebaseService !== 'undefined') {
+                    firebaseService.salvarNumeroSorteado(numero).catch(console.error);
+                }
+                
+                // Reabilitar botão
+                sistemaRobusto.botao.disabled = false;
+                sistemaRobusto.botao.textContent = sistemaRobusto.numerosDisponiveis.length > 0 ? 
+                                                  '🎯 Próximo Número' : '🎉 Fim!';
+                
+                console.log(`✅ Número ${numero} sorteado. Restam ${sistemaRobusto.numerosDisponiveis.length}`);
+                atualizarDebug(`✅ Sorteado: ${numero}`);
+                
+            }, 1000);
+        }
+        
+        function atualizarDebug(msg) {
+            const debug = document.getElementById('debug-info');
+            if (debug) {
+                debug.innerHTML = `${new Date().toLocaleTimeString()}<br>${msg}<br>Disponíveis: ${sistemaRobusto.numerosDisponiveis.length}`;
+            }
+        }
+        
+        // Inicialização robusta
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Iniciando versão robusta...');
+            atualizarDebug('🚀 Iniciando...');
+            
+            // Encontrar elementos
+            sistemaRobusto.botao = document.getElementById('sortear-btn');
+            sistemaRobusto.numeroEl = document.getElementById('numero-sorteado');
+            sistemaRobusto.listaEl = document.getElementById('numeros-anteriores');
+            sistemaRobusto.contadorEl = document.getElementById('contador-numeros');
+            
+            if (!sistemaRobusto.botao) {
+                console.error('❌ Botão sortear não encontrado!');
+                atualizarDebug('❌ Botão não encontrado!');
+                return;
+            }
+            
+            console.log('✅ Elementos encontrados');
+            atualizarDebug('✅ Elementos OK');
+            
+            // Aguardar Firebase
+            let tentativas = 0;
+            const aguardarFirebase = setInterval(async () => {
+                tentativas++;
+                
+                if (typeof window.firebaseService !== 'undefined') {
+                    console.log('🔥 Firebase detectado, carregando dados...');
+                    atualizarDebug('🔥 Carregando Firebase...');
+                    
+                    try {
+                        const config = await firebaseService.carregarConfiguracoes();
+                        const numerosSalvos = await firebaseService.carregarNumerosSorteados();
+                        
+                        // Configurar números
+                        const inicio = config.numeroInicial || 1;
+                        const fim = config.numeroFinal || 75;
+                        const todos = Array.from({length: fim - inicio + 1}, (_, i) => i + inicio);
+                        sistemaRobusto.numerosDisponiveis = todos.filter(n => !numerosSalvos.includes(n));
+                        sistemaRobusto.numerosSorteados = numerosSalvos;
+                        
+                        // Restaurar interface
+                        sistemaRobusto.listaEl.innerHTML = '';
+                        numerosSalvos.forEach(num => {
+                            const li = document.createElement('li');
+                            li.textContent = num;
+                            sistemaRobusto.listaEl.appendChild(li);
+                        });
+                        sistemaRobusto.contadorEl.textContent = numerosSalvos.length;
+                        
+                        console.log(`✅ Dados carregados: ${numerosSalvos.length} sorteados, ${sistemaRobusto.numerosDisponiveis.length} disponíveis`);
+                        atualizarDebug('✅ Dados Firebase OK');
+                        
+                    } catch (error) {
+                        console.error('❌ Erro Firebase:', error);
+                        atualizarDebug('⚠️ Firebase erro, usando local');
+                        
+                        // Fallback local
+                        sistemaRobusto.numerosDisponiveis = Array.from({length: 75}, (_, i) => i + 1);
+                    }
+                    
+                    clearInterval(aguardarFirebase);
+                    finalizarInicializacao();
+                    
+                } else if (tentativas >= 10) {
+                    console.log('⚠️ Firebase não carregou, usando configuração local');
+                    atualizarDebug('⚠️ Modo local');
+                    sistemaRobusto.numerosDisponiveis = Array.from({length: 75}, (_, i) => i + 1);
+                    clearInterval(aguardarFirebase);
+                    finalizarInicializacao();
+                }
+            }, 500);
+            
+            function finalizarInicializacao() {
+                // Configurar botão
+                console.log('🔧 Configurando botão...');
+                
+                // Limpar listeners antigos
+                const novoBotao = sistemaRobusto.botao.cloneNode(true);
+                sistemaRobusto.botao.parentNode.replaceChild(novoBotao, sistemaRobusto.botao);
+                sistemaRobusto.botao = novoBotao;
+                
+                // Adicionar listener
+                sistemaRobusto.botao.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('🎯 CLIQUE DETECTADO!');
+                    sortearNumeroRobusto();
+                });
+                
+                // Habilitar botão
+                if (sistemaRobusto.numerosDisponiveis.length > 0) {
+                    sistemaRobusto.botao.disabled = false;
+                    sistemaRobusto.botao.textContent = '🎲 Sortear';
+                    console.log('✅ Botão habilitado');
+                    atualizarDebug('✅ Pronto para usar!');
+                } else {
+                    sistemaRobusto.botao.disabled = true;
+                    sistemaRobusto.botao.textContent = '🎉 Fim do Jogo!';
+                    atualizarDebug('🎉 Jogo finalizado');
+                }
+                
+                sistemaRobusto.inicializado = true;
+                console.log('🎉 Inicialização concluída!');
+            }
+        });
+    </script>
+</body>
+</html>

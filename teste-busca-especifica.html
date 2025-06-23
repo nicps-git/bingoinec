@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Teste Busca Específica</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .resultado {
+            background: #e8f5e8;
+            border-left: 5px solid #4CAF50;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .erro {
+            background: #ffe8e8;
+            border-left: 5px solid #f44336;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste Busca por Telefone Específico</h1>
+    
+    <div class="container">
+        <h2>📱 Testando telefone: 85999999999</h2>
+        <button onclick="buscarCartela()">🔍 Buscar Cartela</button>
+        <button onclick="listarTodas()">📋 Listar Todas</button>
+        <button onclick="corrigirCartela()">🔧 Corrigir Cartela</button>
+        <div id="resultado"></div>
+    </div>
+    
+    <div id="log" class="log">Aguardando teste...</div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+
+    <script>
+        const logElement = document.getElementById('log');
+        const resultadoElement = document.getElementById('resultado');
+        
+        function log(msg) {
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${msg}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(msg);
+        }
+        
+        function mostrarResultado(conteudo, tipo = 'resultado') {
+            resultadoElement.innerHTML = `<div class="${tipo}">${conteudo}</div>`;
+        }
+        
+        async function buscarCartela() {
+            log('🔍 Iniciando busca por telefone 85999999999...');
+            
+            try {
+                if (typeof window.firebaseService === 'undefined') {
+                    throw new Error('FirebaseService não carregado');
+                }
+                
+                const telefone = '85999999999';
+                log(`📱 Buscando cartelas para: ${telefone}`);
+                
+                const cartelas = await window.firebaseService.carregarCartelasPorComprador(telefone, null);
+                
+                log(`📦 Resultado: ${cartelas.length} cartela(s) encontrada(s)`);
+                
+                if (cartelas.length > 0) {
+                    let resultado = `<h3>✅ Encontradas ${cartelas.length} cartela(s):</h3>`;
+                    cartelas.forEach((cartela, index) => {
+                        resultado += `
+                            <div style="background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px;">
+                                <strong>Cartela ${index + 1}:</strong><br>
+                                <strong>ID:</strong> ${cartela.id}<br>
+                                <strong>Comprador:</strong> ${cartela.comprador || 'N/A'}<br>
+                                <strong>Telefone:</strong> ${cartela.telefone || 'N/A'}<br>
+                                <strong>Email:</strong> ${cartela.email || 'N/A'}<br>
+                                <strong>Vendida:</strong> ${cartela.vendida ? 'Sim' : 'Não'}<br>
+                                <strong>Preço:</strong> R$ ${(cartela.preco || 0).toFixed(2)}<br>
+                                <strong>Data Venda:</strong> ${cartela.dataVenda ? new Date(cartela.dataVenda).toLocaleString() : 'N/A'}
+                            </div>
+                        `;
+                    });
+                    mostrarResultado(resultado, 'resultado');
+                } else {
+                    mostrarResultado(`❌ Nenhuma cartela encontrada para o telefone: ${telefone}`, 'erro');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro na busca: ${error.message}`);
+                mostrarResultado(`❌ Erro: ${error.message}`, 'erro');
+            }
+        }
+        
+        async function listarTodas() {
+            log('📋 Listando todas as cartelas...');
+            
+            try {
+                if (typeof window.firebaseService === 'undefined') {
+                    throw new Error('FirebaseService não carregado');
+                }
+                
+                const cartelas = await window.firebaseService.carregarCartelas();
+                
+                log(`📦 Total de cartelas: ${cartelas.length}`);
+                
+                // Filtrar cartelas vendidas
+                const vendidas = cartelas.filter(c => c.vendida);
+                log(`💰 Cartelas vendidas: ${vendidas.length}`);
+                
+                // Buscar a cartela específica
+                const cartelaEspecifica = cartelas.find(c => c.id === 'cartela_1750680277401_f8wnlnzo6');
+                
+                if (cartelaEspecifica) {
+                    log('🎯 Cartela específica encontrada!');
+                    
+                    let resultado = `
+                        <h3>🎯 Cartela Específica Encontrada:</h3>
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 5px solid #ffc107;">
+                            <strong>ID:</strong> ${cartelaEspecifica.id}<br>
+                            <strong>Comprador:</strong> "${cartelaEspecifica.comprador || 'N/A'}"<br>
+                            <strong>Telefone:</strong> "${cartelaEspecifica.telefone || 'N/A'}"<br>
+                            <strong>Email:</strong> "${cartelaEspecifica.email || 'N/A'}"<br>
+                            <strong>Vendida:</strong> ${cartelaEspecifica.vendida}<br>
+                            <strong>Preço:</strong> R$ ${(cartelaEspecifica.preco || 0).toFixed(2)}<br>
+                            <strong>Data Venda:</strong> ${cartelaEspecifica.dataVenda ? new Date(cartelaEspecifica.dataVenda).toLocaleString() : 'N/A'}
+                        </div>
+                    `;
+                    
+                    // Análise do problema
+                    resultado += '<h4>🔍 Análise do Problema:</h4>';
+                    
+                    if (!cartelaEspecifica.comprador || cartelaEspecifica.comprador === 'N/A') {
+                        resultado += '<div style="background: #ffe8e8; padding: 10px; border-radius: 5px;">❌ <strong>PROBLEMA:</strong> Campo "comprador" está vazio ou N/A</div>';
+                    }
+                    
+                    if (cartelaEspecifica.telefone === '85999999999') {
+                        resultado += '<div style="background: #e8f5e8; padding: 10px; border-radius: 5px;">✅ Telefone está correto</div>';
+                    } else {
+                        resultado += '<div style="background: #ffe8e8; padding: 10px; border-radius: 5px;">❌ <strong>PROBLEMA:</strong> Telefone não confere</div>';
+                    }
+                    
+                    mostrarResultado(resultado, 'resultado');
+                } else {
+                    mostrarResultado('❌ Cartela específica NÃO encontrada!', 'erro');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro ao listar: ${error.message}`);
+                mostrarResultado(`❌ Erro: ${error.message}`, 'erro');
+            }
+        }
+        
+        async function corrigirCartela() {
+            log('🔧 Tentando corrigir cartela...');
+            
+            try {
+                if (typeof window.firebaseService === 'undefined') {
+                    throw new Error('FirebaseService não carregado');
+                }
+                
+                const cartelaId = 'cartela_1750680277401_f8wnlnzo6';
+                
+                // Buscar a cartela primeiro
+                const cartelas = await window.firebaseService.carregarCartelas();
+                const cartela = cartelas.find(c => c.id === cartelaId);
+                
+                if (!cartela) {
+                    throw new Error('Cartela não encontrada');
+                }
+                
+                log('📝 Cartela encontrada, corrigindo dados...');
+                
+                // Corrigir dados
+                const cartelaCorrigida = {
+                    ...cartela,
+                    comprador: 'NOME CORRIGIDO TESTE', // Substituir por nome real se souber
+                    telefone: '85999999999',
+                    email: 'teste@corrigido.com',
+                    vendida: true
+                };
+                
+                // Salvar cartela corrigida
+                await window.firebaseService.salvarCartela(cartelaCorrigida);
+                
+                log('✅ Cartela corrigida com sucesso!');
+                mostrarResultado('✅ Cartela corrigida! Agora teste o login novamente.', 'resultado');
+                
+            } catch (error) {
+                log(`❌ Erro ao corrigir: ${error.message}`);
+                mostrarResultado(`❌ Erro: ${error.message}`, 'erro');
+            }
+        }
+        
+        // Auto-inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🔍 Página de teste específico carregada');
+            
+            // Aguardar Firebase
+            const checkFirebase = setInterval(() => {
+                if (typeof window.firebaseService !== 'undefined') {
+                    clearInterval(checkFirebase);
+                    log('✅ Firebase pronto, execute os testes!');
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

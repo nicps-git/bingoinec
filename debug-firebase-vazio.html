@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Firebase - Banco Vazio</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .section { margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .log { height: 300px; overflow-y: auto; background: #000; color: #0f0; padding: 10px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Firebase - Investigação Banco Vazio</h1>
+        
+        <div class="section warning">
+            <h3>⚠️ Problema Identificado</h3>
+            <p>Nenhuma cartela ou venda está sendo salva no Firebase Firestore.</p>
+            <p>Apenas a coleção 'numeros-sorteados' possui dados.</p>
+        </div>
+
+        <div class="section">
+            <h3>🔍 Investigação Completa</h3>
+            <button onclick="investigarCompleto()">Investigar Tudo</button>
+            <button onclick="testarGravacaoForcada()">Teste Gravação Forçada</button>
+            <button onclick="verificarConexaoFirebase()">Verificar Conexão</button>
+            <button onclick="listarTodasColecoes()">Listar Coleções</button>
+        </div>
+
+        <div class="section">
+            <h3>📊 Resultados da Investigação</h3>
+            <div id="resultados"></div>
+        </div>
+
+        <div class="section">
+            <h3>📋 Log de Debug</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Configuração Firebase -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAQcCJmtqO3PNNxn7_e_LhjRGa5Wd1hxZ4",
+            authDomain: "rifatomaz-7a6e5.firebaseapp.com",
+            projectId: "rifatomaz-7a6e5",
+            storageBucket: "rifatomaz-7a6e5.appspot.com",
+            messagingSenderId: "265430386154",
+            appId: "1:265430386154:web:c4c12e45c5db21da5d0e3d"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function exibirResultado(titulo, conteudo, tipo = 'info') {
+            const resultadosDiv = document.getElementById('resultados');
+            const classe = tipo === 'error' ? 'error' : tipo === 'success' ? 'success' : 'section';
+            resultadosDiv.innerHTML += `
+                <div class="${classe}">
+                    <h4>${titulo}</h4>
+                    <pre>${JSON.stringify(conteudo, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        async function verificarConexaoFirebase() {
+            log("🔍 Verificando conexão com Firebase...");
+            try {
+                // Teste simples de conexão
+                const testDoc = await db.collection('teste-conexao').doc('teste').get();
+                log("✅ Conexão com Firebase funcionando!");
+                exibirResultado("Conexão Firebase", { status: "OK", conectado: true }, 'success');
+                return true;
+            } catch (error) {
+                log(`❌ Erro na conexão: ${error.message}`);
+                exibirResultado("Erro de Conexão", { erro: error.message }, 'error');
+                return false;
+            }
+        }
+
+        async function listarTodasColecoes() {
+            log("📋 Listando todas as coleções do Firebase...");
+            try {
+                // Tentativa de buscar coleções conhecidas
+                const colecoesTeste = ['cartelas', 'vendas', 'usuarios', 'numeros-sorteados', 'configuracoes'];
+                const resultados = {};
+
+                for (const colecao of colecoesTeste) {
+                    try {
+                        const snapshot = await db.collection(colecao).limit(5).get();
+                        resultados[colecao] = {
+                            existe: true,
+                            documentos: snapshot.size,
+                            amostra: snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() }))
+                        };
+                        log(`📁 Coleção '${colecao}': ${snapshot.size} documentos`);
+                    } catch (error) {
+                        resultados[colecao] = {
+                            existe: false,
+                            erro: error.message
+                        };
+                        log(`❌ Erro ao acessar coleção '${colecao}': ${error.message}`);
+                    }
+                }
+
+                exibirResultado("Coleções do Firebase", resultados);
+                return resultados;
+            } catch (error) {
+                log(`❌ Erro geral ao listar coleções: ${error.message}`);
+                exibirResultado("Erro ao Listar Coleções", { erro: error.message }, 'error');
+            }
+        }
+
+        async function testarGravacaoForcada() {
+            log("💾 Testando gravação forçada de cartela...");
+            try {
+                const cartelaTexte = {
+                    id: `teste-${Date.now()}`,
+                    telefone: "85999999999",
+                    nome: "Teste Debug",
+                    numeros: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                    dataCompra: new Date(),
+                    valor: 5.00,
+                    status: "paga",
+                    origem: "debug-test"
+                };
+
+                log("📝 Tentando salvar na coleção 'cartelas'...");
+                const docRef = await db.collection('cartelas').add(cartelaTexte);
+                log(`✅ Cartela salva com ID: ${docRef.id}`);
+
+                // Verificar se realmente foi salva
+                log("🔍 Verificando se a cartela foi realmente salva...");
+                const docVerif = await db.collection('cartelas').doc(docRef.id).get();
+                if (docVerif.exists) {
+                    log("✅ Cartela confirmada no banco!");
+                    exibirResultado("Teste de Gravação", {
+                        sucesso: true,
+                        id: docRef.id,
+                        dados: docVerif.data()
+                    }, 'success');
+                } else {
+                    log("❌ Cartela não encontrada após gravação!");
+                    exibirResultado("Erro na Gravação", {
+                        sucesso: false,
+                        problema: "Documento não encontrado após criação"
+                    }, 'error');
+                }
+
+                return docRef.id;
+            } catch (error) {
+                log(`❌ Erro na gravação forçada: ${error.message}`);
+                exibirResultado("Erro de Gravação", { erro: error.message }, 'error');
+                throw error;
+            }
+        }
+
+        async function investigarFluxoCompra() {
+            log("🛒 Investigando fluxo de compra original...");
+            
+            // Simular função salvarCartela original
+            async function salvarCartelaOriginal(dadosCartela) {
+                try {
+                    log("📝 Executando função salvarCartela original...");
+                    const docRef = await db.collection('cartelas').add({
+                        ...dadosCartela,
+                        dataCompra: firebase.firestore.FieldValue.serverTimestamp(),
+                        id: dadosCartela.id || `cartela_${Date.now()}`
+                    });
+                    log(`✅ Cartela salva com ID: ${docRef.id}`);
+                    return docRef.id;
+                } catch (error) {
+                    log(`❌ Erro ao salvar cartela: ${error.message}`);
+                    throw error;
+                }
+            }
+
+            // Testar com dados realistas
+            const dadosCartela = {
+                telefone: "85966666666",
+                nome: "João Teste",
+                numeros: [1, 15, 23, 44, 52, 61, 75],
+                valor: 5.00,
+                formaPagamento: "pix"
+            };
+
+            try {
+                const id = await salvarCartelaOriginal(dadosCartela);
+                exibirResultado("Teste Fluxo Original", {
+                    sucesso: true,
+                    id: id,
+                    dados: dadosCartela
+                }, 'success');
+                return id;
+            } catch (error) {
+                exibirResultado("Erro Fluxo Original", {
+                    sucesso: false,
+                    erro: error.message
+                }, 'error');
+                throw error;
+            }
+        }
+
+        async function investigarCompleto() {
+            log("🚀 Iniciando investigação completa...");
+            
+            try {
+                // 1. Verificar conexão
+                await verificarConexaoFirebase();
+                
+                // 2. Listar coleções
+                await listarTodasColecoes();
+                
+                // 3. Testar gravação
+                await testarGravacaoForcada();
+                
+                // 4. Investigar fluxo original
+                await investigarFluxoCompra();
+                
+                log("✅ Investigação completa finalizada!");
+                
+            } catch (error) {
+                log(`❌ Erro durante investigação: ${error.message}`);
+            }
+        }
+
+        // Auto-inicializar
+        window.addEventListener('load', () => {
+            log("🔍 Debug Firebase Vazio iniciado");
+            log("📋 Use os botões para investigar o problema");
+        });
+    </script>
+</body>
+</html>

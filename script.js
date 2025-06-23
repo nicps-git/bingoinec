@@ -10,21 +10,133 @@ function verificarAcessoAdmin() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const sortearBtn = document.getElementById('sortear-btn');
-    const numeroSorteadoEl = document.getElementById('numero-sorteado');
-    const numerosAnterioresEl = document.getElementById('numeros-anteriores');
-    const contadorEl = document.getElementById('contador-numeros');
-    const fogosEl = document.getElementById('fogos');
+// ===== VARIÁVEIS GLOBAIS DO BINGO =====
+let bingoGlobal = {
+    sortearBtn: null,
+    numeroSorteadoEl: null,
+    numerosAnterioresEl: null,
+    contadorEl: null,
+    fogosEl: null,
+    numerosSorteados: [],
+    numerosDisponiveis: [],
+    configuracoes: {},
+    cartelasArmadas: new Set(),
+    cartelasBingo: new Set(),
+    alertasBingoMostrados: new Set(),
+    inicializado: false
+};
 
-    // Estados das cartelas para alertas (sistema global)
-    let cartelasArmadas = new Set(); // Cartelas com 23 números
-    let cartelasBingo = new Set(); // Cartelas com BINGO
-    let alertasBingoMostrados = new Set(); // Para evitar spam de alertas
+// ===== FUNÇÃO PRINCIPAL DE SORTEIO (ESCOPO GLOBAL) =====
+window.sortearNumero = function() {
+    if (!bingoGlobal.inicializado) {
+        console.error('❌ Sistema não inicializado ainda!');
+        alert('Aguarde a inicialização do sistema...');
+        return;
+    }
     
-    let numerosSorteados = [];
-    let numerosDisponiveis = [];
-    let configuracoes = {};
+    console.log('🎲 Função sortearNumero chamada');
+    
+    if (bingoGlobal.numerosDisponiveis.length === 0) {
+        bingoGlobal.numeroSorteadoEl.textContent = 'FIM!';
+        bingoGlobal.numeroSorteadoEl.style.background = 'linear-gradient(135deg, #ff5722, #f44336)';
+        bingoGlobal.numeroSorteadoEl.style.animation = 'pulse 1s infinite';
+        bingoGlobal.sortearBtn.disabled = true;
+        bingoGlobal.sortearBtn.textContent = '🎉 Festa Acabou!';
+        criarConfete();
+        criarFogosArtificio();
+        tocarSomFesta();
+        return;
+    }
+
+    console.log(`📊 ${bingoGlobal.numerosDisponiveis.length} números disponíveis para sorteio`);
+
+    // Animação de sorteio
+    bingoGlobal.sortearBtn.disabled = true;
+    bingoGlobal.sortearBtn.textContent = '🎲 Sorteando...';
+    
+    // Animar elementos da festa
+    animarQuadrilha();
+    tocarSomFesta();
+    
+    // Efeito de roleta
+    let contador = 0;
+    const roletaInterval = setInterval(() => {
+        const numeroTemp = Math.floor(Math.random() * 75) + 1;
+        bingoGlobal.numeroSorteadoEl.textContent = numeroTemp;
+        bingoGlobal.numeroSorteadoEl.classList.add('animate');
+        
+        contador++;
+        if (contador >= 15) {
+            clearInterval(roletaInterval);
+            
+            // Sortear número real
+            const randomIndex = Math.floor(Math.random() * bingoGlobal.numerosDisponiveis.length);
+            const numero = bingoGlobal.numerosDisponiveis.splice(randomIndex, 1)[0];
+            
+            setTimeout(() => {
+                bingoGlobal.numerosSorteados.push(numero);
+                bingoGlobal.numeroSorteadoEl.textContent = numero;
+                bingoGlobal.numeroSorteadoEl.classList.add('animate');
+                
+                console.log(`🎯 Número sorteado: ${numero}`);
+                
+                // Adicionar à lista com animação
+                const li = document.createElement('li');
+                li.textContent = numero;
+                li.classList.add('novo');
+                bingoGlobal.numerosAnterioresEl.appendChild(li);
+                
+                // Salvar dados no Firebase
+                salvarNumeroNoFirebase(numero);
+                
+                // Atualizar contador
+                atualizarContador();
+                
+                // Animar comidas
+                animarComidas();
+                
+                // Remover classe de animação após um tempo
+                setTimeout(() => {
+                    li.classList.remove('novo');
+                    bingoGlobal.numeroSorteadoEl.classList.remove('animate');
+                }, 600);
+                
+                // Reabilitar botão
+                bingoGlobal.sortearBtn.disabled = false;
+                if (bingoGlobal.numerosDisponiveis.length > 0) {
+                    bingoGlobal.sortearBtn.textContent = '🎯 Próximo Número';
+                }
+                
+                // Confete para cada número
+                criarConfetePequeno();
+                
+                // Verificar status das cartelas após o sorteio
+                setTimeout(() => {
+                    verificarStatusCartelas();
+                }, 1000); // Delay para permitir que o número seja processado
+            }, 500);
+        }
+    }, 80);
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Iniciando Bingo Arraiá INEC...');
+    
+    // Inicializar elementos DOM
+    bingoGlobal.sortearBtn = document.getElementById('sortear-btn');
+    bingoGlobal.numeroSorteadoEl = document.getElementById('numero-sorteado');
+    bingoGlobal.numerosAnterioresEl = document.getElementById('numeros-anteriores');
+    bingoGlobal.contadorEl = document.getElementById('contador-numeros');
+    bingoGlobal.fogosEl = document.getElementById('fogos');
+
+    // Verificar se todos os elementos foram encontrados
+    if (!bingoGlobal.sortearBtn || !bingoGlobal.numeroSorteadoEl || !bingoGlobal.numerosAnterioresEl || !bingoGlobal.contadorEl) {
+        console.error('❌ Elementos DOM não encontrados!');
+        alert('Erro: Elementos da página não foram encontrados. Recarregue a página.');
+        return;
+    }
+    
+    console.log('✅ Elementos DOM encontrados');
 
     // Verificar conexão com Firebase
     console.log('🔥 Verificando conexão com Firebase...');
@@ -34,35 +146,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Carregar configurações e dados salvos
     async function carregarDados() {
         try {
             // Carregar configurações
-            configuracoes = await firebaseService.carregarConfiguracoes();
-            console.log('✅ Configurações carregadas:', configuracoes);
+            bingoGlobal.configuracoes = await firebaseService.carregarConfiguracoes();
+            console.log('✅ Configurações carregadas:', bingoGlobal.configuracoes);
             
             // Carregar números sorteados
-            numerosSorteados = await firebaseService.carregarNumerosSorteados();
-            console.log('✅ Números sorteados carregados:', numerosSorteados.length);
+            bingoGlobal.numerosSorteados = await firebaseService.carregarNumerosSorteados();
+            console.log('✅ Números sorteados carregados:', bingoGlobal.numerosSorteados.length);
             
             // Criar números disponíveis baseado nas configurações
-            const numeroInicial = configuracoes.numeroInicial || 1;
-            const numeroFinal = configuracoes.numeroFinal || 75;
+            const numeroInicial = bingoGlobal.configuracoes.numeroInicial || 1;
+            const numeroFinal = bingoGlobal.configuracoes.numeroFinal || 75;
             const todosNumeros = Array.from({ length: numeroFinal - numeroInicial + 1 }, (_, i) => i + numeroInicial);
-            numerosDisponiveis = todosNumeros.filter(num => !numerosSorteados.includes(num));
+            bingoGlobal.numerosDisponiveis = todosNumeros.filter(num => !bingoGlobal.numerosSorteados.includes(num));
             
             // Restaurar números sorteados na tela
-            numerosAnterioresEl.innerHTML = '';
-            numerosSorteados.forEach(numero => {
+            bingoGlobal.numerosAnterioresEl.innerHTML = '';
+            bingoGlobal.numerosSorteados.forEach(numero => {
                 const li = document.createElement('li');
                 li.textContent = numero;
-                numerosAnterioresEl.appendChild(li);
+                bingoGlobal.numerosAnterioresEl.appendChild(li);
             });
             
             atualizarContador();
             
             // Configurar listeners em tempo real
             configurarListeners();
+            
+            // Configurar event listener do botão de sortear após carregar dados
+            console.log('🔧 Configurando event listener do botão de sortear...');
+            
+            // Remover qualquer listener existente
+            const novoBotao = bingoGlobal.sortearBtn.cloneNode(true);
+            bingoGlobal.sortearBtn.parentNode.replaceChild(novoBotao, bingoGlobal.sortearBtn);
+            bingoGlobal.sortearBtn = novoBotao;
+            
+            // Adicionar event listener
+            bingoGlobal.sortearBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🎯 BOTÃO CLICADO!');
+                window.sortearNumero();
+            });
+            
+            console.log('✅ Event listener configurado');
+            
+            // Habilitar botão se há números disponíveis
+            if (bingoGlobal.numerosDisponiveis.length > 0) {
+                bingoGlobal.sortearBtn.disabled = false;
+                bingoGlobal.sortearBtn.textContent = '🎲 Sortear';
+                console.log(`✅ Botão habilitado. ${bingoGlobal.numerosDisponiveis.length} números disponíveis.`);
+            } else {
+                bingoGlobal.sortearBtn.disabled = true;
+                bingoGlobal.sortearBtn.textContent = '🎉 Fim do Jogo!';
+                console.log('🎉 Jogo finalizado - todos os números foram sorteados.');
+            }
+            
+            bingoGlobal.inicializado = true;
+            console.log('✅ Inicialização concluída com sucesso!');
             
         } catch (error) {
             console.error('❌ Erro ao carregar dados:', error);
@@ -74,15 +216,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     function configurarListeners() {
         // Escutar mudanças nos números sorteados
         firebaseService.escutarNumerosSorteados((numeros) => {
-            if (JSON.stringify(numeros) !== JSON.stringify(numerosSorteados)) {
+            if (JSON.stringify(numeros) !== JSON.stringify(bingoGlobal.numerosSorteados)) {
                 console.log('🔄 Números sorteados atualizados em tempo real');
-                numerosSorteados = numeros;
+                bingoGlobal.numerosSorteados = numeros;
                 
                 // Atualizar números disponíveis
-                const numeroInicial = configuracoes.numeroInicial || 1;
-                const numeroFinal = configuracoes.numeroFinal || 75;
+                const numeroInicial = bingoGlobal.configuracoes.numeroInicial || 1;
+                const numeroFinal = bingoGlobal.configuracoes.numeroFinal || 75;
                 const todosNumeros = Array.from({ length: numeroFinal - numeroInicial + 1 }, (_, i) => i + numeroInicial);
-                numerosDisponiveis = todosNumeros.filter(num => !numerosSorteados.includes(num));
+                bingoGlobal.numerosDisponiveis = todosNumeros.filter(num => !bingoGlobal.numerosSorteados.includes(num));
                 
                 // Atualizar interface
                 atualizarInterfaceNumeros();
@@ -97,11 +239,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function atualizarInterfaceNumeros() {
-        numerosAnterioresEl.innerHTML = '';
-        numerosSorteados.forEach(numero => {
+        bingoGlobal.numerosAnterioresEl.innerHTML = '';
+        bingoGlobal.numerosSorteados.forEach(numero => {
             const li = document.createElement('li');
             li.textContent = numero;
-            numerosAnterioresEl.appendChild(li);
+            bingoGlobal.numerosAnterioresEl.appendChild(li);
         });
     }
 
@@ -158,11 +300,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Atualizar contador
     function atualizarContador() {
-        contadorEl.textContent = numerosSorteados.length;
-        if (numerosSorteados.length > 0) {
-            contadorEl.style.animation = 'contador-pulsa 0.5s ease-out';
+        bingoGlobal.contadorEl.textContent = bingoGlobal.numerosSorteados.length;
+        if (bingoGlobal.numerosSorteados.length > 0) {
+            bingoGlobal.contadorEl.style.animation = 'contador-pulsa 0.5s ease-out';
             setTimeout(() => {
-                contadorEl.style.animation = '';
+                bingoGlobal.contadorEl.style.animation = '';
             }, 500);
         }
     }
@@ -186,84 +328,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function sortearNumero() {
-        if (numerosDisponiveis.length === 0) {
-            numeroSorteadoEl.textContent = 'FIM!';
-            numeroSorteadoEl.style.background = 'linear-gradient(135deg, #ff5722, #f44336)';
-            numeroSorteadoEl.style.animation = 'pulse 1s infinite';
-            sortearBtn.disabled = true;
-            sortearBtn.textContent = '🎉 Festa Acabou!';
-            criarConfete();
-            criarFogosArtificio();
-            tocarSomFesta();
-            return;
+    // Função para salvar número sorteado no Firebase
+    async function salvarNumeroNoFirebase(numero) {
+        try {
+            await firebaseService.salvarNumeroSorteado(numero);
+            console.log(`✅ Número ${numero} salvo no Firebase`);
+        } catch (error) {
+            console.error(`❌ Erro ao salvar número ${numero}:`, error);
+            // Não bloquear a interface em caso de erro de salvamento
         }
-
-        // Animação de sorteio
-        sortearBtn.disabled = true;
-        sortearBtn.textContent = '🎲 Sorteando...';
-        
-        // Animar elementos da festa
-        animarQuadrilha();
-        tocarSomFesta();
-        
-        // Efeito de roleta
-        let contador = 0;
-        const roletaInterval = setInterval(() => {
-            const numeroTemp = Math.floor(Math.random() * 75) + 1;
-            numeroSorteadoEl.textContent = numeroTemp;
-            numeroSorteadoEl.classList.add('animate');
-            
-            contador++;
-            if (contador >= 15) {
-                clearInterval(roletaInterval);
-                
-                // Sortear número real
-                const randomIndex = Math.floor(Math.random() * numerosDisponiveis.length);
-                const numero = numerosDisponiveis.splice(randomIndex, 1)[0];
-                
-                setTimeout(() => {
-                    numerosSorteados.push(numero);
-                    numeroSorteadoEl.textContent = numero;
-                    numeroSorteadoEl.classList.add('animate');
-                    
-                    // Adicionar à lista com animação
-                    const li = document.createElement('li');
-                    li.textContent = numero;
-                    li.classList.add('novo');
-                    numerosAnterioresEl.appendChild(li);
-                    
-                    // Salvar dados
-                    salvarDados();
-                    
-                    // Atualizar contador
-                    atualizarContador();
-                    
-                    // Animar comidas
-                    animarComidas();
-                    
-                    // Remover classe de animação após um tempo
-                    setTimeout(() => {
-                        li.classList.remove('novo');
-                        numeroSorteadoEl.classList.remove('animate');
-                    }, 600);
-                    
-                    // Reabilitar botão
-                    sortearBtn.disabled = false;
-                    if (numerosDisponiveis.length > 0) {
-                        sortearBtn.textContent = '🎯 Próximo Número';
-                    }
-                    
-                    // Confete para cada número
-                    criarConfetePequeno();
-                    
-                    // Verificar status das cartelas após o sorteio
-                    setTimeout(() => {
-                        verificarStatusCartelas();
-                    }, 1000); // Delay para permitir que o número seja processado
-                }, 500);
-            }
-        }, 80);
     }
 
     function criarConfetePequeno() {
@@ -289,11 +362,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (cartelasVendidas.length === 0) return;
         
-        const cartelasAnterioresArmadas = new Set(cartelasArmadas);
-        const cartelasAnterioresBingo = new Set(cartelasBingo);
+        const cartelasAnterioresArmadas = new Set(bingoGlobal.cartelasArmadas);
+        const cartelasAnterioresBingo = new Set(bingoGlobal.cartelasBingo);
         
-        cartelasArmadas.clear();
-        cartelasBingo.clear();
+        bingoGlobal.cartelasArmadas.clear();
+        bingoGlobal.cartelasBingo.clear();
         
         cartelasVendidas.forEach(cartela => {
             const numerosPreenchidos = contarNumerosPreenchidos(cartela);
@@ -301,16 +374,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (numerosPreenchidos === 24) {
                 // BINGO completo (24 números + 1 FREE = 25 total)
-                cartelasBingo.add(cartelaId);
+                bingoGlobal.cartelasBingo.add(cartelaId);
                 
                 // Mostrar alerta apenas se for novo BINGO
-                if (!cartelasAnterioresBingo.has(cartelaId) && !alertasBingoMostrados.has(cartelaId)) {
+                if (!cartelasAnterioresBingo.has(cartelaId) && !bingoGlobal.alertasBingoMostrados.has(cartelaId)) {
                     mostrarAlertaBingo(cartela);
-                    alertasBingoMostrados.add(cartelaId);
+                    bingoGlobal.alertasBingoMostrados.add(cartelaId);
                 }
             } else if (numerosPreenchidos === 23) {
                 // Cartela armada (23 números preenchidos)
-                cartelasArmadas.add(cartelaId);
+                bingoGlobal.cartelasArmadas.add(cartelaId);
                 
                 // Mostrar alerta apenas se for nova cartela armada
                 if (!cartelasAnterioresArmadas.has(cartelaId)) {
@@ -329,7 +402,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             for (let col = 0; col < cartela.numeros.length; col++) {
                 for (let row = 0; row < cartela.numeros[col].length; row++) {
                     const numero = cartela.numeros[col][row];
-                    if (numero !== 'FREE' && !isNaN(numero) && numerosSorteados.includes(numero)) {
+                    if (numero !== 'FREE' && !isNaN(numero) && bingoGlobal.numerosSorteados.includes(numero)) {
                         preenchidos++;
                     }
                 }
@@ -477,10 +550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Carregar dados ao inicializar
-    carregarDados();
+    await carregarDados();
     
-    // Event listener para o botão de sortear
-    sortearBtn.addEventListener('click', sortearNumero);
-    
-    console.log('Bingo game loaded with alerts system');
+    console.log('✅ Bingo game loaded with alerts system');
 });

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Teste Firebase Direto</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste Firebase Direto</h1>
+    
+    <button onclick="testeCompleto()">🚀 Executar Teste Completo</button>
+    <button onclick="limparLog()">🗑️ Limpar Log</button>
+    
+    <div id="log" class="log">Aguardando teste...</div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+
+    <script>
+        const logElement = document.getElementById('log');
+        
+        function log(msg) {
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${msg}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(msg);
+        }
+        
+        function limparLog() {
+            logElement.textContent = 'Log limpo...\n';
+        }
+        
+        async function testeCompleto() {
+            log('🚀 INICIANDO TESTE COMPLETO DO FIREBASE');
+            log('========================================');
+            
+            try {
+                // 1. Verificar se Firebase está carregado
+                log('1. Verificando Firebase SDK...');
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                log('✅ Firebase SDK carregado');
+                
+                // 2. Verificar se FirebaseService está disponível
+                log('2. Verificando FirebaseService...');
+                if (typeof window.firebaseService === 'undefined') {
+                    log('⚠️ FirebaseService não disponível, aguardando...');
+                    
+                    // Aguardar até 10 segundos
+                    for (let i = 0; i < 20; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        if (typeof window.firebaseService !== 'undefined') {
+                            break;
+                        }
+                        log(`⏳ Aguardando... ${(i+1)*0.5}s`);
+                    }
+                    
+                    if (typeof window.firebaseService === 'undefined') {
+                        throw new Error('FirebaseService não carregou após 10 segundos');
+                    }
+                }
+                log('✅ FirebaseService disponível');
+                
+                // 3. Testar conexão
+                log('3. Testando conexão...');
+                const conexao = await window.firebaseService.verificarConexao();
+                if (!conexao) {
+                    throw new Error('Falha na conexão com Firebase');
+                }
+                log('✅ Conexão estabelecida');
+                
+                // 4. Criar cartela de teste
+                log('4. Criando cartela de teste...');
+                const cartelaTeste = {
+                    id: `teste_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    numeros: [
+                        [1, 16, 31, 46, 61],
+                        [2, 17, 32, 47, 62],
+                        [3, 18, 'FREE', 48, 63],
+                        [4, 19, 34, 49, 64],
+                        [5, 20, 35, 50, 65]
+                    ],
+                    preco: 5.00,
+                    vendida: true,
+                    comprador: 'TESTE AUTOMATICO',
+                    telefone: '11999999999',
+                    email: 'teste@automatico.com',
+                    dataVenda: new Date().toISOString(),
+                    timestamp: new Date()
+                };
+                log(`✅ Cartela criada: ${cartelaTeste.id}`);
+                
+                // 5. Salvar no Firebase
+                log('5. Salvando no Firebase...');
+                const resultado = await window.firebaseService.salvarCartela(cartelaTeste);
+                log(`✅ Cartela salva com sucesso: ${resultado.id}`);
+                
+                // 6. Verificar se foi salva (buscar de volta)
+                log('6. Verificando se foi salva...');
+                const cartelas = await window.firebaseService.carregarCartelas();
+                const cartelaEncontrada = cartelas.find(c => c.id === cartelaTeste.id);
+                
+                if (cartelaEncontrada) {
+                    log(`✅ Cartela encontrada no banco: ${cartelaEncontrada.id}`);
+                    log(`👤 Comprador: ${cartelaEncontrada.comprador}`);
+                    log(`📱 Telefone: ${cartelaEncontrada.telefone}`);
+                    log(`📧 Email: ${cartelaEncontrada.email}`);
+                } else {
+                    throw new Error('Cartela não encontrada após salvamento');
+                }
+                
+                // 7. Testar busca por telefone
+                log('7. Testando busca por telefone...');
+                const cartelasPorTelefone = await window.firebaseService.carregarCartelasPorComprador('11999999999', null);
+                log(`✅ Encontradas ${cartelasPorTelefone.length} cartelas para o telefone`);
+                
+                // 8. Estatísticas finais
+                log('8. Estatísticas finais...');
+                const todasCartelas = await window.firebaseService.carregarCartelas();
+                const vendidas = todasCartelas.filter(c => c.vendida).length;
+                log(`📊 Total de cartelas: ${todasCartelas.length}`);
+                log(`📊 Cartelas vendidas: ${vendidas}`);
+                
+                log('========================================');
+                log('🎉 TESTE COMPLETO CONCLUÍDO COM SUCESSO!');
+                log('✅ Sistema de gravação está funcionando');
+                
+            } catch (error) {
+                log('========================================');
+                log(`❌ ERRO NO TESTE: ${error.message}`);
+                log(`❌ Stack: ${error.stack}`);
+                log('========================================');
+            }
+        }
+        
+        // Auto-executar teste quando Firebase estiver pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🔥 Página carregada, aguardando Firebase...');
+            
+            // Verificar periodicamente se Firebase está pronto
+            const checkFirebase = setInterval(() => {
+                if (typeof window.firebaseService !== 'undefined') {
+                    clearInterval(checkFirebase);
+                    log('✅ Firebase detectado, executando teste automático em 2 segundos...');
+                    setTimeout(testeCompleto, 2000);
+                }
+            }, 500);
+            
+            // Timeout de segurança
+            setTimeout(() => {
+                clearInterval(checkFirebase);
+                if (typeof window.firebaseService === 'undefined') {
+                    log('❌ Timeout: Firebase não carregou em 30 segundos');
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

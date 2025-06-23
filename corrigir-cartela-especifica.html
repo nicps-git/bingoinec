@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Corrigir Cartela Específica</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff9800, #ffc107);
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            width: 100%;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .btn-danger {
+            background: #f44336;
+        }
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        .resultado {
+            background: #e8f5e8;
+            border-left: 5px solid #4CAF50;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .erro {
+            background: #ffe8e8;
+            border-left: 5px solid #f44336;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .info {
+            background: #e8f4fd;
+            border-left: 5px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .cartela-info {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Corrigir Cartela Específica</h1>
+        <p>Vamos corrigir a cartela com ID: <strong>cartela_1750680277401_f8wnlnzo6</strong></p>
+    </div>
+
+    <div class="container">
+        <h2>📋 Dados Atuais da Cartela</h2>
+        <div id="cartela-atual">Carregando...</div>
+        <button onclick="carregarCartela()">🔄 Recarregar Dados</button>
+    </div>
+
+    <div class="container">
+        <h2>✏️ Corrigir Dados do Comprador</h2>
+        <div class="form-group">
+            <label for="novo-nome">👤 Nome Completo:</label>
+            <input type="text" id="novo-nome" placeholder="Digite o nome correto do comprador">
+        </div>
+        <div class="form-group">
+            <label for="novo-telefone">📱 Telefone:</label>
+            <input type="tel" id="novo-telefone" value="85999999999" placeholder="85999999999">
+        </div>
+        <div class="form-group">
+            <label for="novo-email">📧 Email (opcional):</label>
+            <input type="email" id="novo-email" placeholder="email@exemplo.com">
+        </div>
+        <button onclick="corrigirCartela()">💾 Salvar Correções</button>
+        <div id="resultado-correcao"></div>
+    </div>
+
+    <div class="container">
+        <h2>🧪 Teste de Login</h2>
+        <p>Após corrigir a cartela, teste o login:</p>
+        <div class="form-group">
+            <label for="teste-telefone">📱 Telefone para Teste:</label>
+            <input type="tel" id="teste-telefone" value="85999999999">
+        </div>
+        <button onclick="testarLogin()">🔐 Testar Login</button>
+        <div id="resultado-teste"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+
+    <script>
+        const cartelaId = 'cartela_1750680277401_f8wnlnzo6';
+        let cartelaAtual = null;
+
+        function mostrarResultado(elementId, conteudo, tipo = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${tipo}">${conteudo}</div>`;
+        }
+
+        async function carregarCartela() {
+            try {
+                if (typeof window.firebaseService === 'undefined') {
+                    throw new Error('FirebaseService não carregado');
+                }
+
+                console.log('🔍 Buscando cartela:', cartelaId);
+                
+                const cartelas = await window.firebaseService.carregarCartelas();
+                cartelaAtual = cartelas.find(c => c.id === cartelaId);
+
+                if (cartelaAtual) {
+                    const info = `
+                        <div class="cartela-info">
+                            <h3>🎫 Cartela Encontrada:</h3>
+                            <strong>ID:</strong> ${cartelaAtual.id}<br>
+                            <strong>Comprador:</strong> "${cartelaAtual.comprador || 'N/A'}"<br>
+                            <strong>Telefone:</strong> "${cartelaAtual.telefone || 'N/A'}"<br>
+                            <strong>Email:</strong> "${cartelaAtual.email || 'N/A'}"<br>
+                            <strong>Vendida:</strong> ${cartelaAtual.vendida ? 'Sim' : 'Não'}<br>
+                            <strong>Preço:</strong> R$ ${(cartelaAtual.preco || 0).toFixed(2)}<br>
+                            <strong>Data Venda:</strong> ${cartelaAtual.dataVenda ? new Date(cartelaAtual.dataVenda).toLocaleString() : 'N/A'}
+                        </div>
+                    `;
+                    
+                    document.getElementById('cartela-atual').innerHTML = info;
+                    
+                    // Preencher campos com dados atuais
+                    if (cartelaAtual.telefone) {
+                        document.getElementById('novo-telefone').value = cartelaAtual.telefone;
+                    }
+                    if (cartelaAtual.email) {
+                        document.getElementById('novo-email').value = cartelaAtual.email;
+                    }
+                    
+                } else {
+                    document.getElementById('cartela-atual').innerHTML = '<div class="erro">❌ Cartela não encontrada!</div>';
+                }
+
+            } catch (error) {
+                console.error('❌ Erro ao carregar cartela:', error);
+                document.getElementById('cartela-atual').innerHTML = `<div class="erro">❌ Erro: ${error.message}</div>`;
+            }
+        }
+
+        async function corrigirCartela() {
+            try {
+                if (!cartelaAtual) {
+                    throw new Error('Carregue a cartela primeiro');
+                }
+
+                const novoNome = document.getElementById('novo-nome').value.trim();
+                const novoTelefone = document.getElementById('novo-telefone').value.trim();
+                const novoEmail = document.getElementById('novo-email').value.trim();
+
+                if (!novoNome) {
+                    throw new Error('Nome é obrigatório');
+                }
+
+                if (!novoTelefone) {
+                    throw new Error('Telefone é obrigatório');
+                }
+
+                console.log('🔧 Corrigindo cartela com novos dados:', {
+                    nome: novoNome,
+                    telefone: novoTelefone,
+                    email: novoEmail
+                });
+
+                // Criar cartela corrigida
+                const cartelaCorrigida = {
+                    ...cartelaAtual,
+                    comprador: novoNome,
+                    telefone: novoTelefone.replace(/\D/g, ''), // Normalizar telefone
+                    email: novoEmail || null,
+                    vendida: true,
+                    dataCorrecao: new Date().toISOString()
+                };
+
+                // Salvar no Firebase
+                await window.firebaseService.salvarCartela(cartelaCorrigida);
+
+                console.log('✅ Cartela corrigida com sucesso!');
+                
+                const resultado = `
+                    <h3>✅ Cartela Corrigida com Sucesso!</h3>
+                    <strong>ID:</strong> ${cartelaCorrigida.id}<br>
+                    <strong>Nome:</strong> ${cartelaCorrigida.comprador}<br>
+                    <strong>Telefone:</strong> ${cartelaCorrigida.telefone}<br>
+                    <strong>Email:</strong> ${cartelaCorrigida.email || 'Não informado'}<br>
+                    <br>
+                    <p>✅ Agora você pode tentar fazer login na página "Minhas Cartelas" usando o telefone: <strong>${cartelaCorrigida.telefone}</strong></p>
+                `;
+                
+                mostrarResultado('resultado-correcao', resultado, 'resultado');
+                
+                // Recarregar dados
+                await carregarCartela();
+
+            } catch (error) {
+                console.error('❌ Erro ao corrigir cartela:', error);
+                mostrarResultado('resultado-correcao', `❌ Erro: ${error.message}`, 'erro');
+            }
+        }
+
+        async function testarLogin() {
+            try {
+                const telefone = document.getElementById('teste-telefone').value.trim();
+                
+                if (!telefone) {
+                    throw new Error('Informe o telefone para teste');
+                }
+
+                console.log('🔐 Testando login com telefone:', telefone);
+
+                const telefoneNormalizado = telefone.replace(/\D/g, '');
+                const cartelas = await window.firebaseService.carregarCartelasPorComprador(telefoneNormalizado, null);
+
+                if (cartelas.length > 0) {
+                    let resultado = `<h3>✅ Login funcionaria! Encontradas ${cartelas.length} cartela(s):</h3>`;
+                    cartelas.forEach((cartela, index) => {
+                        resultado += `
+                            <div style="background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px;">
+                                <strong>Cartela ${index + 1}:</strong><br>
+                                ID: ${cartela.id}<br>
+                                Comprador: ${cartela.comprador}<br>
+                                Telefone: ${cartela.telefone}
+                            </div>
+                        `;
+                    });
+                    mostrarResultado('resultado-teste', resultado, 'resultado');
+                } else {
+                    mostrarResultado('resultado-teste', `❌ Login falharia - Nenhuma cartela encontrada para o telefone: ${telefone}`, 'erro');
+                }
+
+            } catch (error) {
+                console.error('❌ Erro no teste de login:', error);
+                mostrarResultado('resultado-teste', `❌ Erro: ${error.message}`, 'erro');
+            }
+        }
+
+        // Auto-inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🔧 Página de correção carregada');
+            
+            // Aguardar Firebase
+            const checkFirebase = setInterval(() => {
+                if (typeof window.firebaseService !== 'undefined') {
+                    clearInterval(checkFirebase);
+                    console.log('✅ Firebase pronto, carregando cartela...');
+                    carregarCartela();
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

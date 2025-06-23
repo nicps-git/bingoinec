@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Verificar Cartelas no Banco</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .filtros {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            display: inline-block;
+            margin: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .cartelas-lista {
+            margin-top: 20px;
+        }
+        .cartela-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .cartela-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .cartela-id {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .cartela-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .info-item {
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        .info-label {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: bold;
+        }
+        .info-value {
+            font-size: 14px;
+            margin-top: 3px;
+        }
+        .numeros-cartela {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        .numero {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #007bff;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            margin: 2px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .status.error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Verificar Cartelas no Banco de Dados</h1>
+        
+        <div class="filtros">
+            <h3>🔍 Filtros de Busca</h3>
+            <div class="input-group">
+                <label for="telefone-busca">📱 Telefone:</label>
+                <input type="tel" id="telefone-busca" placeholder="(11) 99999-9999">
+            </div>
+            <div class="input-group">
+                <label for="email-busca">📧 E-mail:</label>
+                <input type="email" id="email-busca" placeholder="comprador@email.com">
+            </div>
+            <div class="input-group">
+                <label for="nome-busca">👤 Nome:</label>
+                <input type="text" id="nome-busca" placeholder="Nome do comprador">
+            </div>
+            <br>
+            <button onclick="buscarTodas()">📋 Todas as Cartelas</button>
+            <button onclick="buscarPorFiltro()">🔍 Buscar com Filtros</button>
+            <button onclick="testarConexao()">🔥 Testar Conexão</button>
+        </div>
+        
+        <div id="status" class="status info">Aguardando ação...</div>
+        
+        <div id="resultados" class="cartelas-lista">
+            <!-- Resultados aparecerão aqui -->
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const resultadosDiv = document.getElementById('resultados');
+        
+        function mostrarStatus(msg, tipo = 'info') {
+            statusDiv.textContent = msg;
+            statusDiv.className = `status ${tipo}`;
+        }
+        
+        function limparResultados() {
+            resultadosDiv.innerHTML = '';
+        }
+        
+        async function testarConexao() {
+            mostrarStatus('🔥 Testando conexão com Firebase...', 'info');
+            
+            try {
+                if (typeof firebaseService === 'undefined') {
+                    throw new Error('Firebase Service não carregado');
+                }
+                
+                const conexaoOk = await firebaseService.verificarConexao();
+                
+                if (conexaoOk) {
+                    mostrarStatus('✅ Conexão com Firebase estabelecida!', 'success');
+                } else {
+                    mostrarStatus('❌ Falha na conexão com Firebase', 'error');
+                }
+            } catch (error) {
+                mostrarStatus('❌ Erro: ' + error.message, 'error');
+            }
+        }
+        
+        async function buscarTodas() {
+            mostrarStatus('📋 Carregando todas as cartelas...', 'info');
+            limparResultados();
+            
+            try {
+                const cartelas = await firebaseService.carregarCartelas();
+                
+                if (!cartelas || cartelas.length === 0) {
+                    mostrarStatus('📭 Nenhuma cartela encontrada no banco', 'warning');
+                    return;
+                }
+                
+                mostrarStatus(`✅ ${cartelas.length} cartela(s) encontrada(s)`, 'success');
+                exibirCartelas(cartelas);
+                
+            } catch (error) {
+                mostrarStatus('❌ Erro ao carregar cartelas: ' + error.message, 'error');
+            }
+        }
+        
+        async function buscarPorFiltro() {
+            const telefone = document.getElementById('telefone-busca').value.trim();
+            const email = document.getElementById('email-busca').value.trim();
+            const nome = document.getElementById('nome-busca').value.trim();
+            
+            if (!telefone && !email && !nome) {
+                mostrarStatus('⚠️ Informe pelo menos um filtro', 'warning');
+                return;
+            }
+            
+            mostrarStatus('🔍 Buscando com filtros...', 'info');
+            limparResultados();
+            
+            try {
+                let cartelas = [];
+                
+                if (telefone || email) {
+                    cartelas = await firebaseService.carregarCartelasPorComprador(telefone, email);
+                } else {
+                    // Buscar por nome (busca manual)
+                    const todasCartelas = await firebaseService.carregarCartelas();
+                    cartelas = todasCartelas.filter(c => 
+                        c.comprador && c.comprador.toLowerCase().includes(nome.toLowerCase())
+                    );
+                }
+                
+                if (!cartelas || cartelas.length === 0) {
+                    mostrarStatus('📭 Nenhuma cartela encontrada com os filtros informados', 'warning');
+                    return;
+                }
+                
+                mostrarStatus(`✅ ${cartelas.length} cartela(s) encontrada(s) com os filtros`, 'success');
+                exibirCartelas(cartelas);
+                
+            } catch (error) {
+                mostrarStatus('❌ Erro na busca: ' + error.message, 'error');
+            }
+        }
+        
+        function exibirCartelas(cartelas) {
+            const cartelasVendidas = cartelas.filter(c => c.vendida);
+            const cartelasNaoVendidas = cartelas.filter(c => !c.vendida);
+            
+            let html = '';
+            
+            if (cartelasVendidas.length > 0) {
+                html += `<h3>🎫 Cartelas Vendidas (${cartelasVendidas.length})</h3>`;
+                cartelasVendidas.forEach(cartela => {
+                    html += criarHtmlCartela(cartela);
+                });
+            }
+            
+            if (cartelasNaoVendidas.length > 0) {
+                html += `<h3>📋 Cartelas Não Vendidas (${cartelasNaoVendidas.length})</h3>`;
+                cartelasNaoVendidas.forEach(cartela => {
+                    html += criarHtmlCartela(cartela);
+                });
+            }
+            
+            resultadosDiv.innerHTML = html;
+        }
+        
+        function criarHtmlCartela(cartela) {
+            const dataVenda = cartela.dataVenda ? new Date(cartela.dataVenda).toLocaleString() : 'N/A';
+            const precoFormatado = cartela.preco ? `R$ ${cartela.preco.toFixed(2)}` : 'N/A';
+            
+            const numerosHtml = cartela.numeros ? 
+                cartela.numeros.map(n => `<span class="numero">${n}</span>`).join('') : 
+                '<em>Números não disponíveis</em>';
+            
+            return `
+                <div class="cartela-item">
+                    <div class="cartela-header">
+                        <h4>🎫 Cartela</h4>
+                        <span class="cartela-id">${cartela.id || 'ID não disponível'}</span>
+                    </div>
+                    
+                    <div class="cartela-info">
+                        <div class="info-item">
+                            <div class="info-label">👤 Comprador</div>
+                            <div class="info-value">${cartela.comprador || 'Não informado'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">📱 Telefone</div>
+                            <div class="info-value">${cartela.telefone || 'Não informado'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">📧 E-mail</div>
+                            <div class="info-value">${cartela.email || 'Não informado'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">💰 Preço</div>
+                            <div class="info-value">${precoFormatado}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">📅 Data Venda</div>
+                            <div class="info-value">${dataVenda}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">✅ Status</div>
+                            <div class="info-value">${cartela.vendida ? '🎫 Vendida' : '📋 Disponível'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="numeros-cartela">
+                        <strong>🎯 Números da Cartela:</strong><br>
+                        ${numerosHtml}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            mostrarStatus('🚀 Sistema carregado. Teste a conexão primeiro.', 'info');
+        });
+    </script>
+</body>
+</html>

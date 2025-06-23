@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎪 Teste Direto - Bingo Arraiá INEC</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>🌽 Teste Direto - Bingo Arraiá INEC 🌽</h1>
+        <p>🔧 Teste simplificado do botão de sorteio</p>
+    </header>
+
+    <main>
+        <div class="bingo-card">
+            <h2>🎯 Número Sorteado</h2>
+            <div id="numero-sorteado" class="numero-destaque">Clique em Sortear</div>
+            <button id="sortear-btn">🎲 Sortear</button>
+        </div>
+        
+        <div class="numeros-sorteados">
+            <h2>📋 Números Anteriores</h2>
+            <div class="contador">
+                <span id="contador-numeros">0</span> números sorteados
+            </div>
+            <ul id="numeros-anteriores"></ul>
+        </div>
+    </main>
+    
+    <!-- Firebase SDK v8 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Iniciando teste direto do botão de sorteio...');
+            
+            const sortearBtn = document.getElementById('sortear-btn');
+            const numeroSorteadoEl = document.getElementById('numero-sorteado');
+            const numerosAnterioresEl = document.getElementById('numeros-anteriores');
+            const contadorEl = document.getElementById('contador-numeros');
+
+            let numerosSorteados = [];
+            let numerosDisponiveis = [];
+            let configuracoes = {};
+
+            // Verificar Firebase
+            console.log('🔥 Verificando Firebase...');
+            try {
+                const conexaoOk = await firebaseService.verificarConexao();
+                if (!conexaoOk) {
+                    throw new Error('Falha na conexão');
+                }
+                console.log('✅ Firebase conectado');
+            } catch (error) {
+                console.error('❌ Erro Firebase:', error);
+                alert('Erro de conexão com Firebase: ' + error.message);
+                return;
+            }
+
+            // Carregar dados
+            console.log('📊 Carregando dados...');
+            try {
+                configuracoes = await firebaseService.carregarConfiguracoes();
+                numerosSorteados = await firebaseService.carregarNumerosSorteados();
+                
+                const numeroInicial = configuracoes.numeroInicial || 1;
+                const numeroFinal = configuracoes.numeroFinal || 75;
+                const todosNumeros = Array.from({ length: numeroFinal - numeroInicial + 1 }, (_, i) => i + numeroInicial);
+                numerosDisponiveis = todosNumeros.filter(num => !numerosSorteados.includes(num));
+                
+                console.log(`✅ Dados carregados: ${numerosSorteados.length} sorteados, ${numerosDisponiveis.length} disponíveis`);
+                
+                // Mostrar números sorteados
+                numerosAnterioresEl.innerHTML = '';
+                numerosSorteados.forEach(numero => {
+                    const li = document.createElement('li');
+                    li.textContent = numero;
+                    numerosAnterioresEl.appendChild(li);
+                });
+                
+                contadorEl.textContent = numerosSorteados.length;
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar dados:', error);
+                alert('Erro ao carregar dados: ' + error.message);
+                return;
+            }
+
+            // Função de sortear simplificada
+            async function sortearNumero() {
+                console.log('🎲 Botão clicado!');
+                
+                if (numerosDisponiveis.length === 0) {
+                    console.log('❌ Nenhum número disponível');
+                    numeroSorteadoEl.textContent = 'FIM!';
+                    sortearBtn.disabled = true;
+                    sortearBtn.textContent = '🎉 Acabou!';
+                    return;
+                }
+
+                console.log(`📊 ${numerosDisponiveis.length} números disponíveis`);
+                
+                sortearBtn.disabled = true;
+                sortearBtn.textContent = '🎲 Sorteando...';
+                
+                // Sortear número
+                const randomIndex = Math.floor(Math.random() * numerosDisponiveis.length);
+                const numero = numerosDisponiveis.splice(randomIndex, 1)[0];
+                
+                console.log(`🎯 Número sorteado: ${numero}`);
+                
+                setTimeout(async () => {
+                    numerosSorteados.push(numero);
+                    numeroSorteadoEl.textContent = numero;
+                    
+                    // Adicionar à lista
+                    const li = document.createElement('li');
+                    li.textContent = numero;
+                    numerosAnterioresEl.appendChild(li);
+                    
+                    // Atualizar contador
+                    contadorEl.textContent = numerosSorteados.length;
+                    
+                    // Salvar no Firebase
+                    try {
+                        await firebaseService.salvarNumeroSorteado(numero);
+                        console.log(`✅ Número ${numero} salvo no Firebase`);
+                    } catch (error) {
+                        console.error(`❌ Erro ao salvar: ${error.message}`);
+                    }
+                    
+                    // Reabilitar botão
+                    sortearBtn.disabled = false;
+                    sortearBtn.textContent = numerosDisponiveis.length > 0 ? 
+                                           '🎯 Próximo Número' : '🎉 Fim do Jogo!';
+                    
+                    if (numerosDisponiveis.length === 0) {
+                        sortearBtn.disabled = true;
+                    }
+                    
+                    console.log(`📊 Status atualizado: ${numerosSorteados.length} sorteados, ${numerosDisponiveis.length} restantes`);
+                }, 1000);
+            }
+
+            // Configurar evento
+            console.log('🔧 Configurando evento do botão...');
+            sortearBtn.addEventListener('click', sortearNumero);
+            
+            // Habilitar botão
+            sortearBtn.disabled = false;
+            if (numerosDisponiveis.length > 0) {
+                sortearBtn.textContent = '🎲 Sortear Número';
+            } else {
+                sortearBtn.textContent = '🎉 Fim do Jogo!';
+                sortearBtn.disabled = true;
+            }
+            
+            console.log('✅ Teste direto inicializado com sucesso!');
+        });
+    </script>
+</body>
+</html>

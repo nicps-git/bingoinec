@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Admin - Verificação de Funcionalidades</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste Admin - Verificação de Funcionalidades</h1>
+        <p>Esta página testa a funcionalidade da área administrativa do bingo.</p>
+        
+        <div class="test-section">
+            <h3>📋 Status da Inicialização</h3>
+            <div id="status-init"></div>
+            <button onclick="testarInicializacao()">🔄 Testar Inicialização</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 Teste das Funções Firebase</h3>
+            <div id="status-firebase"></div>
+            <button onclick="testarFirebaseFunctions()">🧪 Testar Funções</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎫 Teste de Geração de Cartela</h3>
+            <div id="status-cartela"></div>
+            <button onclick="testarGerarCartela()">🎫 Testar Gerar Cartela</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>💾 Teste de Configurações</h3>
+            <div id="status-config"></div>
+            <button onclick="testarSalvarConfig()">💾 Testar Salvar Config</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🌐 Acesso à Página Real</h3>
+            <button onclick="abrirAdminReal()">📄 Abrir Admin Real</button>
+            <button onclick="simularLogin()">🔑 Simular Login Admin</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 Log de Debug</h3>
+            <button onclick="limparLog()">🗑️ Limpar Log</button>
+            <div id="log-area" class="log-area"></div>
+        </div>
+    </div>
+
+    <!-- Firebase Dependencies -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Project Dependencies -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    <script src="login.js"></script>
+
+    <script>
+        // Sistema de log
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('log-area');
+            const timestamp = new Date().toLocaleTimeString();
+            logArea.textContent += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[TESTE] ${message}`);
+        }
+        
+        function limparLog() {
+            document.getElementById('log-area').textContent = '';
+        }
+        
+        function exibirStatus(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        // Simular autenticação para testes
+        function simularLogin() {
+            log('🔑 Simulando login admin...');
+            
+            // Criar objeto bingoAuth simulado
+            window.bingoAuth = {
+                isAuthenticated: () => true,
+                currentUser: { username: 'admin_teste' }
+            };
+            
+            log('✅ Login simulado criado');
+            exibirStatus('status-init', '✅ Autenticação simulada ativa', 'success');
+        }
+        
+        // Teste de inicialização
+        async function testarInicializacao() {
+            log('=== TESTE DE INICIALIZAÇÃO ===');
+            exibirStatus('status-init', '🔄 Testando inicialização...', 'info');
+            
+            try {
+                // Verificar dependências
+                log('Verificando dependências...');
+                
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                log('✅ Firebase SDK carregado');
+                
+                if (typeof FirebaseService !== 'undefined') {
+                    log('✅ Classe FirebaseService disponível');
+                } else {
+                    throw new Error('Classe FirebaseService não encontrada');
+                }
+                
+                // Tentar inicializar Firebase Service
+                const firebaseService = new FirebaseService();
+                log('✅ Firebase Service instanciado');
+                
+                // Testar conexão
+                try {
+                    const conexaoOk = await firebaseService.verificarConexao();
+                    if (conexaoOk) {
+                        log('✅ Conexão com Firebase estabelecida');
+                    } else {
+                        log('⚠️ Conexão fraca, mas funcionando');
+                    }
+                } catch (connError) {
+                    log(`⚠️ Erro na verificação de conexão: ${connError.message}`);
+                }
+                
+                exibirStatus('status-init', '✅ Inicialização bem-sucedida', 'success');
+                window.testFirebaseService = firebaseService; // Para outros testes
+                
+            } catch (error) {
+                log(`❌ Erro na inicialização: ${error.message}`);
+                exibirStatus('status-init', `❌ Falha: ${error.message}`, 'error');
+            }
+        }
+        
+        // Teste das funções Firebase
+        async function testarFirebaseFunctions() {
+            log('=== TESTE DAS FUNÇÕES FIREBASE ===');
+            exibirStatus('status-firebase', '🔄 Testando funções...', 'info');
+            
+            if (!window.testFirebaseService) {
+                exibirStatus('status-firebase', '❌ Execute primeiro o teste de inicialização', 'error');
+                return;
+            }
+            
+            try {
+                const service = window.testFirebaseService;
+                let resultados = [];
+                
+                // Testar métodos existentes
+                if (typeof service.salvarCartela === 'function') {
+                    log('✅ Método salvarCartela disponível');
+                    resultados.push('salvarCartela: ✅');
+                } else {
+                    log('❌ Método salvarCartela NÃO encontrado');
+                    resultados.push('salvarCartela: ❌');
+                }
+                
+                if (typeof service.carregarConfiguracoes === 'function') {
+                    log('✅ Método carregarConfiguracoes disponível');
+                    resultados.push('carregarConfiguracoes: ✅');
+                } else {
+                    resultados.push('carregarConfiguracoes: ❌');
+                }
+                
+                if (typeof service.salvarConfiguracoes === 'function') {
+                    log('✅ Método salvarConfiguracoes disponível');
+                    resultados.push('salvarConfiguracoes: ✅');
+                } else {
+                    resultados.push('salvarConfiguracoes: ❌');
+                }
+                
+                if (typeof service.resetarJogo === 'function') {
+                    log('✅ Método resetarJogo disponível');
+                    resultados.push('resetarJogo: ✅');
+                } else {
+                    resultados.push('resetarJogo: ❌');
+                }
+                
+                exibirStatus('status-firebase', `Métodos testados:<br>${resultados.join('<br>')}`, 'info');
+                
+            } catch (error) {
+                log(`❌ Erro no teste: ${error.message}`);
+                exibirStatus('status-firebase', `❌ Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        // Teste de geração de cartela
+        async function testarGerarCartela() {
+            log('=== TESTE DE GERAÇÃO DE CARTELA ===');
+            exibirStatus('status-cartela', '🔄 Testando geração...', 'info');
+            
+            if (!window.testFirebaseService) {
+                exibirStatus('status-cartela', '❌ Execute primeiro o teste de inicialização', 'error');
+                return;
+            }
+            
+            try {
+                const service = window.testFirebaseService;
+                
+                // Criar cartela de teste
+                const cartelaTeste = {
+                    id: 'teste_' + Date.now(),
+                    numeros: [1, 5, 12, 18, 23, 30, 35, 41, 48, 52, 59, 63, 68, 72, 75],
+                    preco: 5.00,
+                    vendida: false,
+                    dataGeracao: new Date().toISOString()
+                };
+                
+                log('🎫 Tentando salvar cartela de teste...');
+                const resultado = await service.salvarCartela(cartelaTeste);
+                
+                log(`✅ Cartela salva com sucesso! ID: ${resultado}`);
+                exibirStatus('status-cartela', `✅ Cartela de teste salva com sucesso!<br>ID: ${resultado}`, 'success');
+                
+            } catch (error) {
+                log(`❌ Erro ao gerar cartela: ${error.message}`);
+                exibirStatus('status-cartela', `❌ Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        // Teste de configurações
+        async function testarSalvarConfig() {
+            log('=== TESTE DE CONFIGURAÇÕES ===');
+            exibirStatus('status-config', '🔄 Testando configurações...', 'info');
+            
+            if (!window.testFirebaseService) {
+                exibirStatus('status-config', '❌ Execute primeiro o teste de inicialização', 'error');
+                return;
+            }
+            
+            try {
+                const service = window.testFirebaseService;
+                
+                // Configuração de teste
+                const configTeste = {
+                    numeroInicial: 1,
+                    numeroFinal: 75,
+                    precoCartela: 5.00,
+                    jogoAtivo: true,
+                    timestampTeste: Date.now()
+                };
+                
+                log('💾 Tentando salvar configuração de teste...');
+                await service.salvarConfiguracoes(configTeste);
+                
+                log('✅ Configuração salva com sucesso!');
+                
+                // Tentar carregar a configuração
+                log('📦 Tentando carregar configuração...');
+                const configCarregada = await service.carregarConfiguracoes();
+                
+                log(`📋 Configuração carregada: ${JSON.stringify(configCarregada)}`);
+                exibirStatus('status-config', '✅ Configuração salva e carregada com sucesso!', 'success');
+                
+            } catch (error) {
+                log(`❌ Erro ao testar configurações: ${error.message}`);
+                exibirStatus('status-config', `❌ Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        function abrirAdminReal() {
+            window.open('admin.html', '_blank');
+        }
+        
+        // Executar verificação inicial
+        document.addEventListener('DOMContentLoaded', () => {
+            log('=== PÁGINA DE TESTE CARREGADA ===');
+            
+            // Simular login automaticamente
+            simularLogin();
+            
+            // Executar teste de inicialização automaticamente
+            setTimeout(() => {
+                testarInicializacao();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

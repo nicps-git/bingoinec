@@ -6,16 +6,19 @@
     <title>Administração - Bingo Arraiá INEC</title>
     <link rel="stylesheet" href="admin.css">
     
-    <!-- Firebase SDK v8 (para compatibilidade) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <!-- Sistema de Autenticação (PRIMEIRO) -->
+    <script src="auth-simples.js"></script>
+    
+    <!-- Firebase SDK v9 Compat (para consistência com outras páginas) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     
     <!-- Firebase Configuration -->
-    <script src="firebase-config-unified.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="firebase-service.js"></script>
     
-    <script src="login.js"></script>
+    <!-- Admin Logic (ÚLTIMO) -->
     <script src="admin.js"></script>
 </head>
 <body>
@@ -161,16 +164,7 @@
         <div class="estrela estrela-5">⭐</div>
     </div>
 
-    <!-- Firebase SDK v8 -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    
-    <!-- Firebase Configuration -->
-    <script src="firebase-config-unified.js"></script>
-    <script src="firebase-service.js"></script>
-    
+    <!-- Scripts carregados no head -->
     <script src="login.js"></script>
-    <script src="admin.js"></script>
 </body>
 </html>

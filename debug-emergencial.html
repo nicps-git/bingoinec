@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚨 Debug Emergencial - Botão Sorteio</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #fff3cd; }
+        .debug-box { background: white; padding: 20px; margin: 10px 0; border-radius: 10px; border: 2px solid #ffc107; }
+        .error { background: #f8d7da; border-color: #dc3545; }
+        .success { background: #d4edda; border-color: #28a745; }
+        button { padding: 15px 30px; margin: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+        .btn-test { background: #007bff; color: white; }
+        .btn-sortear { background: #28a745; color: white; font-size: 20px; }
+        #logs { background: #000; color: #0f0; padding: 15px; border-radius: 5px; 
+                font-family: monospace; height: 200px; overflow-y: auto; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🚨 DEBUG EMERGENCIAL - Botão Sorteio</h1>
+    
+    <div class="debug-box">
+        <h3>🔍 Teste 1: Verificar se elementos existem</h3>
+        <button class="btn-test" onclick="testarElementos()">🔍 Verificar Elementos DOM</button>
+        <div id="resultado-elementos"></div>
+    </div>
+
+    <div class="debug-box">
+        <h3>🔥 Teste 2: Verificar Firebase</h3>
+        <button class="btn-test" onclick="testarFirebase()">🔥 Verificar Firebase</button>
+        <div id="resultado-firebase"></div>
+    </div>
+
+    <div class="debug-box">
+        <h3>📜 Teste 3: Verificar Scripts</h3>
+        <button class="btn-test" onclick="testarScripts()">📜 Verificar Scripts</button>
+        <div id="resultado-scripts"></div>
+    </div>
+
+    <div class="debug-box">
+        <h3>🎲 Teste 4: Simular clique direto</h3>
+        <button id="sortear-btn" class="btn-sortear" onclick="alert('Clique direto funcionou!')">🎲 SORTEAR (Teste Direto)</button>
+        <button class="btn-test" onclick="simularClique()">🖱️ Simular Clique no Botão</button>
+        <div id="resultado-clique"></div>
+    </div>
+
+    <div class="debug-box">
+        <h3>🧪 Teste 5: Criar elementos mock</h3>
+        <button class="btn-test" onclick="criarElementosMock()">🧪 Criar Elementos Mock</button>
+        <div id="resultado-mock"></div>
+    </div>
+
+    <!-- Elementos que devem existir na página principal -->
+    <div id="numero-sorteado" style="display: none;"></div>
+    <ul id="numeros-anteriores" style="display: none;"></ul>
+    <span id="contador-numeros" style="display: none;"></span>
+    <div id="fogos" style="display: none;"></div>
+
+    <h3>📊 Logs:</h3>
+    <div id="logs">Iniciando debug emergencial...\n</div>
+
+    <!-- Firebase SDK v8 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    
+    <!-- Script principal -->
+    <script src="script.js"></script>
+
+    <script>
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logs = document.getElementById('logs');
+            logs.textContent += `[${timestamp}] ${message}\n`;
+            logs.scrollTop = logs.scrollHeight;
+            console.log(`[DEBUG] ${message}`);
+        }
+
+        function testarElementos() {
+            log('=== TESTE 1: ELEMENTOS DOM ===');
+            const elementos = ['sortear-btn', 'numero-sorteado', 'numeros-anteriores', 'contador-numeros', 'fogos'];
+            let resultado = '<ul>';
+            
+            elementos.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    resultado += `<li>✅ ${id}: ENCONTRADO</li>`;
+                    log(`✅ ${id}: ENCONTRADO`);
+                } else {
+                    resultado += `<li>❌ ${id}: NÃO ENCONTRADO</li>`;
+                    log(`❌ ${id}: NÃO ENCONTRADO`);
+                }
+            });
+            
+            resultado += '</ul>';
+            document.getElementById('resultado-elementos').innerHTML = resultado;
+        }
+
+        function testarFirebase() {
+            log('=== TESTE 2: FIREBASE ===');
+            const resultado = document.getElementById('resultado-firebase');
+            
+            try {
+                if (typeof window.firebaseConfig === 'undefined') {
+                    throw new Error('firebaseConfig não definido');
+                }
+                
+                if (typeof window.firebaseService === 'undefined') {
+                    throw new Error('firebaseService não definido');
+                }
+                
+                resultado.innerHTML = '✅ Firebase carregado corretamente';
+                log('✅ Firebase: OK');
+                
+                // Testar conexão
+                firebaseService.verificarConexao().then(conexao => {
+                    if (conexao) {
+                        resultado.innerHTML += '<br>✅ Conexão com Firebase OK';
+                        log('✅ Conexão Firebase: OK');
+                    } else {
+                        resultado.innerHTML += '<br>❌ Falha na conexão Firebase';
+                        log('❌ Conexão Firebase: FALHOU');
+                    }
+                }).catch(error => {
+                    resultado.innerHTML += `<br>❌ Erro: ${error.message}`;
+                    log(`❌ Erro Firebase: ${error.message}`);
+                });
+                
+            } catch (error) {
+                resultado.innerHTML = `❌ Erro: ${error.message}`;
+                log(`❌ Firebase: ${error.message}`);
+            }
+        }
+
+        function testarScripts() {
+            log('=== TESTE 3: SCRIPTS ===');
+            const resultado = document.getElementById('resultado-scripts');
+            let html = '<ul>';
+            
+            // Verificar bingoGlobal
+            if (typeof window.bingoGlobal === 'object') {
+                html += '<li>✅ bingoGlobal: EXISTE</li>';
+                html += `<li>📊 Inicializado: ${window.bingoGlobal.inicializado}</li>`;
+                log('✅ bingoGlobal: EXISTE');
+                log(`📊 Inicializado: ${window.bingoGlobal.inicializado}`);
+            } else {
+                html += '<li>❌ bingoGlobal: NÃO EXISTE</li>';
+                log('❌ bingoGlobal: NÃO EXISTE');
+            }
+            
+            // Verificar sortearNumero
+            if (typeof window.sortearNumero === 'function') {
+                html += '<li>✅ window.sortearNumero: EXISTE</li>';
+                log('✅ window.sortearNumero: EXISTE');
+            } else {
+                html += '<li>❌ window.sortearNumero: NÃO EXISTE</li>';
+                log('❌ window.sortearNumero: NÃO EXISTE');
+            }
+            
+            // Verificar verificarAcessoAdmin
+            if (typeof window.verificarAcessoAdmin === 'function') {
+                html += '<li>✅ verificarAcessoAdmin: EXISTE</li>';
+                log('✅ verificarAcessoAdmin: EXISTE');
+            } else {
+                html += '<li>❌ verificarAcessoAdmin: NÃO EXISTE</li>';
+                log('❌ verificarAcessoAdmin: NÃO EXISTE');
+            }
+            
+            html += '</ul>';
+            document.getElementById('resultado-scripts').innerHTML = html;
+        }
+
+        function simularClique() {
+            log('=== TESTE 4: SIMULAR CLIQUE ===');
+            const resultado = document.getElementById('resultado-clique');
+            
+            const botao = document.getElementById('sortear-btn');
+            if (botao) {
+                log('✅ Botão encontrado, simulando clique...');
+                try {
+                    botao.click();
+                    resultado.innerHTML = '✅ Clique simulado com sucesso';
+                    log('✅ Clique simulado');
+                } catch (error) {
+                    resultado.innerHTML = `❌ Erro ao simular clique: ${error.message}`;
+                    log(`❌ Erro ao simular clique: ${error.message}`);
+                }
+            } else {
+                resultado.innerHTML = '❌ Botão não encontrado';
+                log('❌ Botão não encontrado para simular clique');
+            }
+        }
+
+        function criarElementosMock() {
+            log('=== TESTE 5: ELEMENTOS MOCK ===');
+            const resultado = document.getElementById('resultado-mock');
+            
+            try {
+                // Criar botão mock
+                const botaoMock = document.createElement('button');
+                botaoMock.id = 'sortear-btn-mock';
+                botaoMock.textContent = '🎲 SORTEAR (Mock)';
+                botaoMock.onclick = function() {
+                    log('🎯 CLIQUE NO BOTÃO MOCK FUNCIONOU!');
+                    alert('Botão mock funcionou!');
+                };
+                
+                resultado.appendChild(botaoMock);
+                
+                log('✅ Elementos mock criados');
+                resultado.innerHTML += '<br>✅ Botão mock criado - teste clicando nele';
+                
+            } catch (error) {
+                resultado.innerHTML = `❌ Erro: ${error.message}`;
+                log(`❌ Erro ao criar mock: ${error.message}`);
+            }
+        }
+
+        // Auto-executar testes
+        document.addEventListener('DOMContentLoaded', () => {
+            log('DOM carregado, aguardando 2 segundos...');
+            
+            setTimeout(() => {
+                log('Executando testes automáticos...');
+                testarElementos();
+                
+                setTimeout(() => {
+                    testarFirebase();
+                }, 1000);
+                
+                setTimeout(() => {
+                    testarScripts();
+                }, 2000);
+                
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

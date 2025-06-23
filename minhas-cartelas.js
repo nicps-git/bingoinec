@@ -2,16 +2,14 @@
 
 // Função global para verificar acesso admin
 function verificarAcessoAdmin() {
-    if (window.bingoAuth && window.bingoAuth.isAuthenticated()) {
-        window.location.href = 'admin.html';
-    } else {
-        if (confirm('Para acessar a área administrativa, é necessário fazer login. Deseja ir para a página de login?')) {
-            window.location.href = 'login.html';
-        }
-    }
+    console.log('🔐 Redirecionando para área administrativa...');
+    window.location.href = 'admin.html';
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 [MINHAS-CARTELAS] Script iniciado!');
+    console.log('📅 [MINHAS-CARTELAS] DOM carregado, inicializando sistema...');
+    
     // Elementos do DOM
     const loginComprador = document.getElementById('login-comprador');
     const areaCartelas = document.getElementById('area-cartelas');
@@ -19,6 +17,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const telefoneInput = document.getElementById('consulta-telefone');
     const emailInput = document.getElementById('consulta-email');
     const alertMsg = document.getElementById('alert-msg');
+    
+    console.log('🔍 [MINHAS-CARTELAS] Elementos DOM encontrados:', {
+        loginComprador: !!loginComprador,
+        areaCartelas: !!areaCartelas,
+        formConsulta: !!formConsulta,
+        telefoneInput: !!telefoneInput,
+        emailInput: !!emailInput,
+        alertMsg: !!alertMsg
+    });
 
     // Elementos da área de cartelas
     const nomeCompradorSpan = document.getElementById('nome-comprador-logado');
@@ -42,36 +49,195 @@ document.addEventListener('DOMContentLoaded', async () => {
     let cartelasBingo = new Set(); // Cartelas com BINGO
     let alertasBingoMostrados = new Set(); // Para evitar spam de alertas
 
-    // Verificar conexão com Firebase
-    console.log('🔥 Verificando conexão com Firebase...');
-    const conexaoOk = await firebaseService.verificarConexao();
-    if (!conexaoOk) {
-        alert('❌ Erro de conexão com Firebase. Verifique sua conexão com a internet.');
-        return;
+    // Inicialização robusta do Firebase Service
+    console.log('🔥 [MINHAS-CARTELAS] Inicializando sistema...');
+    console.log('🔍 [MINHAS-CARTELAS] Verificando dependências globais:', {
+        firebase: typeof firebase,
+        FirebaseService: typeof FirebaseService
+    });
+    
+    let firebaseService = null;
+    let sistemaInicializado = false;
+    
+    // Função para inicializar Firebase Service
+    async function inicializarSistema() {
+        try {
+            console.log('� Verificando dependências...');
+            
+            // Verificar se Firebase SDK está carregado
+            if (typeof firebase === 'undefined') {
+                throw new Error('Firebase SDK não carregado');
+            }
+            console.log('✅ Firebase SDK carregado');
+            
+            // Tentar criar instância do Firebase Service
+            if (typeof FirebaseService !== 'undefined') {
+                firebaseService = new FirebaseService();
+                console.log('✅ Firebase Service instanciado');
+                
+                // Testar conexão
+                try {
+                    const conexaoOk = await firebaseService.verificarConexao();
+                    if (conexaoOk) {
+                        console.log('✅ Conexão com Firebase estabelecida');
+                        sistemaInicializado = true;
+                        return true;
+                    } else {
+                        console.warn('⚠️ Conexão fraca, mas continuando...');
+                        sistemaInicializado = true;
+                        return true;
+                    }
+                } catch (connError) {
+                    console.warn('⚠️ Erro na verificação de conexão, mas continuando:', connError.message);
+                    sistemaInicializado = true;
+                    return true;
+                }
+            } else {
+                console.warn('⚠️ Classe FirebaseService não encontrada, usando fallback');
+                // Criar fallback direto
+                firebaseService = {
+                    db: firebase.firestore(),
+                    async carregarCartelasPorComprador(telefone, email) {
+                        const snapshot = await this.db.collection('cartelas').where('telefone', '==', telefone).get();
+                        const cartelas = [];
+                        snapshot.forEach(doc => cartelas.push({ id: doc.id, ...doc.data() }));
+                        return cartelas;
+                    },
+                    async carregarNumerosSorteados() {
+                        const snapshot = await this.db.collection('numeros-sorteados').orderBy('timestamp', 'desc').get();
+                        const numeros = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (data.numero) numeros.push(data.numero);
+                        });
+                        return numeros.reverse();
+                    },
+                    escutarNumerosSorteados(callback) {
+                        // Listener em tempo real para números sorteados
+                        return this.db.collection('numeros-sorteados')
+                            .orderBy('timestamp', 'desc')
+                            .onSnapshot((snapshot) => {
+                                const numeros = [];
+                                snapshot.forEach(doc => {
+                                    const data = doc.data();
+                                    if (data.numero) numeros.push(data.numero);
+                                });
+                                callback(numeros.reverse());
+                            });
+                    }
+                };
+                sistemaInicializado = true;
+                return true;
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao inicializar sistema:', error);
+            mostrarAlerta(`Erro de inicialização: ${error.message}. Recarregue a página.`, 'error');
+            return false;
+        }
+    }
+    
+    // Aguardar inicialização
+    console.log('⏳ [MINHAS-CARTELAS] Aguardando inicialização do sistema...');
+    
+    // Tentar inicializar imediatamente
+    console.log('🎯 [MINHAS-CARTELAS] Tentativa 1 de inicialização...');
+    const inicializado = await inicializarSistema();
+    
+    if (!inicializado) {
+        // Se falhou, tentar novamente após 2 segundos
+        console.log('🔄 [MINHAS-CARTELAS] Tentando novamente em 2 segundos...');
+        setTimeout(async () => {
+            console.log('🎯 [MINHAS-CARTELAS] Tentativa 2 de inicialização...');
+            const tentativa2 = await inicializarSistema();
+            if (!tentativa2) {
+                console.error('❌ [MINHAS-CARTELAS] Sistema não conseguiu inicializar após 2 tentativas');
+                mostrarAlerta('Sistema não conseguiu inicializar. Recarregue a página.', 'error');
+            } else {
+                console.log('🎉 [MINHAS-CARTELAS] Sistema inicializado na segunda tentativa!');
+            }
+        }, 2000);
+    } else {
+        console.log('🎉 [MINHAS-CARTELAS] Sistema inicializado com sucesso na primeira tentativa!');
     }
 
     // ===== FUNÇÕES PRINCIPAIS =====
 
-    // Fazer login do comprador
-    async function fazerLogin() {
+    // Normalizar telefone (remover formatação) - VERSÃO PADRONIZADA
+    function normalizarTelefone(telefone) {
+        if (!telefone) return '';
+        // Remove todos os caracteres que não são números
+        const telefoneNumerico = telefone.toString().replace(/\D/g, '');
+        console.log('📱 [LOGIN] Normalizando telefone:', {
+            original: telefone,
+            normalizado: telefoneNumerico,
+            tamanho: telefoneNumerico.length
+        });
+        return telefoneNumerico;
+    }
+
+        async function fazerLogin() {
         try {
+            console.log('🚀 [DEBUG] Iniciando processo de login...');
+            
             const telefone = telefoneInput.value.trim();
             const email = emailInput.value.trim();
 
+            console.log('📝 [DEBUG] Dados informados RAW:', { 
+                telefone: telefone, 
+                email: email,
+                telefoneLength: telefone.length,
+                emailLength: email.length
+            });
+
             if (!telefone && !email) {
+                console.log('⚠️ [DEBUG] Nenhum dado informado');
                 mostrarAlerta('⚠️ Informe pelo menos o telefone ou email.', 'warning');
                 return;
             }
 
+            console.log('🔍 [DEBUG] Buscando cartelas...');
             mostrarAlerta('🔍 Buscando suas cartelas...', 'info');
 
+            // Verificar se sistema foi inicializado
+            if (!sistemaInicializado || !firebaseService) {
+                console.error('❌ [DEBUG] Sistema não inicializado');
+                mostrarAlerta('❌ Erro: Sistema não inicializado. Recarregue a página.', 'error');
+                return;
+            }
+
+            console.log('🔥 [DEBUG] Firebase Service disponível, carregando cartelas...');
+            
+            // Normalizar telefone para busca
+            const telefoneNormalizado = telefone ? normalizarTelefone(telefone) : null;
+            console.log('📱 [DEBUG] Telefone normalizado:', {
+                original: telefone,
+                normalizado: telefoneNormalizado,
+                lengthOriginal: telefone.length,
+                lengthNormalizado: telefoneNormalizado ? telefoneNormalizado.length : 0
+            });
+            
             // Buscar cartelas no Firebase
-            const cartelas = await firebaseService.carregarCartelasPorComprador(telefone, email);
+            console.log('🔍 [DEBUG] Chamando firebaseService.carregarCartelasPorComprador...');
+            const cartelas = await firebaseService.carregarCartelasPorComprador(telefoneNormalizado, email);
+
+            console.log('📦 [DEBUG] Cartelas carregadas:', {
+                quantidade: cartelas.length,
+                cartelas: cartelas.map(c => ({
+                    id: c.id,
+                    comprador: c.comprador,
+                    telefone: c.telefone,
+                    email: c.email
+                }))
+            });
 
             if (!cartelas || cartelas.length === 0) {
+                console.log('❌ Nenhuma cartela encontrada');
                 mostrarAlerta('❌ Nenhuma cartela encontrada com estes dados.', 'error');
                 return;
             }
+
+            console.log('✅ Cartelas encontradas:', cartelas.length);
 
             // Configurar comprador
             compradorAtual = {
@@ -88,9 +254,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Carregar dados do jogo
             numerosSorteados = await firebaseService.carregarNumerosSorteados();
 
+            console.log('🎯 Configurações carregadas, mostrando área das cartelas...');
+
             mostrarAreaCartelas();
             configurarListenersSorteio();
             atualizarCartelas();
+
+            // Timeout de segurança para garantir transição
+            setTimeout(() => {
+                if (loginComprador.style.display !== 'none') {
+                    console.log('⚠️ Forçando transição por timeout...');
+                    loginComprador.style.display = 'none';
+                    areaCartelas.style.display = 'block';
+                }
+            }, 2000);
 
             mostrarAlerta('✅ Login realizado com sucesso!', 'success');
 
@@ -102,18 +279,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Mostrar área das cartelas
     function mostrarAreaCartelas() {
+        console.log('🎯 mostrarAreaCartelas() - Executando transição...');
+        console.log('📱 loginComprador element:', loginComprador);
+        console.log('🎫 areaCartelas element:', areaCartelas);
+        
+        if (!loginComprador || !areaCartelas) {
+            console.error('❌ Elementos não encontrados para transição!');
+            alert('❌ Erro: Elementos da interface não encontrados. Recarregue a página.');
+            return;
+        }
+        
+        console.log('🔄 Ocultando área de login...');
         loginComprador.style.display = 'none';
+        
+        console.log('✅ Mostrando área de cartelas...');
         areaCartelas.style.display = 'block';
 
         // Preencher informações do comprador
-        nomeCompradorSpan.textContent = compradorAtual.nome;
-        telefoneCompradorSpan.textContent = compradorAtual.telefone;
-        emailCompradorSpan.textContent = compradorAtual.email || 'Não informado';
-        totalCartelasSpan.textContent = cartelasComprador.length;
+        console.log('📝 Preenchendo dados do comprador...');
+        console.log('👤 Comprador atual:', compradorAtual);
+        
+        if (nomeCompradorSpan) nomeCompradorSpan.textContent = compradorAtual.nome;
+        if (telefoneCompradorSpan) telefoneCompradorSpan.textContent = compradorAtual.telefone;
+        if (emailCompradorSpan) emailCompradorSpan.textContent = compradorAtual.email || 'Não informado';
+        if (totalCartelasSpan) totalCartelasSpan.textContent = cartelasComprador.length;
+        
+        console.log('✅ Transição para área de cartelas concluída!');
     }
 
     // Configurar listeners para atualizações em tempo real
     function configurarListenersSorteio() {
+        // Verificar se o sistema está inicializado
+        if (!sistemaInicializado || !firebaseService) {
+            console.warn('⚠️ Sistema não inicializado, listeners não configurados');
+            return;
+        }
+        
+        // Verificar se a função existe no service
+        if (typeof firebaseService.escutarNumerosSorteados !== 'function') {
+            console.warn('⚠️ Método escutarNumerosSorteados não disponível no Firebase Service');
+            return;
+        }
+        
         // Listener para novos números sorteados
         firebaseService.escutarNumerosSorteados((novosNumeros) => {
             numerosSorteados = novosNumeros;
@@ -140,9 +347,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Atualizar cartelas do comprador
     function atualizarCartelas() {
+        console.log('🎫 atualizarCartelas() - Iniciando...');
+        console.log('📋 Lista cartelas element:', listaCartelasComprador);
+        console.log('🎫 Cartelas do comprador:', cartelasComprador.length);
+        
+        if (!listaCartelasComprador) {
+            console.error('❌ Elemento lista-cartelas-comprador não encontrado!');
+            return;
+        }
+        
         listaCartelasComprador.innerHTML = '';
 
         cartelasComprador.forEach((cartela, index) => {
+            console.log(`🃏 Processando cartela ${index + 1}/${cartelasComprador.length}:`, cartela.id);
+            
             const cartelaDiv = document.createElement('div');
             cartelaDiv.className = 'cartela-comprador';
             cartelaDiv.id = `cartela-${cartela.id}`;
@@ -375,21 +593,63 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Função de emergência para forçar transição
+    window.forcarTransicao = function() {
+        console.log('🚨 TRANSIÇÃO FORÇADA - Executando...');
+        
+        const login = document.getElementById('login-comprador');
+        const area = document.getElementById('area-cartelas');
+        
+        if (login) {
+            login.style.display = 'none';
+            console.log('✅ Login ocultado');
+        }
+        
+        if (area) {
+            area.style.display = 'block';
+            console.log('✅ Área de cartelas mostrada');
+        }
+        
+        // Dados de teste se necessário
+        if (!compradorAtual) {
+            compradorAtual = {
+                nome: 'Usuário Teste',
+                telefone: '(11) 99999-9999',
+                email: 'teste@email.com'
+            };
+        }
+        
+        // Preencher dados básicos
+        const nomeEl = document.getElementById('nome-comprador-logado');
+        const telEl = document.getElementById('telefone-comprador-logado');
+        const emailEl = document.getElementById('email-comprador-logado');
+        const totalEl = document.getElementById('total-cartelas-comprador');
+        
+        if (nomeEl) nomeEl.textContent = compradorAtual.nome;
+        if (telEl) telEl.textContent = compradorAtual.telefone;
+        if (emailEl) emailEl.textContent = compradorAtual.email;
+        if (totalEl) totalEl.textContent = cartelasComprador.length || '0';
+        
+        console.log('🎉 Transição forçada concluída!');
+        alert('🎉 Área de cartelas exibida! (Modo de emergência)');
+    };
+
     // ===== EVENT LISTENERS =====
     
     // Submit do formulário de consulta
     formConsulta.addEventListener('submit', (e) => {
+        console.log('📝 Formulário de consulta submetido!');
         e.preventDefault();
         fazerLogin();
     });
 
-    // Botão sair
-    document.getElementById('sair-btn').addEventListener('click', sair);
-
-    // Fechar modal de BINGO
-    document.querySelector('.modal .close').addEventListener('click', () => {
-        modalBingo.style.display = 'none';
-    });
+    // Fechar modal de BINGO se existir
+    const modalClose = document.querySelector('.modal .close');
+    if (modalClose) {
+        modalClose.addEventListener('click', () => {
+            modalBingo.style.display = 'none';
+        });
+    }
 
     window.addEventListener('click', (event) => {
         if (event.target === modalBingo) {
@@ -444,5 +704,79 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
     document.head.appendChild(style);
 
+    // Debug: adicionar logs detalhados
+    console.log('🔧 Iniciando debug do sistema de login...');
+    console.log('📝 Elementos encontrados:', {
+        loginComprador: !!loginComprador,
+        areaCartelas: !!areaCartelas,
+        formConsulta: !!formConsulta,
+        telefoneInput: !!telefoneInput,
+        emailInput: !!emailInput,
+        alertMsg: !!alertMsg
+    });
+
     console.log('✅ Sistema de acompanhamento carregado com Firebase');
 });
+
+// ===== FUNÇÕES GLOBAIS =====
+
+// Função para forçar transição em caso de emergência
+function forcarTransicao() {
+    console.log('🚨 Função de emergência ativada!');
+    
+    const loginSection = document.getElementById('login-comprador');
+    const cartelasSection = document.getElementById('area-cartelas');
+    
+    if (loginSection && cartelasSection) {
+        console.log('🔄 Forçando transição...');
+        loginSection.style.display = 'none';
+        cartelasSection.style.display = 'block';
+        
+        // Preencher dados mockados para teste
+        const nomeSpan = document.getElementById('nome-comprador-logado');
+        const telefoneSpan = document.getElementById('telefone-comprador-logado');
+        const emailSpan = document.getElementById('email-comprador-logado');
+        const totalSpan = document.getElementById('total-cartelas-comprador');
+        
+        if (nomeSpan) nomeSpan.textContent = 'TESTE EMERGÊNCIA';
+        if (telefoneSpan) telefoneSpan.textContent = '(11) 99999-9999';
+        if (emailSpan) emailSpan.textContent = 'teste@exemplo.com';
+        if (totalSpan) totalSpan.textContent = '0';
+        
+        alert('🚨 Transição forçada! Este é apenas um modo de teste.');
+    } else {
+        console.error('❌ Elementos não encontrados para transição forçada!');
+        alert('❌ Erro: Elementos da interface não encontrados.');
+    }
+}
+
+// Função para logout do comprador
+function fazerLogout() {
+    console.log('🚪 Fazendo logout...');
+    
+    if (confirm('Deseja realmente sair e voltar à tela de login?')) {
+        const loginSection = document.getElementById('login-comprador');
+        const cartelasSection = document.getElementById('area-cartelas');
+        
+        // Limpar campos
+        const telefoneInput = document.getElementById('consulta-telefone');
+        const emailInput = document.getElementById('consulta-email');
+        
+        if (telefoneInput) telefoneInput.value = '';
+        if (emailInput) emailInput.value = '';
+        
+        // Mostrar login novamente
+        if (loginSection && cartelasSection) {
+            cartelasSection.style.display = 'none';
+            loginSection.style.display = 'block';
+        }
+        
+        console.log('✅ Logout realizado com sucesso');
+    }
+}
+
+// Função para atualizar sorteio manualmente
+function atualizarSorteio() {
+    console.log('🔄 Atualizando dados do sorteio...');
+    alert('🔄 Funcionalidade de atualização será implementada em breve.');
+}

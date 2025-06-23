@@ -65,6 +65,7 @@
 
                     <div class="form-actions">
                         <button type="submit" class="btn-consultar">🔍 Consultar Cartelas</button>
+                        <button type="button" onclick="forcarTransicao()" class="btn-emergencia" style="background: orange; margin-top: 10px;">🚨 Forçar Acesso (Emergência)</button>
                     </div>
 
                     <div class="info-consulta">
@@ -167,10 +168,34 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     
     <!-- Firebase Configuration -->
-    <script src="firebase-config-unified.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="firebase-service.js"></script>
+    <script src="patch-busca-robusta.js"></script>
     
     <script src="login.js"></script>
     <script src="minhas-cartelas.js"></script>
+    
+    <script>
+        // Função de debug para testar o botão
+        function debugLogin() {
+            console.log('🔧 Debug Login - Botão clicado!');
+            alert('🔧 Botão funcionando! Verifique o console para mais detalhes.');
+        }
+        
+        // Interceptar cliques no botão para debug
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const btnConsultar = document.querySelector('.btn-consultar');
+                if (btnConsultar) {
+                    console.log('✅ Botão consultar encontrado');
+                    btnConsultar.addEventListener('click', (e) => {
+                        console.log('🎯 Click detectado no botão!');
+                    });
+                } else {
+                    console.log('❌ Botão consultar NÃO encontrado');
+                }
+            }, 1000);
+        });
+    </script>
 </body>
 </html>

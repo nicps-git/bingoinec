@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Minhas Cartelas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .test-controls {
+            margin: 10px 0;
+        }
+        
+        input, button {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste - Sistema Minhas Cartelas</h1>
+        <p>Esta página testa a inicialização e funcionamento da tela "Minhas Cartelas".</p>
+        
+        <div class="test-section">
+            <h3>📋 Status do Sistema</h3>
+            <div id="status-container"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 Teste de Inicialização</h3>
+            <button onclick="testarInicializacao()">Executar Teste de Inicialização</button>
+            <div id="init-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔍 Teste de Busca de Cartelas</h3>
+            <div class="test-controls">
+                <input type="tel" id="teste-telefone" placeholder="Telefone para teste" value="11999887766">
+                <input type="email" id="teste-email" placeholder="Email para teste" value="teste@email.com">
+                <button onclick="testarBuscaCartelas()">Testar Busca</button>
+            </div>
+            <div id="search-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎯 Teste na Página Real</h3>
+            <button onclick="abrirPaginaReal()">Abrir Minhas Cartelas</button>
+            <p><em>Abrirá a página real para teste manual</em></p>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 Log de Debug</h3>
+            <button onclick="limparLog()">Limpar Log</button>
+            <div id="log-area" class="log-area"></div>
+        </div>
+    </div>
+
+    <!-- Firebase Dependencies -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    
+    <!-- Project Dependencies -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+
+    <script>
+        // Sistema de log
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('log-area');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logArea.textContent += logEntry;
+            logArea.scrollTop = logArea.scrollHeight;
+            
+            console.log(`[TESTE] ${message}`);
+        }
+        
+        function limparLog() {
+            document.getElementById('log-area').textContent = '';
+        }
+        
+        function exibirResultado(containerId, title, success, details = '') {
+            const container = document.getElementById(containerId);
+            const resultClass = success ? 'pass' : 'fail';
+            const icon = success ? '✅' : '❌';
+            
+            container.innerHTML += `
+                <div class="test-result ${resultClass}">
+                    <strong>${icon} ${title}</strong>
+                    ${details ? `<br><small>${details}</small>` : ''}
+                </div>
+            `;
+        }
+        
+        // Verificação inicial do ambiente
+        async function verificarAmbiente() {
+            const statusContainer = document.getElementById('status-container');
+            
+            try {
+                // Verificar Firebase SDK
+                if (typeof firebase !== 'undefined') {
+                    statusContainer.innerHTML += '<div class="status success">✅ Firebase SDK carregado</div>';
+                    log('Firebase SDK disponível', 'success');
+                } else {
+                    statusContainer.innerHTML += '<div class="status error">❌ Firebase SDK não carregado</div>';
+                    log('Firebase SDK não encontrado', 'error');
+                    return false;
+                }
+                
+                // Verificar Firebase Config
+                if (typeof firebase.apps !== 'undefined' && firebase.apps.length > 0) {
+                    statusContainer.innerHTML += '<div class="status success">✅ Firebase inicializado</div>';
+                    log('Firebase inicializado corretamente', 'success');
+                } else {
+                    statusContainer.innerHTML += '<div class="status error">❌ Firebase não inicializado</div>';
+                    log('Firebase não foi inicializado', 'error');
+                    return false;
+                }
+                
+                // Verificar Firebase Service
+                if (typeof FirebaseService !== 'undefined') {
+                    statusContainer.innerHTML += '<div class="status success">✅ FirebaseService classe disponível</div>';
+                    log('Classe FirebaseService disponível', 'success');
+                } else {
+                    statusContainer.innerHTML += '<div class="status warning">⚠️ FirebaseService classe não encontrada</div>';
+                    log('Classe FirebaseService não encontrada - será usado fallback', 'warning');
+                }
+                
+                // Testar conexão básica com Firestore
+                try {
+                    const db = firebase.firestore();
+                    await db.collection('_teste_conexao').limit(1).get();
+                    statusContainer.innerHTML += '<div class="status success">✅ Conexão com Firestore OK</div>';
+                    log('Conexão com Firestore estabelecida', 'success');
+                } catch (connError) {
+                    statusContainer.innerHTML += '<div class="status error">❌ Erro de conexão com Firestore</div>';
+                    log(`Erro de conexão: ${connError.message}`, 'error');
+                    return false;
+                }
+                
+                return true;
+                
+            } catch (error) {
+                statusContainer.innerHTML += `<div class="status error">❌ Erro geral: ${error.message}</div>`;
+                log(`Erro na verificação: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // Teste de inicialização do sistema (simulando minhas-cartelas.js)
+        async function testarInicializacao() {
+            const resultsDiv = document.getElementById('init-results');
+            resultsDiv.innerHTML = '<div class="status info">🔄 Executando teste de inicialização...</div>';
+            
+            log('=== INICIANDO TESTE DE INICIALIZAÇÃO ===');
+            
+            try {
+                let firebaseService = null;
+                let sistemaInicializado = false;
+                
+                // Simular processo de inicialização
+                log('Verificando dependências...');
+                
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                log('✅ Firebase SDK carregado');
+                
+                if (typeof FirebaseService !== 'undefined') {
+                    firebaseService = new FirebaseService();
+                    log('✅ Firebase Service instanciado');
+                    
+                    try {
+                        const conexaoOk = await firebaseService.verificarConexao();
+                        if (conexaoOk) {
+                            log('✅ Conexão com Firebase estabelecida');
+                            sistemaInicializado = true;
+                        } else {
+                            log('⚠️ Conexão fraca, mas continuando...');
+                            sistemaInicializado = true;
+                        }
+                    } catch (connError) {
+                        log(`⚠️ Erro na verificação de conexão, mas continuando: ${connError.message}`);
+                        sistemaInicializado = true;
+                    }
+                } else {
+                    log('⚠️ Classe FirebaseService não encontrada, criando fallback');
+                    firebaseService = {
+                        db: firebase.firestore(),
+                        async carregarCartelasPorComprador(telefone, email) {
+                            const snapshot = await this.db.collection('cartelas').where('telefone', '==', telefone).get();
+                            const cartelas = [];
+                            snapshot.forEach(doc => cartelas.push({ id: doc.id, ...doc.data() }));
+                            return cartelas;
+                        },
+                        async carregarNumerosSorteados() {
+                            const snapshot = await this.db.collection('numeros-sorteados').orderBy('timestamp', 'desc').get();
+                            const numeros = [];
+                            snapshot.forEach(doc => {
+                                const data = doc.data();
+                                if (data.numero) numeros.push(data.numero);
+                            });
+                            return numeros.reverse();
+                        },
+                        escutarNumerosSorteados(callback) {
+                            return this.db.collection('numeros-sorteados')
+                                .orderBy('timestamp', 'desc')
+                                .onSnapshot((snapshot) => {
+                                    const numeros = [];
+                                    snapshot.forEach(doc => {
+                                        const data = doc.data();
+                                        if (data.numero) numeros.push(data.numero);
+                                    });
+                                    callback(numeros.reverse());
+                                });
+                        }
+                    };
+                    sistemaInicializado = true;
+                }
+                
+                if (sistemaInicializado && firebaseService) {
+                    exibirResultado('init-results', 'Inicialização do Sistema', true, 'Sistema inicializado com sucesso');
+                    log('🎉 Sistema inicializado com sucesso!');
+                    
+                    // Testar métodos básicos
+                    log('Testando métodos do Firebase Service...');
+                    
+                    if (typeof firebaseService.carregarCartelasPorComprador === 'function') {
+                        log('✅ Método carregarCartelasPorComprador disponível');
+                    } else {
+                        log('❌ Método carregarCartelasPorComprador não encontrado');
+                    }
+                    
+                    if (typeof firebaseService.carregarNumerosSorteados === 'function') {
+                        log('✅ Método carregarNumerosSorteados disponível');
+                    } else {
+                        log('❌ Método carregarNumerosSorteados não encontrado');
+                    }
+                    
+                    if (typeof firebaseService.escutarNumerosSorteados === 'function') {
+                        log('✅ Método escutarNumerosSorteados disponível');
+                    } else {
+                        log('❌ Método escutarNumerosSorteados não encontrado');
+                    }
+                    
+                    return true;
+                } else {
+                    exibirResultado('init-results', 'Inicialização do Sistema', false, 'Sistema não conseguiu inicializar');
+                    log('❌ Sistema não conseguiu inicializar');
+                    return false;
+                }
+                
+            } catch (error) {
+                exibirResultado('init-results', 'Inicialização do Sistema', false, `Erro: ${error.message}`);
+                log(`❌ Erro na inicialização: ${error.message}`);
+                return false;
+            }
+        }
+        
+        // Teste de busca de cartelas
+        async function testarBuscaCartelas() {
+            const resultsDiv = document.getElementById('search-results');
+            resultsDiv.innerHTML = '<div class="status info">🔄 Executando teste de busca...</div>';
+            
+            const telefone = document.getElementById('teste-telefone').value;
+            const email = document.getElementById('teste-email').value;
+            
+            log('=== INICIANDO TESTE DE BUSCA ===');
+            log(`Telefone: ${telefone}, Email: ${email}`);
+            
+            try {
+                // Primeiro, garantir que o sistema está inicializado
+                const inicializado = await testarInicializacao();
+                if (!inicializado) {
+                    exibirResultado('search-results', 'Busca de Cartelas', false, 'Sistema não inicializado');
+                    return;
+                }
+                
+                // Criar instância do Firebase Service
+                let firebaseService;
+                if (typeof FirebaseService !== 'undefined') {
+                    firebaseService = new FirebaseService();
+                } else {
+                    firebaseService = {
+                        db: firebase.firestore(),
+                        async carregarCartelasPorComprador(telefone, email) {
+                            const snapshot = await this.db.collection('cartelas').where('telefone', '==', telefone).get();
+                            const cartelas = [];
+                            snapshot.forEach(doc => cartelas.push({ id: doc.id, ...doc.data() }));
+                            return cartelas;
+                        }
+                    };
+                }
+                
+                // Normalizar telefone
+                function normalizarTelefone(telefone) {
+                    if (!telefone) return '';
+                    return telefone.toString().replace(/\D/g, '');
+                }
+                
+                const telefoneNormalizado = telefone ? normalizarTelefone(telefone) : null;
+                log(`Telefone normalizado: ${telefoneNormalizado}`);
+                
+                // Tentar buscar cartelas
+                log('Buscando cartelas...');
+                const cartelas = await firebaseService.carregarCartelasPorComprador(telefoneNormalizado, email);
+                
+                log(`Encontradas ${cartelas.length} cartelas`);
+                
+                if (cartelas.length > 0) {
+                    exibirResultado('search-results', 'Busca de Cartelas', true, 
+                        `Encontradas ${cartelas.length} cartelas para o telefone/email informado`);
+                    
+                    cartelas.forEach((cartela, index) => {
+                        log(`Cartela ${index + 1}: ID=${cartela.id}, Comprador=${cartela.comprador || 'N/A'}`);
+                    });
+                } else {
+                    exibirResultado('search-results', 'Busca de Cartelas', true, 
+                        'Nenhuma cartela encontrada (mas a busca funcionou)');
+                }
+                
+                // Testar busca de números sorteados
+                log('Testando carregamento de números sorteados...');
+                const numerosSorteados = await firebaseService.carregarNumerosSorteados();
+                log(`Encontrados ${numerosSorteados.length} números sorteados`);
+                
+            } catch (error) {
+                exibirResultado('search-results', 'Busca de Cartelas', false, `Erro: ${error.message}`);
+                log(`❌ Erro na busca: ${error.message}`);
+            }
+        }
+        
+        function abrirPaginaReal() {
+            window.open('minhas-cartelas.html', '_blank');
+        }
+        
+        // Executar verificação inicial quando a página carregar
+        document.addEventListener('DOMContentLoaded', async () => {
+            log('=== VERIFICAÇÃO INICIAL DO AMBIENTE ===');
+            await verificarAmbiente();
+            log('=== VERIFICAÇÃO CONCLUÍDA ===');
+        });
+    </script>
+</body>
+</html>

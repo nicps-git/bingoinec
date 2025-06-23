@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Botão Admin - Correto</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        .btn-admin {
+            background-color: #ff6b35;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+            margin: 5px;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-admin:hover {
+            background-color: #e55a2b;
+        }
+        
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste Botão Admin - Versão Corrigida</h1>
+        <p>Esta página testa se o botão Admin está funcionando corretamente após as correções.</p>
+        
+        <div class="test-section">
+            <h3>🔧 Comportamento Correto</h3>
+            <div class="status info">
+                <strong>✅ Comportamento Esperado:</strong><br>
+                1. Clicar no botão "Admin"<br>
+                2. Redirecionar diretamente para admin.html<br>
+                3. admin.html faz sua própria autenticação<br>
+                4. Usuário digita senha "inecAdmin2024"<br>
+                5. Acesso liberado à área administrativa
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎯 Teste do Botão Admin</h3>
+            <p>Este botão usa a mesma função que está nas páginas principais:</p>
+            <a href="#" onclick="verificarAcessoAdmin()" class="btn-admin">⚙️ Admin</a>
+            
+            <div id="status-botao"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔗 Links Diretos</h3>
+            <button onclick="abrirIndex()">📄 Abrir Index (teste real)</button>
+            <button onclick="abrirCartelas()">🎫 Abrir Cartelas</button>
+            <button onclick="abrirMinhasCartelas()">👀 Abrir Minhas Cartelas</button>
+            <button onclick="abrirAdminDireto()">⚙️ Abrir Admin Direto</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 Log de Ações</h3>
+            <button onclick="limparLog()">🗑️ Limpar Log</button>
+            <div id="log-area" class="log-area"></div>
+        </div>
+    </div>
+
+    <script>
+        // Sistema de log
+        function log(message) {
+            const logArea = document.getElementById('log-area');
+            const timestamp = new Date().toLocaleTimeString();
+            logArea.textContent += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[TESTE] ${message}`);
+        }
+        
+        function limparLog() {
+            document.getElementById('log-area').textContent = '';
+        }
+        
+        function exibirStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status-botao');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        // Função verificarAcessoAdmin - versão corrigida
+        function verificarAcessoAdmin() {
+            log('🔐 Função verificarAcessoAdmin chamada');
+            log('➡️ Redirecionando para admin.html...');
+            exibirStatus('✅ Redirecionando para admin.html...', 'success');
+            
+            // Simular comportamento real - redirecionar após pequeno delay para ver o log
+            setTimeout(() => {
+                window.location.href = 'admin.html';
+            }, 1000);
+        }
+        
+        // Funções de teste
+        function abrirIndex() {
+            log('📄 Abrindo index.html...');
+            window.open('index.html', '_blank');
+        }
+        
+        function abrirCartelas() {
+            log('🎫 Abrindo cartelas.html...');
+            window.open('cartelas.html', '_blank');
+        }
+        
+        function abrirMinhasCartelas() {
+            log('👀 Abrindo minhas-cartelas.html...');
+            window.open('minhas-cartelas.html', '_blank');
+        }
+        
+        function abrirAdminDireto() {
+            log('⚙️ Abrindo admin.html diretamente...');
+            window.open('admin.html', '_blank');
+        }
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            log('=== PÁGINA DE TESTE CARREGADA ===');
+            log('✅ Função verificarAcessoAdmin definida e pronta');
+            exibirStatus('✅ Sistema pronto para teste', 'success');
+        });
+    </script>
+</body>
+</html>

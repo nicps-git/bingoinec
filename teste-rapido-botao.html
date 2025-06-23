@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Rápido - Botão Gerar Cartela</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .section { margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .cartela-bingo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; max-width: 300px; margin: 20px auto; }
+        .cell { width: 50px; height: 50px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .header { background: #007bff; color: white; }
+        .free { background: #28a745; color: white; }
+        #log { height: 200px; overflow-y: auto; background: #000; color: #0f0; padding: 10px; font-family: monospace; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Teste Rápido - Botão Gerar Cartela</h1>
+        
+        <div class="section">
+            <h3>🎲 Teste da Funcionalidade</h3>
+            <button id="gerar-preview" onclick="gerarCartelaTeste()">🎲 Gerar Nova Cartela</button>
+            <button onclick="verificarStatus()">🔍 Verificar Status</button>
+            <button onclick="limparLog()">🗑️ Limpar Log</button>
+        </div>
+
+        <div class="section">
+            <h3>🎫 Cartela Gerada</h3>
+            <div id="cartela-preview">
+                <p style="text-align: center;">Clique em "Gerar Nova Cartela" para ver o resultado</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📋 Log de Debug</h3>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <!-- Scripts originais -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    
+    <script>
+        let configuracoes = { numeroInicial: 1, numeroFinal: 75, precoCartela: 5.00 };
+        let cartelaAtual = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function limparLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function gerarNumerosCartela(min, max) {
+            log(`📊 Gerando números da cartela: ${min} - ${max}`);
+            
+            const numeros = [];
+            const totalRange = max - min + 1;
+            const colSize = Math.floor(totalRange / 5);
+            
+            const ranges = [
+                { min: min, max: Math.min(min + colSize - 1, max) },
+                { min: Math.min(min + colSize, max), max: Math.min(min + (colSize * 2) - 1, max) },
+                { min: Math.min(min + (colSize * 2), max), max: Math.min(min + (colSize * 3) - 1, max) },
+                { min: Math.min(min + (colSize * 3), max), max: Math.min(min + (colSize * 4) - 1, max) },
+                { min: Math.min(min + (colSize * 4), max), max: max }
+            ];
+
+            for (let col = 0; col < 5; col++) {
+                const colNums = [];
+                const range = ranges[col];
+                
+                if (range.min > range.max) continue;
+                
+                while (colNums.length < 5) {
+                    const num = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+                    if (!colNums.includes(num)) {
+                        colNums.push(num);
+                    }
+                }
+                
+                colNums.sort((a, b) => a - b);
+                numeros.push(colNums);
+            }
+
+            // Espaço livre no centro
+            if (numeros[2]) {
+                numeros[2][2] = 'FREE';
+            }
+            
+            log(`✅ Números gerados: ${JSON.stringify(numeros[0])} ... ${JSON.stringify(numeros[4])}`);
+            return numeros;
+        }
+        
+        function exibirCartela(cartela) {
+            log('🎫 Exibindo cartela na tela');
+            
+            const cartelaPreview = document.getElementById('cartela-preview');
+            const html = `
+                <div class="cartela-bingo">
+                    <div class="cell header">B</div>
+                    <div class="cell header">I</div>
+                    <div class="cell header">N</div>
+                    <div class="cell header">G</div>
+                    <div class="cell header">O</div>
+                    ${cartela.numeros.map((col, colIndex) => 
+                        col.map((num, rowIndex) => 
+                            `<div class="cell ${num === 'FREE' ? 'free' : ''}">${num === 'FREE' ? '★' : num}</div>`
+                        ).join('')
+                    ).join('')}
+                </div>
+            `;
+            
+            cartelaPreview.innerHTML = html;
+            log('✅ Cartela exibida com sucesso');
+        }
+        
+        function gerarCartelaTeste() {
+            log('🎯 INICIANDO TESTE DE GERAÇÃO DE CARTELA');
+            
+            try {
+                const inicial = configuracoes.numeroInicial || 1;
+                const final = configuracoes.numeroFinal || 75;
+                
+                log(`📋 Configurações: inicial=${inicial}, final=${final}`);
+                
+                if (final - inicial + 1 < 25) {
+                    log('❌ Range insuficiente para gerar cartela');
+                    alert('⚠️ Range insuficiente para gerar cartela. Configure no painel administrativo.');
+                    return;
+                }
+
+                cartelaAtual = {
+                    id: Date.now(),
+                    numeros: gerarNumerosCartela(inicial, final),
+                    preco: configuracoes.precoCartela || 5.00
+                };
+
+                log(`✅ Cartela gerada com ID: ${cartelaAtual.id}`);
+                log(`💰 Preço: R$ ${cartelaAtual.preco.toFixed(2)}`);
+
+                exibirCartela(cartelaAtual);
+                
+                log('🎉 TESTE CONCLUÍDO COM SUCESSO!');
+                
+            } catch (error) {
+                log(`❌ ERRO NO TESTE: ${error.message}`);
+                log(`❌ Stack: ${error.stack}`);
+                console.error('Erro detalhado:', error);
+            }
+        }
+        
+        function verificarStatus() {
+            log('🔍 Verificando status do sistema...');
+            log(`📊 Configurações: ${JSON.stringify(configuracoes)}`);
+            log(`🎫 Cartela atual: ${cartelaAtual ? 'Existe' : 'Não existe'}`);
+            log(`🔥 Firebase: ${typeof firebase !== 'undefined' ? 'Carregado' : 'Não carregado'}`);
+            log(`🔧 FirebaseService: ${typeof FirebaseService !== 'undefined' ? 'Disponível' : 'Não disponível'}`);
+            
+            // Verificar elementos DOM
+            const elementos = ['gerar-preview', 'cartela-preview'];
+            elementos.forEach(id => {
+                const elemento = document.getElementById(id);
+                log(`📋 Elemento ${id}: ${elemento ? 'Encontrado' : 'NÃO ENCONTRADO'}`);
+            });
+        }
+        
+        // Auto-inicializar
+        window.addEventListener('load', () => {
+            log('🚀 Teste rápido iniciado');
+            verificarStatus();
+        });
+        
+        // Capturar erros globais
+        window.addEventListener('error', (e) => {
+            log(`❌ ERRO GLOBAL: ${e.message}`);
+            log(`❌ Arquivo: ${e.filename}:${e.lineno}`);
+        });
+        
+        window.addEventListener('unhandledrejection', (e) => {
+            log(`❌ PROMISE REJEITADA: ${e.reason}`);
+        });
+    </script>
+</body>
+</html>

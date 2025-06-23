@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Gravação no Firebase</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .section { margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.success { background: #28a745; }
+        pre { background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 300px; overflow-y: auto; }
+        .log { height: 400px; overflow-y: auto; background: #000; color: #0f0; padding: 10px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug - Gravação no Firebase</h1>
+        
+        <div class="section warning">
+            <h3>🎯 INVESTIGAÇÃO</h3>
+            <p>Testando por que as cartelas não estão sendo gravadas no Firebase após compra</p>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Testes de Gravação</h3>
+            <button onclick="testarConexaoFirebase()">🔥 Testar Conexão</button>
+            <button onclick="testarGravacaoSimples()">💾 Teste Gravação Simples</button>
+            <button onclick="simularCompraCompleta()">🛒 Simular Compra Completa</button>
+            <button onclick="verificarDadosFirebase()">📊 Ver Dados Firebase</button>
+            <button onclick="testarPermissoes()">🔐 Testar Permissões</button>
+            <button onclick="limparLog()" class="danger">🗑️ Limpar Log</button>
+        </div>
+
+        <div class="section">
+            <h3>🎫 Simular Compra de Cartela</h3>
+            <input type="text" id="nome-teste" placeholder="Nome do comprador" value="Teste Debug">
+            <input type="text" id="telefone-teste" placeholder="Telefone" value="85999888777">
+            <input type="email" id="email-teste" placeholder="Email" value="teste@debug.com">
+            <button onclick="processarCompraDebug()" class="success">💳 Processar Compra Debug</button>
+        </div>
+
+        <div class="section">
+            <h3>📊 Resultados</h3>
+            <div id="resultados"></div>
+        </div>
+
+        <div class="section">
+            <h3>📋 Log Detalhado</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    
+    <script>
+        let firebaseService = null;
+        let db = null;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function limparLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function exibirResultado(titulo, conteudo, tipo = 'info') {
+            const resultadosDiv = document.getElementById('resultados');
+            const classe = tipo === 'error' ? 'error' : tipo === 'success' ? 'success' : 'section';
+            resultadosDiv.innerHTML += `
+                <div class="${classe}">
+                    <h4>${titulo}</h4>
+                    <pre>${JSON.stringify(conteudo, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        async function testarConexaoFirebase() {
+            log("🔥 Testando conexão com Firebase...");
+            
+            try {
+                // Verificar Firebase SDK
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                log("✅ Firebase SDK carregado");
+
+                // Inicializar Firestore
+                db = firebase.firestore();
+                log("✅ Firestore inicializado");
+
+                // Teste de conectividade
+                const testDoc = await db.doc('teste/conectividade').get();
+                log("✅ Conectividade OK");
+
+                // Inicializar Firebase Service
+                if (typeof FirebaseService !== 'undefined') {
+                    firebaseService = new FirebaseService();
+                    log("✅ Firebase Service instanciado");
+                } else {
+                    log("⚠️ Classe FirebaseService não encontrada, usando fallback");
+                    firebaseService = {
+                        db: db,
+                        async salvarCartela(cartela) {
+                            const docRef = await this.db.collection('cartelas').add(cartela);
+                            return docRef.id;
+                        }
+                    };
+                }
+
+                exibirResultado("Conexão Firebase", {
+                    status: "SUCESSO",
+                    sdk: "carregado",
+                    firestore: "conectado",
+                    service: firebaseService ? "disponível" : "fallback"
+                }, 'success');
+
+                return true;
+
+            } catch (error) {
+                log(`❌ Erro na conexão: ${error.message}`);
+                exibirResultado("Erro Conexão", { erro: error.message }, 'error');
+                return false;
+            }
+        }
+
+        async function testarGravacaoSimples() {
+            log("💾 Testando gravação simples...");
+            
+            try {
+                if (!firebaseService) {
+                    await testarConexaoFirebase();
+                }
+
+                const cartelaTestePorDr = {
+                    id: `teste-debug-${Date.now()}`,
+                    nome: "Teste Debug",
+                    telefone: "85999888777",
+                    email: "teste@debug.com",
+                    numeros: [[1,2,3,4,5], [16,17,18,19,20], [31,'FREE',33,34,35], [46,47,48,49,50], [61,62,63,64,65]],
+                    preco: 5.00,
+                    vendida: true,
+                    dataVenda: new Date().toISOString(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    origem: "debug-teste"
+                };
+
+                log("📝 Dados para teste:");
+                log(JSON.stringify(cartelaTestePorDr, null, 2));
+
+                // Método 1: Usando firebase-service
+                log("🔬 Método 1: Usando firebase-service.salvarCartela()");
+                try {
+                    const id1 = await firebaseService.salvarCartela(cartelaTestePorDr);
+                    log(`✅ Método 1 - Cartela salva com ID: ${id1}`);
+                } catch (error1) {
+                    log(`❌ Método 1 falhou: ${error1.message}`);
+                }
+
+                // Método 2: Usando Firestore diretamente com .add()
+                log("🔬 Método 2: Usando db.collection().add()");
+                try {
+                    const docRef2 = await db.collection('cartelas').add({
+                        ...cartelaTestePorDr,
+                        id: `teste-direct-add-${Date.now()}`,
+                        metodo: 'direct-add'
+                    });
+                    log(`✅ Método 2 - Cartela salva com ID: ${docRef2.id}`);
+                } catch (error2) {
+                    log(`❌ Método 2 falhou: ${error2.message}`);
+                }
+
+                // Método 3: Usando Firestore diretamente com .set()
+                log("🔬 Método 3: Usando db.collection().doc().set()");
+                try {
+                    const docId3 = `teste-direct-set-${Date.now()}`;
+                    await db.collection('cartelas').doc(docId3).set({
+                        ...cartelaTestePorDr,
+                        id: docId3,
+                        metodo: 'direct-set'
+                    });
+                    log(`✅ Método 3 - Cartela salva com ID: ${docId3}`);
+                } catch (error3) {
+                    log(`❌ Método 3 falhou: ${error3.message}`);
+                }
+
+                // Verificar se foram salvas
+                log("🔍 Verificando se as cartelas foram salvas...");
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                const snapshot = await db.collection('cartelas').where('origem', '==', 'debug-teste').get();
+                log(`📊 Cartelas de teste encontradas: ${snapshot.size}`);
+
+                exibirResultado("Teste Gravação Simples", {
+                    cartelas_encontradas: snapshot.size,
+                    metodos_testados: 3,
+                    status: snapshot.size > 0 ? "SUCESSO" : "FALHA"
+                }, snapshot.size > 0 ? 'success' : 'error');
+
+            } catch (error) {
+                log(`❌ Erro no teste: ${error.message}`);
+                exibirResultado("Erro Teste Gravação", { erro: error.message }, 'error');
+            }
+        }
+
+        async function simularCompraCompleta() {
+            log("🛒 Simulando compra completa como no sistema original...");
+            
+            try {
+                if (!firebaseService) {
+                    await testarConexaoFirebase();
+                }
+
+                // Dados do comprador
+                const comprador = {
+                    nome: "João Silva Debug",
+                    telefone: "85987654321",
+                    email: "joao@debug.com"
+                };
+
+                // Simular carrinho com 2 cartelas
+                const carrinho = [
+                    {
+                        id: Date.now(),
+                        numeros: [[1,2,3,4,5], [16,17,18,19,20], [31,'FREE',33,34,35], [46,47,48,49,50], [61,62,63,64,65]],
+                        preco: 5.00
+                    },
+                    {
+                        id: Date.now() + 1,
+                        numeros: [[6,7,8,9,10], [21,22,23,24,25], [36,37,'FREE',38,39], [51,52,53,54,55], [66,67,68,69,70]],
+                        preco: 5.00
+                    }
+                ];
+
+                // Função para normalizar telefone
+                function normalizarTelefone(telefone) {
+                    return telefone.toString().replace(/\D/g, '');
+                }
+
+                // Preparar cartelas para salvar (igual ao cartelas.js)
+                const cartelasParaSalvar = carrinho.map(item => ({
+                    id: `cartela_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    numeros: item.numeros,
+                    preco: item.preco,
+                    vendida: true,
+                    comprador: comprador.nome,
+                    telefone: normalizarTelefone(comprador.telefone),
+                    email: comprador.email,
+                    dataVenda: new Date().toISOString(),
+                    timestamp: new Date(),
+                    origem: "simulacao-completa"
+                }));
+
+                log(`🎫 Processando compra de ${cartelasParaSalvar.length} cartelas para ${comprador.nome}`);
+                log(`📱 Telefone normalizado: ${normalizarTelefone(comprador.telefone)}`);
+
+                // Salvar todas as cartelas
+                const idsCartelas = [];
+                for (let i = 0; i < cartelasParaSalvar.length; i++) {
+                    const cartela = cartelasParaSalvar[i];
+                    log(`💾 Salvando cartela ${i + 1}/${cartelasParaSalvar.length}: ${cartela.id}`);
+                    
+                    try {
+                        const id = await firebaseService.salvarCartela(cartela);
+                        idsCartelas.push(id);
+                        log(`✅ Cartela ${cartela.id} salva com sucesso`);
+                    } catch (error) {
+                        log(`❌ Erro ao salvar cartela ${cartela.id}: ${error.message}`);
+                    }
+                }
+
+                // Verificação pós-gravação
+                log("🔍 Verificando cartelas após gravação...");
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                const snapshot = await db.collection('cartelas').where('origem', '==', 'simulacao-completa').get();
+                log(`📊 Cartelas da simulação encontradas: ${snapshot.size}`);
+
+                exibirResultado("Simulação Compra Completa", {
+                    comprador: comprador,
+                    cartelas_para_salvar: cartelasParaSalvar.length,
+                    cartelas_salvas: idsCartelas.length,
+                    cartelas_encontradas: snapshot.size,
+                    ids_gerados: idsCartelas,
+                    status: snapshot.size >= cartelasParaSalvar.length ? "SUCESSO" : "PARCIAL"
+                }, snapshot.size >= cartelasParaSalvar.length ? 'success' : 'warning');
+
+            } catch (error) {
+                log(`❌ Erro na simulação: ${error.message}`);
+                exibirResultado("Erro Simulação", { erro: error.message }, 'error');
+            }
+        }
+
+        async function verificarDadosFirebase() {
+            log("📊 Verificando dados no Firebase...");
+            
+            try {
+                if (!db) {
+                    await testarConexaoFirebase();
+                }
+
+                // Buscar todas as cartelas
+                const snapshot = await db.collection('cartelas').get();
+                log(`📋 Total de cartelas no Firebase: ${snapshot.size}`);
+
+                const cartelas = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    cartelas.push({
+                        id: doc.id,
+                        comprador: data.comprador,
+                        telefone: data.telefone,
+                        dataVenda: data.dataVenda,
+                        origem: data.origem || 'sistema',
+                        preco: data.preco
+                    });
+                });
+
+                // Agrupar por origem
+                const porOrigem = {};
+                cartelas.forEach(cartela => {
+                    const origem = cartela.origem || 'sistema';
+                    if (!porOrigem[origem]) porOrigem[origem] = [];
+                    porOrigem[origem].push(cartela);
+                });
+
+                exibirResultado("Dados Firebase", {
+                    total_cartelas: snapshot.size,
+                    cartelas_por_origem: porOrigem,
+                    ultimas_5: cartelas.slice(-5)
+                });
+
+                log("📊 Verificação concluída!");
+
+            } catch (error) {
+                log(`❌ Erro na verificação: ${error.message}`);
+                exibirResultado("Erro Verificação", { erro: error.message }, 'error');
+            }
+        }
+
+        async function testarPermissoes() {
+            log("🔐 Testando permissões de escrita...");
+            
+            try {
+                if (!db) {
+                    await testarConexaoFirebase();
+                }
+
+                // Teste 1: Criar documento temporário
+                const testId = `teste-permissao-${Date.now()}`;
+                await db.collection('teste-permissoes').doc(testId).set({
+                    teste: true,
+                    timestamp: new Date()
+                });
+                log("✅ Permissão de escrita OK");
+
+                // Teste 2: Ler o documento
+                const docRead = await db.collection('teste-permissoes').doc(testId).get();
+                if (docRead.exists) {
+                    log("✅ Permissão de leitura OK");
+                } else {
+                    log("❌ Documento não encontrado após criação");
+                }
+
+                // Teste 3: Deletar o documento
+                await db.collection('teste-permissoes').doc(testId).delete();
+                log("✅ Permissão de exclusão OK");
+
+                exibirResultado("Teste Permissões", {
+                    escrita: "OK",
+                    leitura: "OK",
+                    exclusao: "OK",
+                    status: "SUCESSO"
+                }, 'success');
+
+            } catch (error) {
+                log(`❌ Erro de permissão: ${error.message}`);
+                exibirResultado("Erro Permissões", { erro: error.message }, 'error');
+            }
+        }
+
+        async function processarCompraDebug() {
+            log("💳 Processando compra debug com dados do formulário...");
+            
+            const nome = document.getElementById('nome-teste').value;
+            const telefone = document.getElementById('telefone-teste').value;
+            const email = document.getElementById('email-teste').value;
+
+            if (!nome || !telefone) {
+                alert("Preencha nome e telefone!");
+                return;
+            }
+
+            try {
+                if (!firebaseService) {
+                    await testarConexaoFirebase();
+                }
+
+                const cartela = {
+                    id: `compra-debug-${Date.now()}`,
+                    comprador: nome,
+                    telefone: telefone.replace(/\D/g, ''),
+                    email: email,
+                    numeros: [[1,2,3,4,5], [16,17,18,19,20], [31,'FREE',33,34,35], [46,47,48,49,50], [61,62,63,64,65]],
+                    preco: 5.00,
+                    vendida: true,
+                    dataVenda: new Date().toISOString(),
+                    origem: "compra-debug-form"
+                };
+
+                log("💾 Salvando cartela de compra debug...");
+                const id = await firebaseService.salvarCartela(cartela);
+                log(`✅ Cartela salva com ID: ${id}`);
+
+                // Verificar se foi salva
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                const verificacao = await db.collection('cartelas').doc(id).get();
+                
+                if (verificacao.exists) {
+                    log("✅ Cartela confirmada no Firebase!");
+                    alert("✅ Compra processada com sucesso! Cartela salva no Firebase.");
+                } else {
+                    log("❌ Cartela não encontrada após gravação");
+                    alert("❌ Erro: Cartela não encontrada após gravação");
+                }
+
+                exibirResultado("Compra Debug", {
+                    cartela_id: id,
+                    dados: cartela,
+                    verificacao: verificacao.exists ? "ENCONTRADA" : "NÃO ENCONTRADA"
+                }, verificacao.exists ? 'success' : 'error');
+
+            } catch (error) {
+                log(`❌ Erro na compra debug: ${error.message}`);
+                alert(`❌ Erro: ${error.message}`);
+                exibirResultado("Erro Compra Debug", { erro: error.message }, 'error');
+            }
+        }
+
+        // Auto-inicializar
+        window.addEventListener('load', () => {
+            log("🚀 Debug de gravação Firebase iniciado");
+            log("📋 Use os botões para diagnosticar problema de gravação");
+        });
+
+        // Capturar erros
+        window.addEventListener('error', (e) => {
+            log(`❌ ERRO: ${e.message} em ${e.filename}:${e.lineno}`);
+        });
+    </script>
+</body>
+</html>

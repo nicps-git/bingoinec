@@ -1,12 +1,58 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    // ===== VERIFICAÇÃO DE AUTENTICAÇÃO =====
-    if (!window.bingoAuth || !window.bingoAuth.isAuthenticated()) {
-        alert('Acesso não autorizado! Você será redirecionado para a página de login.');
-        window.location.href = 'login.html';
-        return;
+// Função para aguardar sistema de autenticação estar disponível
+function waitForAuthSystem() {
+    return new Promise((resolve) => {
+        if (typeof window.bingoAuth !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        const checkAuth = () => {
+            if (typeof window.bingoAuth !== 'undefined') {
+                resolve();
+            } else {
+                setTimeout(checkAuth, 100);
+            }
+        };
+        
+        checkAuth();
+    });
+}
+
+// Função principal de inicialização
+async function initializeAdmin() {
+    console.log('🔐 [ADMIN] Inicializando área administrativa...');
+    
+    // Aguardar sistema de autenticação estar disponível
+    await waitForAuthSystem();
+    console.log('🔐 [ADMIN] Sistema de autenticação carregado');
+    
+    // Verificar se está autenticado ou solicitar autenticação
+    let autenticado = window.bingoAuth.isAuthenticated();
+    console.log('🔐 [ADMIN] Status autenticação inicial:', autenticado);
+    
+    if (!autenticado) {
+        console.log('🔐 [ADMIN] Usuário não autenticado, solicitando login...');
+        autenticado = window.bingoAuth.requireAuth();
+        console.log('🔐 [ADMIN] Resultado da autenticação:', autenticado);
+        
+        if (!autenticado) {
+            console.log('❌ [ADMIN] Autenticação cancelada/falhou, redirecionando...');
+            // O sistema de auth já mostrou as mensagens apropriadas
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000); // Pequeno delay para permitir leitura da mensagem
+            return;
+        }
     }
     
+    console.log('✅ [ADMIN] Usuário autenticado com sucesso');
     updateUserInfo();
+    
+    // Continuar com a inicialização da página admin
+    await initializeAdminPage();
+}
+
+async function initializeAdminPage() {
     
     // ===== ELEMENTOS DO DOM =====
     console.log('🔍 Buscando elementos DOM...');
@@ -54,41 +100,97 @@ document.addEventListener('DOMContentLoaded', async () => {
     let numerosSorteados = [];
     let cartelas = [];
 
-    // Aguardar FirebaseService estar disponível
-    console.log('🔥 Aguardando Firebase estar pronto...');
+    // Inicialização robusta do Firebase Service
+    console.log('🔥 [ADMIN] Inicializando Firebase Service...');
     
-    try {
-        // Usar nova função de aguardar Firebase
-        const service = await window.waitForFirebase(15000); // 15 segundos timeout
-        window.firebaseService = service;
-        console.log('✅ Firebase pronto para uso!');
-        
-    } catch (error) {
-        console.error('❌ Erro ao aguardar Firebase:', error);
+    let firebaseService = null;
+    let sistemaInicializado = false;
+    
+    // Função para inicializar Firebase Service
+    async function inicializarFirebase() {
+        try {
+            console.log('� [ADMIN] Verificando dependências...');
+            
+            // Verificar se Firebase SDK está carregado
+            if (typeof firebase === 'undefined') {
+                throw new Error('Firebase SDK não carregado');
+            }
+            console.log('✅ [ADMIN] Firebase SDK carregado');
+            
+            // Tentar criar instância do Firebase Service
+            if (typeof FirebaseService !== 'undefined') {
+                firebaseService = new FirebaseService();
+                console.log('✅ [ADMIN] Firebase Service instanciado');
+                
+                // Testar conexão
+                try {
+                    const conexaoOk = await firebaseService.verificarConexao();
+                    if (conexaoOk) {
+                        console.log('✅ [ADMIN] Conexão com Firebase estabelecida');
+                        sistemaInicializado = true;
+                        window.firebaseService = firebaseService; // Para compatibilidade
+                        return true;
+                    } else {
+                        console.warn('⚠️ [ADMIN] Conexão fraca, mas continuando...');
+                        sistemaInicializado = true;
+                        window.firebaseService = firebaseService;
+                        return true;
+                    }
+                } catch (connError) {
+                    console.warn('⚠️ [ADMIN] Erro na verificação de conexão, mas continuando:', connError.message);
+                    sistemaInicializado = true;
+                    window.firebaseService = firebaseService;
+                    return true;
+                }
+            } else {
+                throw new Error('Classe FirebaseService não encontrada');
+            }
+            
+        } catch (error) {
+            console.error('❌ [ADMIN] Erro ao inicializar Firebase:', error.message);
+            return false;
+        }
+    }
+    
+    // Tentar inicializar Firebase
+    const firebaseInicializado = await inicializarFirebase();
+    
+    if (!firebaseInicializado) {
+        console.error('❌ [ADMIN] Firebase não conseguiu inicializar');
         alert('❌ Erro ao carregar sistema Firebase. Verifique sua conexão com a internet e recarregue a página.');
         return;
     }
+    
+    console.log('🎉 [ADMIN] Firebase inicializado com sucesso!');
 
     // ===== FUNÇÕES PRINCIPAIS =====
 
     // Carregar dados do Firebase
     async function carregarDados() {
         try {
-            configuracoes = await window.firebaseService.carregarConfiguracoes();
-            numerosSorteados = await window.firebaseService.carregarNumerosSorteados();
-            cartelas = await window.firebaseService.carregarCartelas();
+            console.log('📦 [ADMIN] Carregando dados...');
+            
+            if (sistemaInicializado && firebaseService) {
+                configuracoes = await firebaseService.carregarConfiguracoes();
+                numerosSorteados = await firebaseService.carregarNumerosSorteados();
+                cartelas = await firebaseService.carregarCartelas();
+                console.log('✅ [ADMIN] Dados carregados do Firebase');
+            } else {
+                console.warn('⚠️ [ADMIN] Firebase não disponível, carregando dados locais');
+                carregarDadosLocais();
+            }
 
             // Também verificar localStorage como fallback
             const cartelasLocais = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
             if (cartelasLocais.length > 0 && cartelas.length === 0) {
                 cartelas = cartelasLocais;
-                console.log('📂 Usando dados locais como fallback');
+                console.log('📂 [ADMIN] Usando dados locais como fallback');
             }
 
             atualizarTodosDisplays();
-            console.log('✅ Dados carregados do Firebase');
+            
         } catch (error) {
-            console.error('❌ Erro ao carregar dados:', error);
+            console.error('❌ [ADMIN] Erro ao carregar dados:', error);
             // Carregar dados locais como fallback
             carregarDadosLocais();
         }
@@ -154,7 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ===== FUNÇÕES DOS BOTÕES =====
 
     async function salvarConfiguracoes() {
-        console.log('💾 Salvando configurações...');
+        console.log('💾 [ADMIN] Salvando configurações...');
         
         if (!numeroInicialInput || !numeroFinalInput || !precoCartelaInput) {
             alert('Erro: Elementos de input não encontrados');
@@ -169,8 +271,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 jogoAtivo: true
             };
 
-            if (window.firebaseService) {
-                await window.firebaseService.salvarConfiguracoes(config);
+            // Tentar salvar no Firebase
+            if (sistemaInicializado && firebaseService && typeof firebaseService.salvarConfiguracoes === 'function') {
+                await firebaseService.salvarConfiguracoes(config);
+                console.log('✅ [ADMIN] Configurações salvas no Firebase');
+            } else {
+                console.warn('⚠️ [ADMIN] Firebase não disponível, salvando apenas localmente');
             }
             
             // Salvar também localmente
@@ -179,7 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             atualizarTodosDisplays();
             alert('✅ Configurações salvas com sucesso!');
-            console.log('✅ Configurações salvas');
+            console.log('✅ [ADMIN] Configurações salvas');
             
         } catch (error) {
             console.error('❌ Erro ao salvar configurações:', error);
@@ -192,11 +298,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        console.log('🔄 Resetando jogo...');
+        console.log('🔄 [ADMIN] Resetando jogo...');
         
         try {
-            if (window.firebaseService) {
-                await window.firebaseService.resetarJogo();
+            // Tentar resetar no Firebase
+            if (sistemaInicializado && firebaseService && typeof firebaseService.resetarJogo === 'function') {
+                await firebaseService.resetarJogo();
+                console.log('✅ [ADMIN] Jogo resetado no Firebase');
+            } else {
+                console.warn('⚠️ [ADMIN] Firebase não disponível, resetando apenas dados locais');
             }
             
             // Limpar dados locais
@@ -208,7 +318,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             atualizarTodosDisplays();
             alert('✅ Jogo resetado com sucesso!');
-            console.log('✅ Jogo resetado');
+            console.log('✅ [ADMIN] Jogo resetado');
             
         } catch (error) {
             console.error('❌ Erro ao resetar jogo:', error);
@@ -233,9 +343,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function gerarNovaCartela() {
-        console.log('🎫 Gerando nova cartela...');
+        console.log('🎫 [ADMIN] Gerando nova cartela...');
         
         try {
+            // Verificar se sistema está inicializado
+            if (!sistemaInicializado || !firebaseService) {
+                throw new Error('Sistema Firebase não inicializado');
+            }
+            
             const preco = parseFloat(precoCartelaInput?.value || 5);
             const novaCartela = {
                 id: Date.now().toString(),
@@ -245,8 +360,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 dataGeracao: new Date().toISOString()
             };
 
-            if (window.firebaseService) {
-                await window.firebaseService.salvarCartela(novaCartela);
+            console.log('💾 [ADMIN] Salvando cartela no Firebase...');
+            if (firebaseService && typeof firebaseService.salvarCartela === 'function') {
+                await firebaseService.salvarCartela(novaCartela);
+                console.log('✅ [ADMIN] Cartela salva no Firebase');
+            } else {
+                console.warn('⚠️ [ADMIN] FirebaseService.salvarCartela não disponível, salvando apenas localmente');
             }
             
             cartelas.push(novaCartela);
@@ -254,10 +373,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             atualizarEstatisticasCartelas();
             alert(`✅ Nova cartela gerada! ID: ${novaCartela.id}`);
-            console.log('✅ Cartela gerada:', novaCartela.id);
+            console.log('✅ [ADMIN] Cartela gerada:', novaCartela.id);
             
         } catch (error) {
-            console.error('❌ Erro ao gerar cartela:', error);
+            console.error('❌ [ADMIN] Erro ao gerar cartela:', error);
             alert('❌ Erro ao gerar cartela: ' + error.message);
         }
     }
@@ -314,18 +433,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sessionTimeSpan = document.getElementById('session-time');
         
         if (window.bingoAuth && window.bingoAuth.isAuthenticated()) {
-            const user = window.bingoAuth.getCurrentUser();
-            if (adminUserSpan) adminUserSpan.textContent = `👤 ${user.email}`;
+            const user = window.bingoAuth.currentUser;
+            if (adminUserSpan) adminUserSpan.textContent = `👤 ${user.username}`;
             
-            const loginTime = new Date(user.loginTime);
-            if (sessionTimeSpan) sessionTimeSpan.textContent = `⏰ ${loginTime.toLocaleTimeString()}`;
+            const authTime = localStorage.getItem('admin_auth_time');
+            if (authTime && sessionTimeSpan) {
+                const loginTime = new Date(parseInt(authTime));
+                sessionTimeSpan.textContent = `⏰ ${loginTime.toLocaleTimeString()}`;
+            }
         }
     }
 
     function logout() {
         if (confirm('Deseja realmente sair do sistema?')) {
             window.bingoAuth.logout();
-            window.location.href = 'login.html';
         }
     }
 
@@ -439,4 +560,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     await carregarDados();
     
     console.log('✅ Admin panel totalmente carregado e configurado!');
+}
+
+// Inicializar quando a página carregar
+document.addEventListener('DOMContentLoaded', () => {
+    initializeAdmin().catch(error => {
+        console.error('❌ [ADMIN] Erro ao inicializar:', error);
+        alert('Erro ao inicializar área administrativa. Recarregue a página.');
+    });
 });

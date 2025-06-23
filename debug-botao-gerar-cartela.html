@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Botão Gerar Cartela</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .section { margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .log { height: 300px; overflow-y: auto; background: #000; color: #0f0; padding: 10px; font-family: monospace; }
+        #cartela-preview { border: 2px solid #ddd; padding: 20px; margin: 20px 0; min-height: 200px; text-align: center; }
+        .cartela-bingo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; max-width: 300px; margin: 0 auto; }
+        .cell { width: 50px; height: 50px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .header { background: #007bff; color: white; }
+        .free { background: #28a745; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug - Botão Gerar Nova Cartela</h1>
+        
+        <div class="section warning">
+            <h3>🎯 DIAGNÓSTICO</h3>
+            <p>Verificando se o botão "Gerar Nova Cartela" está funcionando corretamente</p>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Testes</h3>
+            <button onclick="verificarElementos()">🔍 Verificar Elementos DOM</button>
+            <button onclick="testarFirebaseService()">🔥 Testar Firebase Service</button>
+            <button onclick="testarGerarCartela()">🎲 Testar Gerar Cartela</button>
+            <button onclick="simularBotaoOriginal()">🎯 Simular Botão Original</button>
+        </div>
+
+        <div class="section">
+            <h3>🎫 Preview da Cartela</h3>
+            <div id="cartela-preview">
+                <div class="cartela-vazia">
+                    <p>Clique em "Testar Gerar Cartela" para ver o resultado</p>
+                </div>
+            </div>
+            <button id="gerar-preview-test" onclick="gerarPreviewTest()">🎲 Gerar Nova Cartela (Teste)</button>
+        </div>
+
+        <div class="section">
+            <h3>📊 Resultados</h3>
+            <div id="resultados"></div>
+        </div>
+
+        <div class="section">
+            <h3>📋 Log</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <!-- Carregar os mesmos scripts do sistema original -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    
+    <script>
+        let firebaseService = null;
+        let configuracoes = {};
+        let cartelaAtual = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function exibirResultado(titulo, conteudo, tipo = 'info') {
+            const resultadosDiv = document.getElementById('resultados');
+            const classe = tipo === 'error' ? 'error' : tipo === 'success' ? 'success' : 'section';
+            resultadosDiv.innerHTML += `
+                <div class="${classe}">
+                    <h4>${titulo}</h4>
+                    <pre>${JSON.stringify(conteudo, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        async function verificarElementos() {
+            log("🔍 Verificando elementos DOM...");
+            
+            const elementos = {
+                'gerar-preview': document.getElementById('gerar-preview'),
+                'gerar-preview-test': document.getElementById('gerar-preview-test'),
+                'cartela-preview': document.getElementById('cartela-preview'),
+                'comprar-cartela': document.getElementById('comprar-cartela')
+            };
+
+            const resultados = {};
+            Object.keys(elementos).forEach(id => {
+                const elemento = elementos[id];
+                resultados[id] = {
+                    existe: !!elemento,
+                    tipo: elemento ? elemento.tagName : null,
+                    disabled: elemento ? elemento.disabled : null,
+                    innerHTML: elemento ? elemento.innerHTML.substring(0, 50) + '...' : null
+                };
+                log(`📋 Elemento ${id}: ${elemento ? 'ENCONTRADO' : 'NÃO ENCONTRADO'}`);
+            });
+
+            exibirResultado("Verificação de Elementos", resultados, 'success');
+        }
+
+        async function testarFirebaseService() {
+            log("🔥 Testando Firebase Service...");
+            
+            try {
+                // Simular inicialização como no cartelas.js
+                if (typeof FirebaseService !== 'undefined') {
+                    firebaseService = new FirebaseService();
+                    log("✅ Firebase Service instanciado com sucesso");
+                    
+                    // Testar carregamento de configurações
+                    const config = await firebaseService.carregarConfiguracoes();
+                    configuracoes = config;
+                    log(`✅ Configurações carregadas: ${JSON.stringify(config)}`);
+                    
+                    exibirResultado("Firebase Service", {
+                        status: "OK",
+                        configuracoes: config
+                    }, 'success');
+                    
+                } else {
+                    throw new Error('Classe FirebaseService não encontrada');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro no Firebase Service: ${error.message}`);
+                
+                // Usar configurações padrão
+                configuracoes = {
+                    numeroInicial: 1,
+                    numeroFinal: 75,
+                    precoCartela: 5.00
+                };
+                log("🔧 Usando configurações padrão");
+                
+                exibirResultado("Firebase Service", {
+                    status: "ERRO",
+                    erro: error.message,
+                    configuracoes_padrao: configuracoes
+                }, 'warning');
+            }
+        }
+
+        function gerarNumerosCartela(min, max) {
+            const numeros = [];
+            const totalRange = max - min + 1;
+            const colSize = Math.floor(totalRange / 5);
+            
+            const ranges = [
+                { min: min, max: Math.min(min + colSize - 1, max) },
+                { min: Math.min(min + colSize, max), max: Math.min(min + (colSize * 2) - 1, max) },
+                { min: Math.min(min + (colSize * 2), max), max: Math.min(min + (colSize * 3) - 1, max) },
+                { min: Math.min(min + (colSize * 3), max), max: Math.min(min + (colSize * 4) - 1, max) },
+                { min: Math.min(min + (colSize * 4), max), max: max }
+            ];
+
+            for (let col = 0; col < 5; col++) {
+                const colNums = [];
+                const range = ranges[col];
+                
+                if (range.min > range.max) continue;
+                
+                while (colNums.length < 5) {
+                    const num = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+                    if (!colNums.includes(num)) {
+                        colNums.push(num);
+                    }
+                }
+                
+                colNums.sort((a, b) => a - b);
+                numeros.push(colNums);
+            }
+
+            // Espaço livre no centro
+            if (numeros[2]) {
+                numeros[2][2] = 'FREE';
+            }
+            
+            return numeros;
+        }
+
+        function exibirCartela(cartela) {
+            const cartelaPreview = document.getElementById('cartela-preview');
+            const html = `
+                <div class="cartela-bingo">
+                    <div class="cell header">B</div>
+                    <div class="cell header">I</div>
+                    <div class="cell header">N</div>
+                    <div class="cell header">G</div>
+                    <div class="cell header">O</div>
+                    ${cartela.numeros.map((col, colIndex) => 
+                        col.map((num, rowIndex) => 
+                            `<div class="cell ${num === 'FREE' ? 'free' : ''}">${num === 'FREE' ? '★' : num}</div>`
+                        ).join('')
+                    ).join('')}
+                </div>
+            `;
+            
+            cartelaPreview.innerHTML = html;
+        }
+
+        async function testarGerarCartela() {
+            log("🎲 Testando função gerarCartela...");
+            
+            try {
+                if (!configuracoes.numeroInicial) {
+                    await testarFirebaseService();
+                }
+                
+                const inicial = configuracoes.numeroInicial || 1;
+                const final = configuracoes.numeroFinal || 75;
+                
+                log(`📊 Range: ${inicial} - ${final}`);
+                
+                if (final - inicial + 1 < 25) {
+                    throw new Error('Range insuficiente para gerar cartela');
+                }
+
+                cartelaAtual = {
+                    id: Date.now(),
+                    numeros: gerarNumerosCartela(inicial, final),
+                    preco: configuracoes.precoCartela || 5.00
+                };
+
+                log(`✅ Cartela gerada com ID: ${cartelaAtual.id}`);
+                log(`📝 Números: ${JSON.stringify(cartelaAtual.numeros)}`);
+
+                exibirCartela(cartelaAtual);
+                
+                exibirResultado("Teste Gerar Cartela", {
+                    status: "SUCESSO",
+                    cartela_id: cartelaAtual.id,
+                    preco: cartelaAtual.preco,
+                    range: `${inicial}-${final}`,
+                    numeros_sample: cartelaAtual.numeros[0]
+                }, 'success');
+                
+            } catch (error) {
+                log(`❌ Erro ao gerar cartela: ${error.message}`);
+                exibirResultado("Erro Gerar Cartela", {
+                    erro: error.message,
+                    configuracoes: configuracoes
+                }, 'error');
+            }
+        }
+
+        function gerarPreviewTest() {
+            log("🎯 Função gerarPreviewTest() chamada");
+            testarGerarCartela();
+        }
+
+        async function simularBotaoOriginal() {
+            log("🎯 Simulando botão original do sistema...");
+            
+            try {
+                // Simular exatamente o que acontece no cartelas.js
+                await testarFirebaseService();
+                
+                // Simular click do botão
+                log("🖱️ Simulando click do botão 'Gerar Preview'");
+                
+                const inicial = configuracoes.numeroInicial || 1;
+                const final = configuracoes.numeroFinal || 75;
+                
+                if (final - inicial + 1 < 25) {
+                    alert('⚠️ Range insuficiente para gerar cartela. Configure no painel administrativo.');
+                    return;
+                }
+
+                cartelaAtual = {
+                    id: Date.now(),
+                    numeros: gerarNumerosCartela(inicial, final),
+                    preco: configuracoes.precoCartela || 5.00
+                };
+
+                exibirCartela(cartelaAtual);
+                
+                // Simular habilitação do botão comprar
+                const comprarBtn = document.getElementById('comprar-cartela');
+                if (comprarBtn) {
+                    comprarBtn.disabled = false;
+                    log("✅ Botão 'Comprar' habilitado");
+                }
+                
+                log("✅ Simulação do botão original concluída com sucesso");
+                
+                exibirResultado("Simulação Botão Original", {
+                    status: "SUCESSO",
+                    funcionalidade: "OK"
+                }, 'success');
+                
+            } catch (error) {
+                log(`❌ Erro na simulação: ${error.message}`);
+                exibirResultado("Erro Simulação", {
+                    erro: error.message
+                }, 'error');
+            }
+        }
+
+        // Auto-inicializar
+        window.addEventListener('load', () => {
+            log("🚀 Debug do botão Gerar Cartela iniciado");
+            log("📋 Use os botões acima para diagnosticar o problema");
+        });
+    </script>
+</body>
+</html>

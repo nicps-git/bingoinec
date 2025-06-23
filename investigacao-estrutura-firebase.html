@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investigação Estrutura Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .debug-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .log-area {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .error { color: #ff6b6b; }
+        .success { color: #51cf66; }
+        .warning { color: #ffd43b; }
+        .info { color: #74c0fc; }
+        input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+            width: 200px;
+        }
+        .section-title {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .data-table th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Investigação Estrutura Firebase</h1>
+        
+        <div class="debug-section">
+            <h3 class="section-title">1. Análise de Coleções e Documentos</h3>
+            <button onclick="analisarColecoes()">Analisar Todas as Coleções</button>
+            <button onclick="listarPrimeiros20Documentos()">Listar Primeiros 20 Documentos</button>
+            <button onclick="analisarEstruturaDados()">Analisar Estrutura de Dados</button>
+        </div>
+
+        <div class="debug-section">
+            <h3 class="section-title">2. Busca Específica por Telefone</h3>
+            <input type="text" id="telefoneEspecifico" placeholder="Digite o telefone" value="85966666666">
+            <button onclick="buscarTelefoneEspecifico()">Buscar Telefone Específico</button>
+            <button onclick="buscarTelefoneVariacoes()">Buscar Todas Variações</button>
+        </div>
+
+        <div class="debug-section">
+            <h3 class="section-title">3. Análise de Campos</h3>
+            <button onclick="analisarCamposTelefone()">Analisar Campos de Telefone</button>
+            <button onclick="analisarCamposComprador()">Analisar Campos de Comprador</button>
+            <button onclick="compararEstruturasGravacaoBusca()">Comparar Estruturas Gravação vs Busca</button>
+        </div>
+
+        <div class="debug-section">
+            <h3 class="section-title">4. Teste de Gravação Manual</h3>
+            <input type="text" id="nomeManual" placeholder="Nome do comprador" value="Teste Manual">
+            <input type="text" id="telefoneManual" placeholder="Telefone" value="85966666666">
+            <button onclick="gravarCartelaManual()">Gravar Cartela de Teste</button>
+            <button onclick="verificarCartelaRecenteGravada()">Verificar Última Cartela Gravada</button>
+        </div>
+
+        <div class="debug-section">
+            <h3 class="section-title">📊 Resultados da Investigação</h3>
+            <div id="logArea" class="log-area"></div>
+        </div>
+
+        <div class="debug-section">
+            <h3 class="section-title">📋 Dados Encontrados</h3>
+            <div id="dadosEncontrados"></div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <script>
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logArea = document.getElementById('logArea');
+            const colors = {
+                'error': '#ff6b6b',
+                'success': '#51cf66',
+                'warning': '#ffd43b',
+                'info': '#74c0fc'
+            };
+            
+            logArea.innerHTML += `<span style="color: ${colors[type]}">[${timestamp}] ${message}</span>\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function exibirDados(titulo, dados) {
+            const container = document.getElementById('dadosEncontrados');
+            const section = document.createElement('div');
+            section.innerHTML = `
+                <h4>${titulo}</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Valor</th>
+                            <th>Tipo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(dados).map(([key, value]) => 
+                            `<tr>
+                                <td>${key}</td>
+                                <td>${JSON.stringify(value)}</td>
+                                <td>${typeof value}</td>
+                            </tr>`
+                        ).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.appendChild(section);
+        }
+
+        function normalizarTelefone(telefone) {
+            if (!telefone) return '';
+            return telefone.toString().replace(/\D/g, '');
+        }
+
+        async function analisarColecoes() {
+            log('🔍 INICIANDO ANÁLISE DAS COLEÇÕES...', 'info');
+            
+            try {
+                const db = firebase.firestore();
+                
+                // Lista de possíveis coleções
+                const colecoesPossiveis = ['cartelas', 'bingo', 'rifas', 'usuarios', 'vendas'];
+                
+                for (const nomeColecao of colecoesPossiveis) {
+                    try {
+                        const snapshot = await db.collection(nomeColecao).limit(1).get();
+                        if (!snapshot.empty) {
+                            const count = await db.collection(nomeColecao).get();
+                            log(`✅ Coleção "${nomeColecao}" encontrada com ${count.size} documentos`, 'success');
+                            
+                            // Analisar primeiro documento
+                            const primeiroDoc = snapshot.docs[0];
+                            log(`📄 Primeiro documento ID: ${primeiroDoc.id}`, 'info');
+                            log(`📄 Estrutura: ${JSON.stringify(primeiroDoc.data(), null, 2)}`, 'info');
+                        }
+                    } catch (error) {
+                        log(`❌ Coleção "${nomeColecao}" não encontrada ou erro: ${error.message}`, 'error');
+                    }
+                }
+                
+            } catch (error) {
+                log(`❌ ERRO na análise de coleções: ${error.message}`, 'error');
+            }
+        }
+
+        async function listarPrimeiros20Documentos() {
+            log('📋 LISTANDO PRIMEIROS 20 DOCUMENTOS DA COLEÇÃO CARTELAS...', 'info');
+            
+            try {
+                const db = firebase.firestore();
+                const snapshot = await db.collection('cartelas').limit(20).get();
+                
+                log(`📊 Total de documentos encontrados: ${snapshot.size}`, 'info');
+                
+                snapshot.forEach((doc, index) => {
+                    const data = doc.data();
+                    log(`\n📄 DOCUMENTO ${index + 1} (ID: ${doc.id})`, 'success');
+                    log(`   Telefone: ${data.telefone || data.telefoneComprador || 'N/A'}`, 'info');
+                    log(`   Nome: ${data.nome || data.nomeComprador || 'N/A'}`, 'info');
+                    log(`   Data: ${data.dataCompra || data.timestamp || 'N/A'}`, 'info');
+                    log(`   Estrutura completa: ${JSON.stringify(data, null, 2)}`, 'info');
+                    
+                    exibirDados(`Documento ${index + 1} (${doc.id})`, data);
+                });
+                
+            } catch (error) {
+                log(`❌ ERRO ao listar documentos: ${error.message}`, 'error');
+            }
+        }
+
+        async function analisarEstruturaDados() {
+            log('🔬 ANALISANDO ESTRUTURA DE DADOS...', 'info');
+            
+            try {
+                const db = firebase.firestore();
+                const snapshot = await db.collection('cartelas').limit(50).get();
+                
+                const estruturas = new Map();
+                const camposTelefone = new Set();
+                const camposNome = new Set();
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const campos = Object.keys(data);
+                    const estruturaKey = campos.sort().join(',');
+                    
+                    estruturas.set(estruturaKey, (estruturas.get(estruturaKey) || 0) + 1);
+                    
+                    // Buscar campos relacionados a telefone
+                    campos.forEach(campo => {
+                        if (campo.toLowerCase().includes('telefone') || campo.toLowerCase().includes('phone')) {
+                            camposTelefone.add(campo);
+                        }
+                        if (campo.toLowerCase().includes('nome') || campo.toLowerCase().includes('name')) {
+                            camposNome.add(campo);
+                        }
+                    });
+                });
+                
+                log('\n📊 ESTRUTURAS ENCONTRADAS:', 'success');
+                estruturas.forEach((count, estrutura) => {
+                    log(`   ${count}x: [${estrutura}]`, 'info');
+                });
+                
+                log('\n📞 CAMPOS DE TELEFONE ENCONTRADOS:', 'success');
+                camposTelefone.forEach(campo => {
+                    log(`   - ${campo}`, 'info');
+                });
+                
+                log('\n👤 CAMPOS DE NOME ENCONTRADOS:', 'success');
+                camposNome.forEach(campo => {
+                    log(`   - ${campo}`, 'info');
+                });
+                
+            } catch (error) {
+                log(`❌ ERRO na análise de estrutura: ${error.message}`, 'error');
+            }
+        }
+
+        async function buscarTelefoneEspecifico() {
+            const telefone = document.getElementById('telefoneEspecifico').value;
+            const telefoneNormalizado = normalizarTelefone(telefone);
+            
+            log(`🔍 BUSCA ESPECÍFICA PELO TELEFONE: ${telefone}`, 'info');
+            log(`📱 Telefone normalizado: ${telefoneNormalizado}`, 'info');
+            
+            try {
+                const db = firebase.firestore();
+                
+                // Buscar em diferentes campos possíveis
+                const camposPossiveis = ['telefone', 'telefoneComprador', 'phone', 'celular'];
+                
+                for (const campo of camposPossiveis) {
+                    log(`\n🔍 Buscando no campo "${campo}"...`, 'info');
+                    
+                    // Busca exata
+                    const snapshot1 = await db.collection('cartelas')
+                        .where(campo, '==', telefone)
+                        .get();
+                    
+                    log(`   Busca exata "${telefone}": ${snapshot1.size} resultados`, snapshot1.size > 0 ? 'success' : 'warning');
+                    
+                    // Busca normalizada
+                    const snapshot2 = await db.collection('cartelas')
+                        .where(campo, '==', telefoneNormalizado)
+                        .get();
+                    
+                    log(`   Busca normalizada "${telefoneNormalizado}": ${snapshot2.size} resultados`, snapshot2.size > 0 ? 'success' : 'warning');
+                    
+                    // Exibir resultados encontrados
+                    [...snapshot1.docs, ...snapshot2.docs].forEach((doc, index) => {
+                        const data = doc.data();
+                        log(`     📄 Resultado ${index + 1}: ID=${doc.id}, Tel=${data[campo]}`, 'success');
+                        exibirDados(`Resultado ${campo} - ${index + 1}`, data);
+                    });
+                }
+                
+            } catch (error) {
+                log(`❌ ERRO na busca específica: ${error.message}`, 'error');
+            }
+        }
+
+        async function buscarTelefoneVariacoes() {
+            const telefone = document.getElementById('telefoneEspecifico').value;
+            
+            log(`🔍 BUSCA POR TODAS AS VARIAÇÕES DO TELEFONE: ${telefone}`, 'info');
+            
+            // Gerar variações
+            const variacoes = [
+                telefone,
+                normalizarTelefone(telefone),
+                `+55${normalizarTelefone(telefone)}`,
+                `0${normalizarTelefone(telefone)}`,
+                telefone.replace(/\D/g, '').substring(2), // Remove DDI
+                telefone.replace(/\D/g, '').substring(1)  // Remove primeiro dígito
+            ];
+            
+            log(`📱 Variações a testar: ${variacoes.join(', ')}`, 'info');
+            
+            try {
+                const db = firebase.firestore();
+                
+                for (const variacao of variacoes) {
+                    if (!variacao) continue;
+                    
+                    log(`\n🔍 Testando variação: "${variacao}"`, 'info');
+                    
+                    // Busca em todos os campos possíveis
+                    const snapshot = await db.collection('cartelas')
+                        .where('telefone', '==', variacao)
+                        .get();
+                    
+                    log(`   Resultados: ${snapshot.size}`, snapshot.size > 0 ? 'success' : 'warning');
+                    
+                    if (snapshot.size > 0) {
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            log(`     ✅ Encontrado: ID=${doc.id}, Tel=${data.telefone}`, 'success');
+                            exibirDados(`Variação ${variacao}`, data);
+                        });
+                    }
+                }
+                
+            } catch (error) {
+                log(`❌ ERRO na busca por variações: ${error.message}`, 'error');
+            }
+        }
+
+        async function analisarCamposTelefone() {
+            log('📞 ANALISANDO TODOS OS CAMPOS DE TELEFONE...', 'info');
+            
+            try {
+                const db = firebase.firestore();
+                const snapshot = await db.collection('cartelas').get();
+                
+                const telefones = new Map();
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    Object.entries(data).forEach(([campo, valor]) => {
+                        if (campo.toLowerCase().includes('telefone') || 
+                            campo.toLowerCase().includes('phone') ||
+                            campo.toLowerCase().includes('celular')) {
+                            
+                            const key = `${campo}: ${valor}`;
+                            telefones.set(key, (telefones.get(key) || 0) + 1);
+                        }
+                    });
+                });
+                
+                log('\n📊 TODOS OS TELEFONES ENCONTRADOS:', 'success');
+                telefones.forEach((count, telefone) => {
+                    log(`   ${count}x: ${telefone}`, 'info');
+                });
+                
+            } catch (error) {
+                log(`❌ ERRO na análise de campos de telefone: ${error.message}`, 'error');
+            }
+        }
+
+        async function analisarCamposComprador() {
+            log('👤 ANALISANDO TODOS OS CAMPOS DE COMPRADOR...', 'info');
+            
+            try {
+                const db = firebase.firestore();
+                const snapshot = await db.collection('cartelas').get();
+                
+                const compradores = new Map();
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    Object.entries(data).forEach(([campo, valor]) => {
+                        if (campo.toLowerCase().includes('nome') || 
+                            campo.toLowerCase().includes('comprador') ||
+                            campo.toLowerCase().includes('name')) {
+                            
+                            const key = `${campo}: ${valor}`;
+                            compradores.set(key, (compradores.get(key) || 0) + 1);
+                        }
+                    });
+                });
+                
+                log('\n📊 TODOS OS COMPRADORES ENCONTRADOS:', 'success');
+                compradores.forEach((count, comprador) => {
+                    log(`   ${count}x: ${comprador}`, 'info');
+                });
+                
+            } catch (error) {
+                log(`❌ ERRO na análise de campos de comprador: ${error.message}`, 'error');
+            }
+        }
+
+        async function compararEstruturasGravacaoBusca() {
+            log('🔬 COMPARANDO ESTRUTURAS DE GRAVAÇÃO VS BUSCA...', 'info');
+            
+            // Simular estrutura de gravação (baseado no código de cartelas.js)
+            const estruturaGravacao = {
+                numeroCartela: 'number',
+                nomeComprador: 'string',
+                telefone: 'string (normalizado)',
+                numeros: 'array',
+                dataCompra: 'timestamp',
+                statusPagamento: 'string'
+            };
+            
+            // Simular estrutura de busca (baseado no código de minhas-cartelas.js)
+            const estruturaBusca = {
+                camposBuscados: ['telefone'],
+                normalizacao: 'sim',
+                filtros: 'where("telefone", "==", telefoneNormalizado)'
+            };
+            
+            log('\n📝 ESTRUTURA DE GRAVAÇÃO:', 'success');
+            Object.entries(estruturaGravacao).forEach(([campo, tipo]) => {
+                log(`   ${campo}: ${tipo}`, 'info');
+            });
+            
+            log('\n🔍 ESTRUTURA DE BUSCA:', 'success');
+            Object.entries(estruturaBusca).forEach(([campo, valor]) => {
+                log(`   ${campo}: ${valor}`, 'info');
+            });
+            
+            // Verificar se há documentos reais
+            try {
+                const db = firebase.firestore();
+                const snapshot = await db.collection('cartelas').limit(5).get();
+                
+                log('\n📄 ESTRUTURAS REAIS ENCONTRADAS:', 'success');
+                snapshot.forEach((doc, index) => {
+                    const data = doc.data();
+                    log(`   Documento ${index + 1}:`, 'info');
+                    Object.entries(data).forEach(([campo, valor]) => {
+                        log(`     ${campo}: ${typeof valor} (${JSON.stringify(valor).substring(0, 50)}${JSON.stringify(valor).length > 50 ? '...' : ''})`, 'info');
+                    });
+                });
+                
+            } catch (error) {
+                log(`❌ ERRO ao comparar estruturas: ${error.message}`, 'error');
+            }
+        }
+
+        async function gravarCartelaManual() {
+            const nome = document.getElementById('nomeManual').value;
+            const telefone = document.getElementById('telefoneManual').value;
+            const telefoneNormalizado = normalizarTelefone(telefone);
+            
+            log(`💾 GRAVANDO CARTELA MANUAL...`, 'info');
+            log(`   Nome: ${nome}`, 'info');
+            log(`   Telefone original: ${telefone}`, 'info');
+            log(`   Telefone normalizado: ${telefoneNormalizado}`, 'info');
+            
+            try {
+                const db = firebase.firestore();
+                
+                const cartelaData = {
+                    numeroCartela: Math.floor(Math.random() * 1000) + 1,
+                    nomeComprador: nome,
+                    telefone: telefoneNormalizado,
+                    numeros: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                    dataCompra: firebase.firestore.FieldValue.serverTimestamp(),
+                    statusPagamento: 'TESTE_MANUAL',
+                    testeManual: true,
+                    timestampTeste: new Date().toISOString()
+                };
+                
+                const docRef = await db.collection('cartelas').add(cartelaData);
+                
+                log(`✅ CARTELA GRAVADA COM SUCESSO!`, 'success');
+                log(`   ID do documento: ${docRef.id}`, 'success');
+                log(`   Dados gravados: ${JSON.stringify(cartelaData, null, 2)}`, 'info');
+                
+                exibirDados(`Cartela Manual Gravada (${docRef.id})`, cartelaData);
+                
+                // Tentar buscar imediatamente
+                setTimeout(async () => {
+                    log('\n🔍 TESTANDO BUSCA IMEDIATA...', 'info');
+                    const buscaSnapshot = await db.collection('cartelas')
+                        .where('telefone', '==', telefoneNormalizado)
+                        .get();
+                    
+                    log(`   Resultados da busca: ${buscaSnapshot.size}`, buscaSnapshot.size > 0 ? 'success' : 'error');
+                    
+                    buscaSnapshot.forEach(doc => {
+                        log(`     Encontrado: ${doc.id}`, 'success');
+                    });
+                }, 2000);
+                
+            } catch (error) {
+                log(`❌ ERRO ao gravar cartela manual: ${error.message}`, 'error');
+            }
+        }
+
+        async function verificarCartelaRecenteGravada() {
+            log('🔍 VERIFICANDO ÚLTIMA CARTELA GRAVADA...', 'info');
+            
+            try {
+                const db = firebase.firestore();
+                const snapshot = await db.collection('cartelas')
+                    .orderBy('dataCompra', 'desc')
+                    .limit(5)
+                    .get();
+                
+                log(`📊 Últimas ${snapshot.size} cartelas:`, 'success');
+                
+                snapshot.forEach((doc, index) => {
+                    const data = doc.data();
+                    log(`\n📄 Cartela ${index + 1} (ID: ${doc.id})`, 'success');
+                    log(`   Nome: ${data.nomeComprador || data.nome || 'N/A'}`, 'info');
+                    log(`   Telefone: ${data.telefone || 'N/A'}`, 'info');
+                    log(`   Data: ${data.dataCompra ? data.dataCompra.toDate() : data.timestampTeste || 'N/A'}`, 'info');
+                    log(`   Status: ${data.statusPagamento || 'N/A'}`, 'info');
+                    log(`   Teste Manual: ${data.testeManual ? 'SIM' : 'NÃO'}`, 'info');
+                    
+                    exibirDados(`Cartela Recente ${index + 1}`, data);
+                });
+                
+            } catch (error) {
+                log(`❌ ERRO ao verificar cartelas recentes: ${error.message}`, 'error');
+            }
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Sistema de investigação carregado!', 'success');
+            log('📋 Use os botões acima para investigar a estrutura do Firebase', 'info');
+        });
+    </script>
+</body>
+</html>

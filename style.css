@@ -46,6 +46,9 @@ header {
     animation: slideInFromTop 1s ease-out;
     transform: perspective(1000px) rotateX(0deg);
     transition: transform 0.3s ease;
+    text-align: center;
+    position: relative;
+    min-height: 200px;
 }
 
 header:hover {
@@ -69,6 +72,11 @@ h1 {
     font-size: 3em;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     animation: bounce 2s ease-in-out infinite;
+    margin: 15px 0;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    width: 100%;
 }
 
 @keyframes bounce {
@@ -273,9 +281,13 @@ h1 {
 header p {
     color: #ff5722;
     font-size: 1.2em;
-    margin: 10px 0 0 0;
+    margin: 10px 0;
     font-weight: bold;
     animation: fadeIn 2s ease-in-out;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    width: 100%;
 }
 
 @keyframes fadeIn {
@@ -375,8 +387,12 @@ header p {
 .chapeu-palha {
     font-size: 3em;
     animation: balanca-suave 3s ease-in-out infinite;
-    display: inline-block;
-    margin-bottom: 10px;
+    display: block;
+    margin: 0 auto 10px auto;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    width: 100%;
 }
 
 @keyframes balanca-suave {
@@ -387,6 +403,10 @@ header p {
 /* Elementos decorativos do header */
 .elementos-decorativos {
     margin-top: 15px;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    width: 100%;
 }
 
 .elemento {
@@ -838,4 +858,45 @@ header p {
 
 .status-cartelas .bingo {
     color: #FFD700;
+}
+
+/* Estilo específico para texto inicial do sorteio */
+.numero-destaque.texto-inicial {
+    font-size: 1.1em;
+    line-height: 1.2;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+    word-wrap: break-word;
+    font-weight: 600;
+}
+
+/* Container principal do header - mantém conteúdo centralizado */
+.header-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    text-align: center;
+    width: calc(100% - 280px); /* Deixa espaço para os botões laterais */
+}
+
+/* Reset específico para centralização perfeita do header */
+.header-content * {
+    text-align: center !important;
+}
+
+.header-content h1,
+.header-content p,
+.header-content .chapeu-palha,
+.header-content .elementos-decorativos {
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    transform: translateX(0) !important;
 }

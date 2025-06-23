@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Admin Auth - Bingo INEC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .debug-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 10px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        .info { color: blue; }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+    
+    <!-- Carregar sistema de auth -->
+    <script src="auth-simples.js"></script>
+</head>
+<body>
+    <h1>🔍 Debug - Sistema de Autenticação Admin</h1>
+    
+    <div class="debug-container">
+        <h2>📊 Status Atual</h2>
+        <div id="status-atual" class="status info">Verificando...</div>
+        <button onclick="verificarStatus()">🔄 Atualizar Status</button>
+        <button onclick="limparStorage()">🗑️ Limpar Storage</button>
+    </div>
+    
+    <div class="debug-container">
+        <h2>🧪 Testes de Autenticação</h2>
+        <button onclick="testarPromptDireto()">🔐 Testar Prompt Direto</button>
+        <button onclick="testarRequireAuth()">🔑 Testar requireAuth()</button>
+        <button onclick="testarForceAuth()">💪 Testar forceAuth()</button>
+        <button onclick="simularFluxoAdmin()">⚡ Simular Fluxo Admin Completo</button>
+    </div>
+    
+    <div class="debug-container">
+        <h2>🚀 Navegação</h2>
+        <button onclick="irParaAdminReal()">🏢 Ir para admin.html Real</button>
+        <button onclick="window.location.href='index.html'">🏠 Voltar para Index</button>
+    </div>
+    
+    <div class="debug-container">
+        <h2>📝 Logs de Debug</h2>
+        <button onclick="limparLogs()">🧹 Limpar Logs</button>
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script>
+        // Sistema de logs
+        const logsDiv = document.getElementById('logs');
+        
+        function addLog(tipo, mensagem) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logItem = document.createElement('div');
+            logItem.innerHTML = `[${timestamp}] <span class="${tipo}">${tipo.toUpperCase()}: ${mensagem}</span>`;
+            logsDiv.appendChild(logItem);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+        
+        // Interceptar console.log
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog('info', args.join(' '));
+        };
+        
+        const originalError = console.error;
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog('error', args.join(' '));
+        };
+        
+        // Aguardar auth system
+        function waitForAuth() {
+            return new Promise((resolve) => {
+                if (typeof window.bingoAuth !== 'undefined') {
+                    resolve();
+                    return;
+                }
+                
+                const check = () => {
+                    if (typeof window.bingoAuth !== 'undefined') {
+                        resolve();
+                    } else {
+                        setTimeout(check, 50);
+                    }
+                };
+                check();
+            });
+        }
+        
+        async function verificarStatus() {
+            await waitForAuth();
+            
+            const statusDiv = document.getElementById('status-atual');
+            const isAuth = window.bingoAuth.isAuthenticated();
+            
+            addLog('info', `Status autenticação: ${isAuth}`);
+            addLog('info', `localStorage admin_authenticated: ${localStorage.getItem('admin_authenticated')}`);
+            addLog('info', `localStorage admin_auth_time: ${localStorage.getItem('admin_auth_time')}`);
+            
+            if (isAuth) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Usuário ESTÁ autenticado';
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Usuário NÃO está autenticado';
+            }
+        }
+        
+        function limparStorage() {
+            localStorage.removeItem('admin_authenticated');
+            localStorage.removeItem('admin_auth_time');
+            addLog('warning', 'LocalStorage limpo');
+            verificarStatus();
+        }
+        
+        async function testarPromptDireto() {
+            addLog('info', 'Testando prompt direto...');
+            const senha = prompt('🔐 Teste - Digite a senha admin:');
+            addLog('info', `Usuário digitou: ${senha ? '[SENHA DIGITADA]' : '[CANCELOU]'}`);
+            
+            if (senha === 'inecAdmin2024') {
+                addLog('success', 'Senha CORRETA!');
+            } else if (senha === null) {
+                addLog('warning', 'Usuário CANCELOU o prompt');
+            } else {
+                addLog('error', 'Senha INCORRETA');
+            }
+        }
+        
+        async function testarRequireAuth() {
+            await waitForAuth();
+            addLog('info', 'Testando window.bingoAuth.requireAuth()...');
+            
+            const resultado = window.bingoAuth.requireAuth();
+            addLog('info', `Resultado requireAuth: ${resultado}`);
+            
+            verificarStatus();
+        }
+        
+        async function testarForceAuth() {
+            await waitForAuth();
+            addLog('info', 'Testando window.bingoAuth.forceAuth()...');
+            
+            if (typeof window.bingoAuth.forceAuth === 'function') {
+                const resultado = window.bingoAuth.forceAuth();
+                addLog('info', `Resultado forceAuth: ${resultado}`);
+            } else {
+                addLog('error', 'Função forceAuth não existe');
+            }
+            
+            verificarStatus();
+        }
+        
+        async function simularFluxoAdmin() {
+            await waitForAuth();
+            addLog('info', '⚡ SIMULANDO FLUXO COMPLETO DO ADMIN.HTML...');
+            
+            // Simular exatamente o que admin.js faz
+            let autenticado = window.bingoAuth.isAuthenticated();
+            addLog('info', `Status inicial: ${autenticado}`);
+            
+            if (!autenticado) {
+                addLog('info', 'Usuário não autenticado, chamando requireAuth...');
+                autenticado = window.bingoAuth.requireAuth();
+                addLog('info', `Resultado autenticação: ${autenticado}`);
+                
+                if (!autenticado) {
+                    addLog('error', 'Autenticação falhou - redirecionaria para index.html');
+                    return;
+                }
+            }
+            
+            addLog('success', 'FLUXO COMPLETO: Usuário autenticado com sucesso!');
+            verificarStatus();
+        }
+        
+        function irParaAdminReal() {
+            addLog('info', 'Redirecionando para admin.html real...');
+            window.location.href = 'admin.html';
+        }
+        
+        function limparLogs() {
+            logsDiv.innerHTML = '';
+        }
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', async () => {
+            addLog('success', 'Página de debug carregada');
+            await waitForAuth();
+            addLog('success', 'Sistema de autenticação carregado');
+            verificarStatus();
+        });
+    </script>
+</body>
+</html>

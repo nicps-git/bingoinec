@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎲 Teste Simples - Botão Sorteio</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>🌽 Teste Simples - Bingo Arraiá INEC 🌽</h1>
+    </header>
+
+    <main>
+        <div class="bingo-card">
+            <h2>🎯 Número Sorteado</h2>
+            <div id="numero-sorteado" class="numero-destaque">Clique em Sortear</div>
+            <button id="sortear-btn">🎲 Sortear</button>
+        </div>
+        
+        <div class="numeros-sorteados">
+            <h2>📋 Números Anteriores</h2>
+            <div class="contador">
+                <span id="contador-numeros">0</span> números sorteados
+            </div>
+            <ul id="numeros-anteriores"></ul>
+        </div>
+        
+        <div style="margin: 20px; padding: 20px; background: #f0f0f0; border-radius: 10px;">
+            <h3>🔧 Testes de Debug:</h3>
+            <button onclick="testeDirecto()" style="margin: 5px; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px;">🧪 Teste Direto</button>
+            <button onclick="testeEventListener()" style="margin: 5px; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px;">👂 Teste Event Listener</button>
+            <button onclick="verificarEstado()" style="margin: 5px; padding: 10px; background: #ffc107; color: black; border: none; border-radius: 5px;">📊 Verificar Estado</button>
+        </div>
+    </main>
+    
+    <div id="fogos" style="display: none;"></div>
+
+    <!-- Firebase SDK v8 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+
+    <script>
+        console.log('🚀 Iniciando teste simplificado...');
+        
+        // Função de teste direto
+        function testeDirecto() {
+            console.log('🧪 Executando teste direto...');
+            alert('Teste direto funcionou! O JavaScript está rodando.');
+        }
+        
+        // Função para testar event listener
+        function testeEventListener() {
+            console.log('👂 Testando event listener...');
+            const botao = document.getElementById('sortear-btn');
+            if (botao) {
+                console.log('✅ Botão encontrado');
+                
+                // Remover listeners antigos
+                const novoBotao = botao.cloneNode(true);
+                botao.parentNode.replaceChild(novoBotao, botao);
+                
+                // Adicionar novo listener
+                novoBotao.addEventListener('click', function() {
+                    console.log('🎯 CLICK DETECTADO!');
+                    alert('Event listener funcionou!');
+                    
+                    // Simular sorteio simples
+                    const numero = Math.floor(Math.random() * 75) + 1;
+                    document.getElementById('numero-sorteado').textContent = numero;
+                    
+                    const li = document.createElement('li');
+                    li.textContent = numero;
+                    document.getElementById('numeros-anteriores').appendChild(li);
+                    
+                    const contador = document.getElementById('contador-numeros');
+                    contador.textContent = parseInt(contador.textContent) + 1;
+                });
+                
+                console.log('✅ Event listener adicionado');
+                alert('Event listener adicionado! Agora teste o botão Sortear.');
+            } else {
+                console.error('❌ Botão não encontrado');
+                alert('Erro: Botão não encontrado!');
+            }
+        }
+        
+        // Função para verificar estado
+        function verificarEstado() {
+            console.log('📊 Verificando estado do sistema...');
+            
+            const info = {
+                botaoExiste: !!document.getElementById('sortear-btn'),
+                numeroSorteadoExiste: !!document.getElementById('numero-sorteado'),
+                firebaseCarregado: typeof window.firebaseService !== 'undefined',
+                bingoGlobalExiste: typeof window.bingoGlobal !== 'undefined',
+                sortearNumeroExiste: typeof window.sortearNumero !== 'undefined'
+            };
+            
+            console.log('📊 Estado:', info);
+            alert(`Estado do Sistema:\n${JSON.stringify(info, null, 2)}`);
+        }
+        
+        // Auto-configurar quando DOM carregar
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('📋 DOM carregado para teste simples');
+            
+            // Aguardar um pouco para Firebase carregar
+            setTimeout(async () => {
+                console.log('🔥 Verificando Firebase...');
+                
+                if (typeof window.firebaseService !== 'undefined') {
+                    try {
+                        const conexao = await firebaseService.verificarConexao();
+                        console.log(`🔥 Firebase conectado: ${conexao}`);
+                    } catch (error) {
+                        console.error('❌ Erro Firebase:', error);
+                    }
+                }
+                
+                // Configurar event listener simples se o script principal não funcionou
+                setTimeout(() => {
+                    if (typeof window.bingoGlobal === 'undefined' || !window.bingoGlobal.inicializado) {
+                        console.log('⚠️ Script principal não carregou, configurando fallback...');
+                        testeEventListener();
+                    } else {
+                        console.log('✅ Script principal carregado corretamente');
+                    }
+                }, 3000);
+                
+            }, 2000);
+        });
+    </script>
+    
+    <!-- Script principal (carregado por último) -->
+    <script src="script.js"></script>
+</body>
+</html>

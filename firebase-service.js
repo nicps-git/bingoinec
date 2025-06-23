@@ -85,7 +85,7 @@ class FirebaseService {
 
             await this.db.collection(this.collections.cartelas).doc(cartelaComTimestamp.id).set(cartelaComTimestamp);
             console.log('✅ Cartela salva no Firebase:', cartelaComTimestamp.id);
-            return cartelaComTimestamp;
+            return cartelaComTimestamp.id; // Retornar apenas o ID, não o objeto completo
         } catch (error) {
             console.error('❌ Erro ao salvar cartela:', error);
             throw error;
@@ -129,26 +129,176 @@ class FirebaseService {
         }
     }
 
+    // Função para normalizar telefone de forma padronizada
+    normalizarTelefone(telefone) {
+        if (!telefone) return '';
+        return telefone.toString().replace(/\D/g, '');
+    }
+
+    // Função para gerar variações de telefone
+    gerarVariacoesTelefone(telefone) {
+        if (!telefone) return [];
+        
+        const normalizado = this.normalizarTelefone(telefone);
+        const variacoes = new Set();
+        
+        // Adicionar o telefone original
+        variacoes.add(telefone);
+        variacoes.add(normalizado);
+        
+        // Se tem 11 dígitos (celular com 9)
+        if (normalizado.length === 11) {
+            variacoes.add(normalizado.substring(2)); // Remove DDI
+            variacoes.add(normalizado.substring(1)); // Remove primeiro dígito
+            variacoes.add('0' + normalizado); // Adiciona 0
+            variacoes.add('+55' + normalizado); // Adiciona DDI
+        }
+        
+        // Se tem 10 dígitos (fixo ou celular antigo)
+        if (normalizado.length === 10) {
+            variacoes.add('9' + normalizado); // Adiciona 9 no celular
+            variacoes.add(normalizado.substring(2)); // Remove DDI
+            variacoes.add('0' + normalizado); // Adiciona 0
+            variacoes.add('+55' + normalizado); // Adiciona DDI
+        }
+        
+        // Se tem 9 dígitos (sem DDD)
+        if (normalizado.length === 9) {
+            variacoes.add('85' + normalizado); // Adiciona DDD Ceará
+            variacoes.add('085' + normalizado); // Adiciona DDD com 0
+        }
+        
+        // Se tem 8 dígitos (fixo sem DDD)
+        if (normalizado.length === 8) {
+            variacoes.add('85' + normalizado); // Adiciona DDD Ceará
+            variacoes.add('859' + normalizado); // Adiciona DDD + 9
+        }
+        
+        return Array.from(variacoes).filter(v => v && v.length >= 8);
+    }
+
     async carregarCartelasPorComprador(telefone, email) {
         try {
-            let query = this.db.collection(this.collections.cartelas).where('vendida', '==', true);
-            
-            if (telefone) {
-                query = query.where('telefone', '==', telefone);
-            } else if (email) {
-                query = query.where('email', '==', email);
-            }
-
-            const snapshot = await query.get();
-            const cartelas = [];
-            snapshot.forEach(doc => {
-                cartelas.push({ id: doc.id, ...doc.data() });
+            console.log('🔍 [CORRIGIDO] carregarCartelasPorComprador chamada com:', { 
+                telefone: telefone, 
+                email: email,
+                tipoTelefone: typeof telefone,
+                tipoEmail: typeof email
             });
             
-            console.log(`✅ ${cartelas.length} cartelas encontradas para o comprador`);
-            return cartelas;
+            if (!telefone) {
+                console.log('❌ Telefone não fornecido');
+                return [];
+            }
+            
+            // Normalizar telefone para busca
+            const telefoneNormalizado = this.normalizarTelefone(telefone);
+            console.log('📱 Telefone normalizado:', telefoneNormalizado);
+            
+            // BUSCA 1: Telefone exato normalizado
+            let snapshot = await this.db.collection(this.collections.cartelas)
+                .where('telefone', '==', telefoneNormalizado)
+                .get();
+            
+            console.log('🔍 Busca 1 (exata normalizada):', snapshot.size, 'resultados');
+            
+            if (!snapshot.empty) {
+                const cartelas = [];
+                snapshot.forEach(doc => {
+                    console.log('✅ Cartela encontrada (busca exata):', doc.id);
+                    cartelas.push({ id: doc.id, ...doc.data() });
+                });
+                console.log(`✅ SUCESSO: ${cartelas.length} cartelas encontradas na busca exata`);
+                return cartelas;
+            }
+            
+            // BUSCA 2: Testar todas as variações
+            const variacoes = this.gerarVariacoesTelefone(telefone);
+            console.log('� Testando variações:', variacoes);
+            
+            for (const variacao of variacoes) {
+                snapshot = await this.db.collection(this.collections.cartelas)
+                    .where('telefone', '==', variacao)
+                    .get();
+                
+                console.log(`🔍 Busca variação "${variacao}":`, snapshot.size, 'resultados');
+                
+                if (!snapshot.empty) {
+                    const cartelas = [];
+                    snapshot.forEach(doc => {
+                        console.log('✅ Cartela encontrada (variação):', doc.id);
+                        cartelas.push({ id: doc.id, ...doc.data() });
+                    });
+                    console.log(`✅ SUCESSO: ${cartelas.length} cartelas encontradas com variação`);
+                    return cartelas;
+                }
+            }
+            
+            // BUSCA 3: Busca por conteúdo em múltiplos campos
+            console.log('🔍 Busca 3: Busca por conteúdo em múltiplos campos...');
+            
+            const todasCartelas = await this.db.collection(this.collections.cartelas).get();
+            console.log('📊 Total de cartelas na coleção:', todasCartelas.size);
+            
+            const cartelasEncontradas = [];
+            
+            todasCartelas.forEach(doc => {
+                const data = doc.data();
+                
+                // Verificar múltiplos campos de telefone
+                const camposTelefone = [
+                    data.telefone,
+                    data.telefoneComprador,
+                    data.phone,
+                    data.celular
+                ];
+                
+                for (const campoTelefone of camposTelefone) {
+                    if (campoTelefone) {
+                        const telefoneDoc = this.normalizarTelefone(campoTelefone);
+                        
+                        // Comparações múltiplas
+                        if (telefoneDoc === telefoneNormalizado ||
+                            telefoneDoc.includes(telefoneNormalizado) ||
+                            telefoneNormalizado.includes(telefoneDoc) ||
+                            variacoes.includes(telefoneDoc)) {
+                            
+                            console.log('✅ MATCH por conteúdo:', {
+                                docId: doc.id,
+                                telefoneDoc: telefoneDoc,
+                                telefoneBusca: telefoneNormalizado,
+                                campo: camposTelefone.indexOf(campoTelefone)
+                            });
+                            
+                            cartelasEncontradas.push({ id: doc.id, ...data });
+                            break; // Para evitar duplicatas
+                        }
+                    }
+                }
+            });
+            
+            console.log(`🎯 RESULTADO FINAL: ${cartelasEncontradas.length} cartelas encontradas`);
+            return cartelasEncontradas;
+                    return cartelas;
+                }
+            } else if (email) {
+                console.log('🔍 [DEBUG] Iniciando busca por email:', email);
+                query = query.where('email', '==', email);
+                const snapshot = await query.get();
+                const cartelas = [];
+                snapshot.forEach(doc => {
+                    cartelas.push({ id: doc.id, ...doc.data() });
+                });
+                
+                console.log(`✅ [DEBUG] ${cartelas.length} cartelas encontradas para o email`);
+                return cartelas;
+            }
+            
+            console.log('🔍 [DEBUG] Nenhum critério de busca fornecido');
+            return [];
         } catch (error) {
-            console.error('❌ Erro ao carregar cartelas do comprador:', error);
+            console.error('❌ [DEBUG] Erro ao carregar cartelas do comprador:', error);
+            console.error('❌ [DEBUG] Stack trace:', error.stack);
             throw error;
         }
     }

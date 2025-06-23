@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Isolado do Problema</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .log-area {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .btn-critical { background: #dc3545; }
+        .btn-success { background: #28a745; }
+        .section-title {
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px;
+            font-weight: bold;
+        }
+        .status-ok { background: #d4edda; color: #155724; }
+        .status-error { background: #f8d7da; color: #721c24; }
+        .status-warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Teste Isolado do Problema</h1>
+        
+        <div class="test-section">
+            <div class="section-title">📊 Status dos Componentes</div>
+            <div id="statusFirebase" class="status status-warning">Firebase: Verificando...</div>
+            <div id="statusService" class="status status-warning">FirebaseService: Verificando...</div>
+            <div id="statusColecao" class="status status-warning">Coleção: Verificando...</div>
+        </div>
+
+        <div class="test-section">
+            <div class="section-title">🧪 Testes Específicos</div>
+            <button onclick="testeCompleto()" class="btn-critical">TESTE COMPLETO</button>
+            <button onclick="testarGravacao()">Testar Gravação</button>
+            <button onclick="testarBusca()">Testar Busca</button>
+            <button onclick="compararMetodos()">Comparar Métodos</button>
+        </div>
+
+        <div class="test-section">
+            <div class="section-title">📋 Log de Execução</div>
+            <div id="logArea" class="log-area"></div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts - Versão Compatível -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        // Configuração Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyC7CnYV9gkczJ8zIcmTLrvQlrFFKNVhJNw",
+            authDomain: "bingoinec.firebaseapp.com",
+            projectId: "bingoinec",
+            storageBucket: "bingoinec.firebasestorage.app",
+            messagingSenderId: "483007152008",
+            appId: "1:483007152008:web:6347c02216e162c0a3c43d"
+        };
+
+        // Inicializar Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const db = firebase.firestore();
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logArea = document.getElementById('logArea');
+            const colors = {
+                'error': '#ff4444',
+                'success': '#44ff44',
+                'warning': '#ffff44',
+                'info': '#44ffff',
+                'critical': '#ff44ff'
+            };
+            
+            logArea.innerHTML += `<span style="color: ${colors[type]}">[${timestamp}] ${message}</span>\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function updateStatus(id, status, text) {
+            const element = document.getElementById(id);
+            element.className = `status status-${status}`;
+            element.textContent = text;
+        }
+
+        // Função de normalização
+        function normalizarTelefone(telefone) {
+            if (!telefone) return '';
+            return telefone.toString().replace(/\D/g, '');
+        }
+
+        async function verificarComponentes() {
+            log('🔍 Verificando componentes do sistema...', 'info');
+            
+            // Verificar Firebase
+            try {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    updateStatus('statusFirebase', 'ok', 'Firebase: OK');
+                    log('✅ Firebase inicializado corretamente', 'success');
+                } else {
+                    updateStatus('statusFirebase', 'error', 'Firebase: ERRO');
+                    log('❌ Firebase não disponível', 'error');
+                    return false;
+                }
+            } catch (error) {
+                updateStatus('statusFirebase', 'error', 'Firebase: ERRO');
+                log(`❌ Erro Firebase: ${error.message}`, 'error');
+                return false;
+            }
+
+            // Verificar FirebaseService
+            try {
+                // Criar nossa própria instância simplificada
+                window.testFirebaseService = {
+                    db: db,
+                    async salvarCartela(cartela) {
+                        return await db.collection('cartelas').doc(cartela.id).set(cartela);
+                    },
+                    async buscarPorTelefone(telefone) {
+                        const snapshot = await db.collection('cartelas')
+                            .where('telefone', '==', telefone)
+                            .get();
+                        const resultados = [];
+                        snapshot.forEach(doc => {
+                            resultados.push({ id: doc.id, ...doc.data() });
+                        });
+                        return resultados;
+                    }
+                };
+                updateStatus('statusService', 'ok', 'FirebaseService: OK');
+                log('✅ FirebaseService criado', 'success');
+            } catch (error) {
+                updateStatus('statusService', 'error', 'FirebaseService: ERRO');
+                log(`❌ Erro FirebaseService: ${error.message}`, 'error');
+                return false;
+            }
+
+            // Verificar coleção
+            try {
+                const snapshot = await db.collection('cartelas').limit(1).get();
+                const count = await db.collection('cartelas').get();
+                updateStatus('statusColecao', 'ok', `Coleção: ${count.size} docs`);
+                log(`✅ Coleção 'cartelas' acessível com ${count.size} documentos`, 'success');
+            } catch (error) {
+                updateStatus('statusColecao', 'error', 'Coleção: ERRO');
+                log(`❌ Erro ao acessar coleção: ${error.message}`, 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        async function testeCompleto() {
+            log('🚀 INICIANDO TESTE COMPLETO...', 'critical');
+            
+            // 1. Verificar componentes
+            const componentesOk = await verificarComponentes();
+            if (!componentesOk) {
+                log('❌ Falha na verificação de componentes', 'error');
+                return;
+            }
+
+            // 2. Teste de gravação + busca
+            const telefoneTest = '85966666666';
+            const nomeTest = `Teste Completo ${Date.now()}`;
+            const idTest = `teste_${Date.now()}`;
+
+            log(`📝 Teste com telefone: ${telefoneTest}`, 'info');
+
+            try {
+                // 2.1. Criar cartela
+                const cartela = {
+                    id: idTest,
+                    numeroCartela: 9999,
+                    numeros: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                    preco: 1.00,
+                    vendida: true,
+                    comprador: nomeTest,
+                    telefone: normalizarTelefone(telefoneTest),
+                    email: 'teste@example.com',
+                    dataVenda: new Date().toISOString(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    testeCompleto: true
+                };
+
+                log(`💾 Salvando cartela: ${JSON.stringify(cartela, null, 2)}`, 'info');
+
+                // 2.2. Salvar
+                await window.testFirebaseService.salvarCartela(cartela);
+                log('✅ Cartela salva com sucesso', 'success');
+
+                // 2.3. Aguardar propagação
+                log('⏳ Aguardando 3 segundos para propagação...', 'info');
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                // 2.4. Buscar
+                log('🔍 Buscando cartela...', 'info');
+                const resultados = await window.testFirebaseService.buscarPorTelefone(cartela.telefone);
+                
+                log(`📊 Resultados encontrados: ${resultados.length}`, resultados.length > 0 ? 'success' : 'error');
+
+                // 2.5. Verificar se nossa cartela está nos resultados
+                const nossaCartela = resultados.find(r => r.id === idTest || r.comprador === nomeTest);
+                
+                if (nossaCartela) {
+                    log('🎯 SUCESSO: Nossa cartela foi encontrada!', 'success');
+                    log(`   ID: ${nossaCartela.id}`, 'info');
+                    log(`   Comprador: ${nossaCartela.comprador}`, 'info');
+                    log(`   Telefone: ${nossaCartela.telefone}`, 'info');
+                } else {
+                    log('❌ FALHA: Nossa cartela NÃO foi encontrada!', 'error');
+                    
+                    // Debug adicional
+                    log('🔍 Debug: Verificando se cartela existe por ID...', 'info');
+                    const cartelaPorId = await db.collection('cartelas').doc(idTest).get();
+                    if (cartelaPorId.exists) {
+                        log('⚠️ Cartela existe no banco mas busca por telefone falhou!', 'warning');
+                        log(`   Dados: ${JSON.stringify(cartelaPorId.data(), null, 2)}`, 'info');
+                    } else {
+                        log('❌ Cartela não existe no banco!', 'error');
+                    }
+                }
+
+                // 2.6. Limpeza
+                try {
+                    await db.collection('cartelas').doc(idTest).delete();
+                    log('🗑️ Cartela de teste removida', 'info');
+                } catch (deleteError) {
+                    log(`⚠️ Erro ao remover: ${deleteError.message}`, 'warning');
+                }
+
+            } catch (error) {
+                log(`❌ Erro no teste: ${error.message}`, 'error');
+                log(`   Stack: ${error.stack}`, 'error');
+            }
+        }
+
+        async function testarGravacao() {
+            log('💾 TESTANDO GRAVAÇÃO ISOLADA...', 'info');
+            
+            const cartela = {
+                id: `gravacao_${Date.now()}`,
+                telefone: '85966666666',
+                comprador: 'Teste Gravação',
+                teste: true,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection('cartelas').doc(cartela.id).set(cartela);
+                log('✅ Gravação bem-sucedida', 'success');
+
+                // Verificar se foi salva
+                const doc = await db.collection('cartelas').doc(cartela.id).get();
+                if (doc.exists) {
+                    log('✅ Cartela confirmada no banco', 'success');
+                    log(`   Dados: ${JSON.stringify(doc.data(), null, 2)}`, 'info');
+                } else {
+                    log('❌ Cartela não encontrada após gravação', 'error');
+                }
+
+                // Limpeza
+                await db.collection('cartelas').doc(cartela.id).delete();
+                log('🗑️ Removida', 'info');
+
+            } catch (error) {
+                log(`❌ Erro na gravação: ${error.message}`, 'error');
+            }
+        }
+
+        async function testarBusca() {
+            log('🔍 TESTANDO BUSCA ISOLADA...', 'info');
+            
+            try {
+                // Busca por telefone específico
+                const snapshot = await db.collection('cartelas')
+                    .where('telefone', '==', '85966666666')
+                    .get();
+
+                log(`📊 Busca por '85966666666': ${snapshot.size} resultados`, 'info');
+
+                snapshot.forEach((doc, index) => {
+                    const data = doc.data();
+                    log(`   📄 Resultado ${index + 1}: ${doc.id}`, 'info');
+                    log(`     Comprador: ${data.comprador}`, 'info');
+                    log(`     Telefone: ${data.telefone}`, 'info');
+                });
+
+                // Busca geral
+                const todasCartelas = await db.collection('cartelas').get();
+                log(`📊 Total de cartelas no banco: ${todasCartelas.size}`, 'info');
+
+                // Contar quantas têm telefone
+                let comTelefone = 0;
+                todasCartelas.forEach(doc => {
+                    if (doc.data().telefone) comTelefone++;
+                });
+
+                log(`📱 Cartelas com telefone: ${comTelefone}`, 'info');
+
+            } catch (error) {
+                log(`❌ Erro na busca: ${error.message}`, 'error');
+            }
+        }
+
+        async function compararMetodos() {
+            log('⚖️ COMPARANDO MÉTODOS DE BUSCA...', 'info');
+            
+            try {
+                const telefone = '85966666666';
+
+                // Método 1: Busca direta
+                const metodo1 = await db.collection('cartelas')
+                    .where('telefone', '==', telefone)
+                    .get();
+
+                log(`Método 1 (busca direta): ${metodo1.size} resultados`, 'info');
+
+                // Método 2: Busca com get() + filter
+                const metodo2 = await db.collection('cartelas').get();
+                let contador2 = 0;
+                metodo2.forEach(doc => {
+                    if (doc.data().telefone === telefone) {
+                        contador2++;
+                    }
+                });
+
+                log(`Método 2 (get + filter): ${contador2} resultados`, 'info');
+
+                // Método 3: Busca normalizada
+                const telefoneNormalizado = normalizarTelefone(telefone);
+                const metodo3 = await db.collection('cartelas')
+                    .where('telefone', '==', telefoneNormalizado)
+                    .get();
+
+                log(`Método 3 (normalizado '${telefoneNormalizado}'): ${metodo3.size} resultados`, 'info');
+
+                if (metodo1.size !== metodo2.size) {
+                    log('⚠️ INCONSISTÊNCIA: Métodos retornaram resultados diferentes!', 'warning');
+                }
+
+            } catch (error) {
+                log(`❌ Erro na comparação: ${error.message}`, 'error');
+            }
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Sistema de teste carregado', 'success');
+            verificarComponentes();
+        });
+    </script>
+</body>
+</html>

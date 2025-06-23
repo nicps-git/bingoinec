@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Final - Gravação Corrigida</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .section { margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button.success { background: #28a745; }
+        pre { background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 200px; overflow-y: auto; }
+        .log { height: 300px; overflow-y: auto; background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Teste Final - Gravação Corrigida</h1>
+        
+        <div class="section success">
+            <h3>🔧 CORREÇÕES APLICADAS</h3>
+            <ul>
+                <li>✅ firebase-service.js: Função salvarCartela() agora retorna apenas ID</li>
+                <li>✅ cartelas.js: Correção do acesso ao db na verificação</li>
+                <li>✅ Melhoria na lógica de verificação pós-gravação</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Teste Final</h3>
+            <button onclick="testarGravacaoCorrigida()" class="success">🚀 Testar Gravação Corrigida</button>
+            <button onclick="verificarTotalCartelas()">📊 Ver Total Firebase</button>
+            <button onclick="limparLog()">🗑️ Limpar Log</button>
+        </div>
+
+        <div class="section">
+            <h3>📊 Resultado Final</h3>
+            <div id="resultado-final"></div>
+        </div>
+
+        <div class="section">
+            <h3>📋 Log</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    
+    <script>
+        let firebaseService = null;
+        let db = null;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function limparLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function exibirResultadoFinal(titulo, dados, tipo) {
+            const div = document.getElementById('resultado-final');
+            const classe = tipo === 'success' ? 'success' : tipo === 'error' ? 'error' : 'warning';
+            div.innerHTML = `
+                <div class="${classe}">
+                    <h4>${titulo}</h4>
+                    <pre>${JSON.stringify(dados, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        async function inicializar() {
+            log("🔥 Inicializando sistema corrigido...");
+            
+            try {
+                db = firebase.firestore();
+                
+                if (typeof FirebaseService !== 'undefined') {
+                    firebaseService = new FirebaseService();
+                    log("✅ Firebase Service inicializado");
+                } else {
+                    log("⚠️ Usando fallback");
+                    firebaseService = {
+                        db: db,
+                        async salvarCartela(cartela) {
+                            const cartelaCompleta = {
+                                ...cartela,
+                                dataGravacao: firebase.firestore.FieldValue.serverTimestamp()
+                            };
+                            await this.db.collection('cartelas').doc(cartelaCompleta.id).set(cartelaCompleta);
+                            return cartelaCompleta.id; // Retornar apenas ID
+                        }
+                    };
+                }
+                
+                return true;
+            } catch (error) {
+                log(`❌ Erro na inicialização: ${error.message}`);
+                return false;
+            }
+        }
+
+        async function testarGravacaoCorrigida() {
+            log("🚀 INICIANDO TESTE FINAL DA GRAVAÇÃO CORRIGIDA");
+            
+            try {
+                await inicializar();
+                
+                // Dados de teste
+                const cartela = {
+                    id: `teste-final-${Date.now()}`,
+                    comprador: "Teste Final Corrigido",
+                    telefone: "85988777666",
+                    email: "final@teste.com",
+                    numeros: [[1,2,3,4,5], [16,17,18,19,20], [31,'FREE',33,34,35], [46,47,48,49,50], [61,62,63,64,65]],
+                    preco: 5.00,
+                    vendida: true,
+                    dataVenda: new Date().toISOString(),
+                    origem: "teste-final-corrigido"
+                };
+
+                log("📝 Dados da cartela:");
+                log(JSON.stringify(cartela, null, 2));
+
+                // PASSO 1: Salvar cartela
+                log("💾 PASSO 1: Salvando cartela...");
+                const idRetornado = await firebaseService.salvarCartela(cartela);
+                log(`✅ ID retornado: ${idRetornado}`);
+                log(`🔍 Tipo do retorno: ${typeof idRetornado}`);
+
+                // PASSO 2: Verificação imediata
+                log("🔍 PASSO 2: Verificação imediata...");
+                const dbInstance = firebaseService.db || db;
+                const verificacaoImediata = await dbInstance.collection('cartelas').doc(idRetornado).get();
+                
+                if (verificacaoImediata.exists) {
+                    log("✅ Cartela encontrada na verificação imediata");
+                    const dados = verificacaoImediata.data();
+                    log(`📊 Dados salvos: ${JSON.stringify(dados, null, 2)}`);
+                } else {
+                    log("❌ Cartela NÃO encontrada na verificação imediata");
+                }
+
+                // PASSO 3: Aguardar e verificar novamente
+                log("⏳ PASSO 3: Aguardando 2 segundos e verificando novamente...");
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                const verificacaoFinal = await dbInstance.collection('cartelas').doc(idRetornado).get();
+                
+                if (verificacaoFinal.exists) {
+                    log("✅ Cartela confirmada na verificação final");
+                } else {
+                    log("❌ Cartela NÃO encontrada na verificação final");
+                }
+
+                // PASSO 4: Buscar por dados específicos
+                log("🔍 PASSO 4: Buscando por telefone...");
+                const buscaTelefone = await dbInstance.collection('cartelas')
+                    .where('telefone', '==', '85988777666')
+                    .get();
+                log(`📊 Cartelas encontradas por telefone: ${buscaTelefone.size}`);
+
+                log("🔍 PASSO 5: Buscando por origem...");
+                const buscaOrigem = await dbInstance.collection('cartelas')
+                    .where('origem', '==', 'teste-final-corrigido')
+                    .get();
+                log(`📊 Cartelas encontradas por origem: ${buscaOrigem.size}`);
+
+                // Resultado final
+                const sucesso = verificacaoFinal.exists && buscaTelefone.size > 0;
+                
+                const resultado = {
+                    cartela_id: idRetornado,
+                    verificacao_imediata: verificacaoImediata.exists,
+                    verificacao_final: verificacaoFinal.exists,
+                    busca_telefone: buscaTelefone.size,
+                    busca_origem: buscaOrigem.size,
+                    status: sucesso ? "SUCESSO TOTAL" : "FALHA",
+                    timestamp: new Date().toISOString()
+                };
+
+                log("=" * 50);
+                log(`🎯 RESULTADO FINAL: ${resultado.status}`);
+                log("=" * 50);
+
+                exibirResultadoFinal("Teste Final Corrigido", resultado, sucesso ? 'success' : 'error');
+
+                if (sucesso) {
+                    alert("🎉 SUCESSO! Gravação funcionando corretamente!");
+                } else {
+                    alert("❌ Ainda há problemas. Verifique o log.");
+                }
+
+            } catch (error) {
+                log(`❌ ERRO NO TESTE: ${error.message}`);
+                log(`❌ Stack: ${error.stack}`);
+                exibirResultadoFinal("Erro no Teste", { erro: error.message }, 'error');
+                alert(`❌ Erro: ${error.message}`);
+            }
+        }
+
+        async function verificarTotalCartelas() {
+            log("📊 Verificando total de cartelas no Firebase...");
+            
+            try {
+                if (!db) await inicializar();
+                
+                const snapshot = await db.collection('cartelas').get();
+                log(`📋 Total de cartelas: ${snapshot.size}`);
+
+                if (snapshot.size > 0) {
+                    // Agrupar por origem
+                    const porOrigem = {};
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const origem = data.origem || 'sistema';
+                        if (!porOrigem[origem]) porOrigem[origem] = 0;
+                        porOrigem[origem]++;
+                    });
+
+                    log("📊 Cartelas por origem:");
+                    Object.keys(porOrigem).forEach(origem => {
+                        log(`   ${origem}: ${porOrigem[origem]} cartela(s)`);
+                    });
+
+                    exibirResultadoFinal("Total de Cartelas", {
+                        total: snapshot.size,
+                        por_origem: porOrigem
+                    });
+                } else {
+                    log("📭 Nenhuma cartela encontrada");
+                    exibirResultadoFinal("Nenhuma Cartela", { total: 0 }, 'warning');
+                }
+
+            } catch (error) {
+                log(`❌ Erro: ${error.message}`);
+            }
+        }
+
+        // Auto-inicializar
+        window.addEventListener('load', () => {
+            log("🚀 Teste final de gravação corrigida carregado");
+            log("✅ Correções aplicadas no firebase-service.js e cartelas.js");
+            log("📋 Clique em 'Testar Gravação Corrigida' para validar");
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎫 Minhas Cartelas - VERSÃO SIMPLES</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff9800, #ffc107);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .login-section {
+            text-align: center;
+        }
+        .input-group {
+            margin: 20px 0;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .btn-debug {
+            background: #ff9800;
+        }
+        .btn-debug:hover {
+            background: #e68900;
+        }
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            display: none;
+        }
+        .alert.info { background: #d1ecf1; color: #0c5460; }
+        .alert.success { background: #d4edda; color: #155724; }
+        .alert.warning { background: #fff3cd; color: #856404; }
+        .alert.error { background: #f8d7da; color: #721c24; }
+        .cartelas-area {
+            display: none;
+        }
+        .comprador-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .cartela-item {
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .numeros-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .numero {
+            background: #007bff;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .numero.sorteado {
+            background: #28a745;
+        }
+        .debug-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎫 Minhas Cartelas - Bingo Arraiá INEC</h1>
+        
+        <div id="alert-msg" class="alert"></div>
+        
+        <!-- Área de Login -->
+        <div id="login-area" class="login-section">
+            <h2>🔍 Consultar Minhas Cartelas</h2>
+            <form id="form-login">
+                <div class="input-group">
+                    <label for="telefone">📱 Telefone:</label>
+                    <input type="tel" id="telefone" placeholder="(11) 99999-9999" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="email">📧 E-mail (opcional):</label>
+                    <input type="email" id="email" placeholder="seu@email.com">
+                </div>
+                
+                <button type="submit">🔍 Consultar Cartelas</button>
+                <button type="button" class="btn-debug" onclick="testarSistema()">🔧 Testar Sistema</button>
+            </form>
+        </div>
+        
+        <!-- Área das Cartelas -->
+        <div id="cartelas-area" class="cartelas-area">
+            <div class="comprador-info">
+                <h3>👤 <span id="nome-comprador">Carregando...</span></h3>
+                <p>📱 <span id="telefone-comprador">Carregando...</span></p>
+                <p>📧 <span id="email-comprador">Carregando...</span></p>
+                <p>🎫 <span id="total-cartelas">0</span> cartela(s)</p>
+                <button onclick="voltarLogin()">🚪 Voltar ao Login</button>
+            </div>
+            
+            <div id="lista-cartelas">
+                <!-- Cartelas aparecerão aqui -->
+            </div>
+        </div>
+        
+        <div id="debug-log" class="debug-log">Sistema carregando...</div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+
+    <script>
+        const debugLog = document.getElementById('debug-log');
+        const alertMsg = document.getElementById('alert-msg');
+        const loginArea = document.getElementById('login-area');
+        const cartelasArea = document.getElementById('cartelas-area');
+        
+        let compradorAtual = null;
+        let cartelasComprador = [];
+        
+        function log(msg) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMsg = `${timestamp} - ${msg}`;
+            console.log(logMsg);
+            debugLog.textContent += logMsg + '\n';
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+        
+        function mostrarAlerta(mensagem, tipo) {
+            alertMsg.textContent = mensagem;
+            alertMsg.className = `alert ${tipo}`;
+            alertMsg.style.display = 'block';
+            
+            setTimeout(() => {
+                alertMsg.style.display = 'none';
+            }, 5000);
+        }
+        
+        function mostrarCartelas() {
+            loginArea.style.display = 'none';
+            cartelasArea.style.display = 'block';
+            
+            // Preencher dados do comprador
+            document.getElementById('nome-comprador').textContent = compradorAtual.nome || 'Nome não informado';
+            document.getElementById('telefone-comprador').textContent = compradorAtual.telefone || 'Telefone não informado';
+            document.getElementById('email-comprador').textContent = compradorAtual.email || 'E-mail não informado';
+            document.getElementById('total-cartelas').textContent = cartelasComprador.length;
+            
+            // Listar cartelas
+            const listaCartelas = document.getElementById('lista-cartelas');
+            listaCartelas.innerHTML = '';
+            
+            cartelasComprador.forEach((cartela, index) => {
+                const cartelaDiv = document.createElement('div');
+                cartelaDiv.className = 'cartela-item';
+                
+                const numerosHtml = cartela.numeros.map(num => 
+                    `<div class="numero">${num}</div>`
+                ).join('');
+                
+                cartelaDiv.innerHTML = `
+                    <h4>🎫 Cartela ${index + 1} - ID: ${cartela.id}</h4>
+                    <p>💰 Preço: R$ ${cartela.preco || '5,00'}</p>
+                    <p>📅 Data: ${cartela.dataVenda ? new Date(cartela.dataVenda).toLocaleDateString() : 'N/A'}</p>
+                    <div class="numeros-grid">
+                        ${numerosHtml}
+                    </div>
+                `;
+                
+                listaCartelas.appendChild(cartelaDiv);
+            });
+        }
+        
+        function voltarLogin() {
+            cartelasArea.style.display = 'none';
+            loginArea.style.display = 'block';
+            compradorAtual = null;
+            cartelasComprador = [];
+        }
+        
+        async function fazerLogin() {
+            const telefone = document.getElementById('telefone').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            log(`🚀 Iniciando login com: tel="${telefone}", email="${email}"`);
+            
+            if (!telefone && !email) {
+                mostrarAlerta('⚠️ Informe pelo menos o telefone ou e-mail', 'warning');
+                return;
+            }
+            
+            mostrarAlerta('🔍 Buscando suas cartelas...', 'info');
+            
+            try {
+                // Verificar Firebase
+                if (typeof firebaseService === 'undefined') {
+                    throw new Error('Firebase Service não está disponível');
+                }
+                
+                log('🔥 Firebase Service disponível, carregando cartelas...');
+                
+                // Buscar cartelas
+                const cartelas = await firebaseService.carregarCartelasPorComprador(telefone, email);
+                
+                log(`📦 Resultado da busca: ${cartelas ? cartelas.length : 0} cartela(s)`);
+                
+                if (!cartelas || cartelas.length === 0) {
+                    mostrarAlerta('❌ Nenhuma cartela encontrada com estes dados.', 'error');
+                    log('❌ Nenhuma cartela encontrada');
+                    return;
+                }
+                
+                // Configurar dados
+                compradorAtual = {
+                    nome: cartelas[0].comprador,
+                    telefone: cartelas[0].telefone,
+                    email: cartelas[0].email
+                };
+                
+                cartelasComprador = cartelas;
+                
+                log(`✅ Login realizado! Comprador: ${compradorAtual.nome}, Cartelas: ${cartelas.length}`);
+                
+                // Mostrar cartelas
+                mostrarCartelas();
+                mostrarAlerta(`✅ Login realizado! ${cartelas.length} cartela(s) encontrada(s)`, 'success');
+                
+            } catch (error) {
+                log(`❌ Erro no login: ${error.message}`);
+                mostrarAlerta(`❌ Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testarSistema() {
+            log('🔧 Testando sistema...');
+            
+            // Verificar Firebase
+            if (typeof firebaseService === 'undefined') {
+                log('❌ Firebase Service não carregado');
+                mostrarAlerta('❌ Firebase não carregado', 'error');
+                return;
+            }
+            
+            try {
+                // Testar conexão
+                const conexaoOk = await firebaseService.verificarConexao();
+                
+                if (conexaoOk) {
+                    log('✅ Conexão Firebase OK');
+                    
+                    // Testar busca de todas as cartelas
+                    const todasCartelas = await firebaseService.carregarCartelas();
+                    log(`📋 Total de cartelas no banco: ${todasCartelas ? todasCartelas.length : 0}`);
+                    
+                    const cartelasVendidas = todasCartelas ? todasCartelas.filter(c => c.vendida) : [];
+                    log(`🎫 Cartelas vendidas: ${cartelasVendidas.length}`);
+                    
+                    if (cartelasVendidas.length > 0) {
+                        const exemplo = cartelasVendidas[0];
+                        log(`📝 Exemplo de cartela: tel="${exemplo.telefone}", nome="${exemplo.comprador}"`);
+                    }
+                    
+                    mostrarAlerta('✅ Sistema funcionando! Verifique os logs.', 'success');
+                } else {
+                    log('❌ Conexão Firebase falhou');
+                    mostrarAlerta('❌ Falha na conexão Firebase', 'error');
+                }
+            } catch (error) {
+                log(`❌ Erro no teste: ${error.message}`);
+                mostrarAlerta(`❌ Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('form-login').addEventListener('submit', function(e) {
+            e.preventDefault();
+            log('📝 Formulário submetido');
+            fazerLogin();
+        });
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Página carregada');
+            
+            // Aguardar Firebase
+            let tentativas = 0;
+            const aguardarFirebase = setInterval(() => {
+                tentativas++;
+                
+                if (typeof firebaseService !== 'undefined') {
+                    log('✅ Firebase Service carregado');
+                    clearInterval(aguardarFirebase);
+                } else if (tentativas >= 10) {
+                    log('❌ Firebase não carregou após 10 tentativas');
+                    mostrarAlerta('❌ Erro ao carregar Firebase. Recarregue a página.', 'error');
+                    clearInterval(aguardarFirebase);
+                } else {
+                    log(`⏳ Aguardando Firebase... ${tentativas}/10`);
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

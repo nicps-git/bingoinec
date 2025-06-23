@@ -46,7 +46,7 @@
 
     <div class="test-section">
         <h3>🔧 Testes Manuais</h3>
-        <button class="btn-primary" onclick="testarFirebaseConfig()">Testar firebase-config-unified.js</button>
+        <button class="btn-primary" onclick="testarFirebaseConfig()">Testar firebase-config.js</button>
         <button class="btn-primary" onclick="testarFirebaseFixed()">Testar firebase-config-fixed.js</button>
         <button class="btn-danger" onclick="testarRedeclaracao()">Testar Redeclaração (deve falhar)</button>
     </div>
@@ -81,14 +81,14 @@
         }
         
         function testarFirebaseConfig() {
-            log('🧪 Testando carregamento de firebase-config-unified.js...');
+            log('🧪 Testando carregamento de firebase-config.js...');
             
             // Criar script dinamicamente para testar
             const script = document.createElement('script');
             script.type = 'module';
             script.textContent = `
                 try {
-                    // Simular o conteúdo do firebase-config-unified.js sem imports reais
+                    // Simular o conteúdo do firebase-config.js sem imports reais
                     const firebaseConfig = {
                         apiKey: "test",
                         authDomain: "test.firebaseapp.com",
@@ -103,11 +103,11 @@
                     // Esta linha deve funcionar sem erro
                     const app = initializeApp(firebaseConfig);
                     
-                    console.log('✅ firebase-config-unified.js: Nenhum erro de redeclaração');
+                    console.log('✅ firebase-config.js: Nenhum erro de redeclaração');
                     window.postMessage({type: 'test-result', test: 'firebase-config', result: 'success'}, '*');
                     
                 } catch (error) {
-                    console.error('❌ firebase-config-unified.js:', error.message);
+                    console.error('❌ firebase-config.js:', error.message);
                     window.postMessage({type: 'test-result', test: 'firebase-config', result: 'error', error: error.message}, '*');
                 }
             `;
@@ -182,9 +182,9 @@
                 
                 if (test === 'firebase-config') {
                     if (result === 'success') {
-                        log('✅ firebase-config-unified.js: PASSOU no teste');
+                        log('✅ firebase-config.js: PASSOU no teste');
                     } else {
-                        log(`❌ firebase-config-unified.js: FALHOU - ${error}`);
+                        log(`❌ firebase-config.js: FALHOU - ${error}`);
                     }
                 } else if (test === 'redeclaracao') {
                     if (result === 'expected-error') {

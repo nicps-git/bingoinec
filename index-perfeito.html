@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎪 Bingo Arraiá INEC 🎪</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Decorações de Festa Junina -->
+    <div class="bandeirolas">
+        <div class="bandeirola bandeirola-1"></div>
+        <div class="bandeirola bandeirola-2"></div>
+        <div class="bandeirola bandeirola-3"></div>
+        <div class="bandeirola bandeirola-4"></div>
+        <div class="bandeirola bandeirola-5"></div>
+        <div class="bandeirola bandeirola-6"></div>
+        <div class="bandeirola bandeirola-7"></div>
+        <div class="bandeirola bandeirola-8"></div>
+        <div class="bandeirola bandeirola-9"></div>
+        <div class="bandeirola bandeirola-10"></div>
+    </div>
+    
+    <div class="fogueira">
+        <div class="fogo"></div>
+        <div class="lenha"></div>
+    </div>
+
+    <header>
+        <div class="logo-empresa">
+            <img src="inec.png" alt="Logo INEC" class="logo-inec">
+        </div>
+        <div class="admin-link">
+            <a href="#" onclick="verificarAcessoAdmin()" class="btn-admin">⚙️ Admin</a>
+        </div>
+        <div class="cartelas-link">
+            <a href="cartelas.html" class="btn-cartelas">🎫 Comprar</a>
+            <a href="minhas-cartelas.html" class="btn-cartelas">👀 Minhas Cartelas</a>
+        </div>
+        <div class="chapeu-palha">👒</div>
+        <h1>🌽 Bingo Arraiá INEC 🌽</h1>
+        <p>🎊 Festa Junina com Diversão Garantida! 🎊</p>
+        <div class="elementos-decorativos">
+            <span class="elemento">🌽</span>
+            <span class="elemento">🔥</span>
+            <span class="elemento">🎪</span>
+            <span class="elemento">🪗</span>
+            <span class="elemento">🌽</span>
+        </div>
+    </header>
+    
+    <main>
+        <div class="bingo-card">
+            <div class="milho-decorativo milho-esquerda">🌽</div>
+            <div class="milho-decorativo milho-direita">🌽</div>
+            <h2>🎯 Número Sorteado</h2>
+            <div id="numero-sorteado" class="numero-destaque">Clique em Sortear</div>
+            <button id="sortear-btn">🎲 Sortear</button>
+            <div class="baloes">
+                <div class="balao balao-1">🎈</div>
+                <div class="balao balao-2">🎈</div>
+                <div class="balao balao-3">🎈</div>
+            </div>
+        </div>
+        
+        <div class="barraca-bingo">
+            <div class="teto-barraca"></div>
+            <div class="numeros-sorteados">
+                <div class="quadrilha-caipiras">
+                    <span class="caipira">👨‍🌾</span>
+                    <span class="caipira">👩‍🌾</span>
+                </div>
+                <h2>📋 Números Anteriores</h2>
+                <div class="contador">
+                    <span id="contador-numeros">0</span> números sorteados
+                </div>
+                <ul id="numeros-anteriores"></ul>
+                <div class="comidas-juninas">
+                    <span class="comida">🍭</span>
+                    <span class="comida">🌽</span>
+                    <span class="comida">🥧</span>
+                    <span class="comida">🧁</span>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Elementos flutuantes -->
+    <div class="estrelas">
+        <div class="estrela estrela-1">⭐</div>
+        <div class="estrela estrela-2">✨</div>
+        <div class="estrela estrela-3">⭐</div>
+        <div class="estrela estrela-4">✨</div>
+        <div class="estrela estrela-5">⭐</div>
+    </div>
+    
+    <div class="fogos-artificio" id="fogos"></div>
+
+    <!-- Firebase (opcional) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    <script src="login.js"></script>
+
+    <script>
+        console.log('🚀 Iniciando Bingo Arraiá INEC...');
+        
+        // Sistema de sorteio simples e robusto
+        let sistemaRobusto = {
+            botao: null,
+            numeroEl: null,
+            listaEl: null,
+            contadorEl: null,
+            numerosSorteados: [],
+            numerosDisponiveis: [],
+            inicializado: false
+        };
+        
+        // Função de sorteio que SEMPRE funciona
+        function sortearNumero() {
+            console.log('🎲 sortearNumero executada!');
+            
+            if (sistemaRobusto.numerosDisponiveis.length === 0) {
+                alert('🎉 Todos os números já foram sorteados!');
+                return;
+            }
+            
+            // Desabilitar botão temporariamente
+            sistemaRobusto.botao.disabled = true;
+            sistemaRobusto.botao.textContent = '🎲 Sorteando...';
+            
+            // Sortear número aleatório
+            const randomIndex = Math.floor(Math.random() * sistemaRobusto.numerosDisponiveis.length);
+            const numero = sistemaRobusto.numerosDisponiveis.splice(randomIndex, 1)[0];
+            
+            // Mostrar resultado após 1 segundo (efeito dramático)
+            setTimeout(() => {
+                // Atualizar display do número
+                sistemaRobusto.numeroEl.textContent = numero;
+                sistemaRobusto.numerosSorteados.push(numero);
+                
+                // Adicionar à lista de números anteriores
+                const li = document.createElement('li');
+                li.textContent = numero;
+                li.style.animation = 'fadeIn 0.5s ease-in';
+                sistemaRobusto.listaEl.appendChild(li);
+                
+                // Atualizar contador
+                sistemaRobusto.contadorEl.textContent = sistemaRobusto.numerosSorteados.length;
+                
+                // Tentar salvar no Firebase (se disponível)
+                if (typeof window.firebaseService !== 'undefined') {
+                    firebaseService.salvarNumeroSorteado(numero).catch(err => {
+                        console.log('⚠️ Firebase indisponível, continuando localmente');
+                    });
+                }
+                
+                // Reabilitar botão
+                sistemaRobusto.botao.disabled = false;
+                sistemaRobusto.botao.textContent = sistemaRobusto.numerosDisponiveis.length > 0 ? 
+                                                  '🎯 Próximo Número' : '🎉 Fim do Jogo!';
+                
+                console.log(`✅ Número ${numero} sorteado! Restam ${sistemaRobusto.numerosDisponiveis.length} números`);
+                
+                // Efeito visual especial para números especiais
+                if (numero === 13 || numero === 7 || numero === 77) {
+                    criarFogosArtificio();
+                }
+                
+            }, 1000);
+        }
+        
+        // Efeito visual especial
+        function criarFogosArtificio() {
+            const fogos = document.getElementById('fogos');
+            fogos.innerHTML = '🎆🎇✨🎆🎇';
+            fogos.style.display = 'block';
+            setTimeout(() => {
+                fogos.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Função admin (placeholder)
+        function verificarAcessoAdmin() {
+            const senha = prompt('Digite a senha de administrador:');
+            if (senha === 'admin123') {
+                window.location.href = 'admin.html';
+            } else {
+                alert('Senha incorreta!');
+            }
+        }
+        
+        // Inicialização quando página carregar
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('📋 Página carregada, configurando sistema...');
+            
+            // Encontrar elementos da interface
+            sistemaRobusto.botao = document.getElementById('sortear-btn');
+            sistemaRobusto.numeroEl = document.getElementById('numero-sorteado');
+            sistemaRobusto.listaEl = document.getElementById('numeros-anteriores');
+            sistemaRobusto.contadorEl = document.getElementById('contador-numeros');
+            
+            if (!sistemaRobusto.botao) {
+                console.error('❌ Erro: Botão sortear não encontrado!');
+                return;
+            }
+            
+            console.log('✅ Elementos da interface encontrados');
+            
+            // Configurar números (padrão 1-75)
+            sistemaRobusto.numerosDisponiveis = Array.from({length: 75}, (_, i) => i + 1);
+            
+            // Tentar carregar dados do Firebase (se disponível)
+            let tentativas = 0;
+            const tentarFirebase = setInterval(async () => {
+                tentativas++;
+                
+                if (typeof window.firebaseService !== 'undefined') {
+                    console.log('🔥 Firebase disponível, carregando dados salvos...');
+                    try {
+                        const config = await firebaseService.carregarConfiguracoes();
+                        const numerosSalvos = await firebaseService.carregarNumerosSorteados();
+                        
+                        // Aplicar configuração e números salvos
+                        const inicio = config.numeroInicial || 1;
+                        const fim = config.numeroFinal || 75;
+                        const todosNumeros = Array.from({length: fim - inicio + 1}, (_, i) => i + inicio);
+                        sistemaRobusto.numerosDisponiveis = todosNumeros.filter(n => !numerosSalvos.includes(n));
+                        sistemaRobusto.numerosSorteados = numerosSalvos;
+                        
+                        // Restaurar interface com números já sorteados
+                        sistemaRobusto.listaEl.innerHTML = '';
+                        numerosSalvos.forEach(num => {
+                            const li = document.createElement('li');
+                            li.textContent = num;
+                            sistemaRobusto.listaEl.appendChild(li);
+                        });
+                        sistemaRobusto.contadorEl.textContent = numerosSalvos.length;
+                        
+                        console.log(`✅ Dados do Firebase carregados: ${numerosSalvos.length} já sorteados`);
+                        
+                    } catch (error) {
+                        console.log('⚠️ Erro ao carregar Firebase, usando configuração local');
+                    }
+                    
+                    clearInterval(tentarFirebase);
+                    finalizarConfiguracao();
+                    
+                } else if (tentativas >= 5) {
+                    console.log('⚠️ Firebase não disponível, usando modo local');
+                    clearInterval(tentarFirebase);
+                    finalizarConfiguracao();
+                }
+            }, 1000);
+            
+            function finalizarConfiguracao() {
+                console.log('🔧 Finalizando configuração do botão...');
+                
+                // Remover qualquer listener antigo e adicionar novo
+                const novoBotao = sistemaRobusto.botao.cloneNode(true);
+                sistemaRobusto.botao.parentNode.replaceChild(novoBotao, sistemaRobusto.botao);
+                sistemaRobusto.botao = novoBotao;
+                
+                // Adicionar event listener
+                sistemaRobusto.botao.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('🎯 BOTÃO CLICADO!');
+                    sortearNumero();
+                });
+                
+                // Habilitar botão
+                if (sistemaRobusto.numerosDisponiveis.length > 0) {
+                    sistemaRobusto.botao.disabled = false;
+                    sistemaRobusto.botao.textContent = '🎲 Sortear';
+                    console.log('✅ Sistema pronto! Botão habilitado.');
+                } else {
+                    sistemaRobusto.botao.disabled = true;
+                    sistemaRobusto.botao.textContent = '🎉 Fim do Jogo!';
+                    console.log('🎉 Todos os números já foram sorteados');
+                }
+                
+                sistemaRobusto.inicializado = true;
+            }
+        });
+        
+        // CSS adicional para animações
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            #fogos {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 3em;
+                z-index: 1000;
+                display: none;
+                animation: bounce 1s infinite;
+            }
+            
+            @keyframes bounce {
+                0%, 20%, 50%, 80%, 100% { transform: translate(-50%, -50%) translateY(0); }
+                40% { transform: translate(-50%, -50%) translateY(-30px); }
+                60% { transform: translate(-50%, -50%) translateY(-15px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        console.log('🎪 Bingo Arraiá INEC carregado com sucesso!');
+    </script>
+</body>
+</html>

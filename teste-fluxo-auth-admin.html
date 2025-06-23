@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Fluxo Autenticação Admin - Bingo INEC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid #4CAF50;
+        }
+        .error {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid #f44336;
+        }
+        .info {
+            background: rgba(33, 150, 243, 0.3);
+            border: 1px solid #2196F3;
+        }
+    </style>
+    
+    <!-- Sistema de autenticação -->
+    <script src="auth-simples.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Teste Fluxo Autenticação Admin</h1>
+        
+        <div class="test-section">
+            <h3>📋 Testes de Autenticação</h3>
+            <button onclick="testarStatusAuth()">Verificar Status Atual</button>
+            <button onclick="testarLogin()">Testar Login</button>
+            <button onclick="testarLogout()">Testar Logout</button>
+            <button onclick="testarAcessoAdmin()">Simular Acesso Admin</button>
+            <div id="status-auth" class="status info">
+                Status: Aguardando teste...
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔗 Testes de Navegação</h3>
+            <button onclick="irParaAdmin()">Ir para Admin (Direto)</button>
+            <button onclick="irParaAdminNova()">Ir para Admin (Nova Aba)</button>
+            <button onclick="voltarIndex()">Voltar para Index</button>
+            <div id="status-nav" class="status info">
+                Navegação: Pronto para teste...
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Logs de Debug</h3>
+            <button onclick="limparLogs()">Limpar Logs</button>
+            <div id="logs" style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                <!-- Logs aparecerão aqui -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Capturar logs do console
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addLog(type, message) {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${type}: ${message}`;
+            logEntry.style.color = type === 'ERROR' ? '#ff6b6b' : 
+                                 type === 'SUCCESS' ? '#51cf66' : '#74c0fc';
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog('LOG', args.join(' '));
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog('ERROR', args.join(' '));
+        };
+        
+        // Aguardar sistema de auth estar disponível
+        function waitForAuth() {
+            return new Promise((resolve) => {
+                if (typeof window.bingoAuth !== 'undefined') {
+                    resolve();
+                    return;
+                }
+                
+                const checkAuth = () => {
+                    if (typeof window.bingoAuth !== 'undefined') {
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                
+                checkAuth();
+            });
+        }
+        
+        // Funções de teste
+        async function testarStatusAuth() {
+            await waitForAuth();
+            
+            const statusDiv = document.getElementById('status-auth');
+            const isAuth = window.bingoAuth.isAuthenticated();
+            
+            if (isAuth) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Usuário está autenticado';
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Usuário NÃO está autenticado';
+            }
+            
+            console.log('Status autenticação:', isAuth);
+        }
+        
+        async function testarLogin() {
+            await waitForAuth();
+            
+            const statusDiv = document.getElementById('status-auth');
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🔐 Testando login...';
+            
+            const resultado = window.bingoAuth.requireAuth();
+            
+            if (resultado) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Login realizado com sucesso!';
+                console.log('LOGIN: Sucesso');
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Login falhou';
+                console.log('LOGIN: Falha');
+            }
+        }
+        
+        async function testarLogout() {
+            await waitForAuth();
+            
+            const statusDiv = document.getElementById('status-auth');
+            window.bingoAuth.logout();
+            
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🚪 Logout realizado - redirecionando...';
+            console.log('LOGOUT: Executado');
+        }
+        
+        async function testarAcessoAdmin() {
+            await waitForAuth();
+            
+            const statusDiv = document.getElementById('status-auth');
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🔐 Simulando acesso admin...';
+            
+            if (!window.bingoAuth.isAuthenticated()) {
+                console.log('Usuário não autenticado, solicitando login...');
+                const autenticado = window.bingoAuth.requireAuth();
+                
+                if (!autenticado) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Acesso negado - não autenticado';
+                    console.log('ACESSO ADMIN: Negado');
+                    return;
+                }
+            }
+            
+            statusDiv.className = 'status success';
+            statusDiv.textContent = '✅ Acesso admin autorizado!';
+            console.log('ACESSO ADMIN: Autorizado');
+        }
+        
+        function irParaAdmin() {
+            const statusDiv = document.getElementById('status-nav');
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🔗 Redirecionando para admin.html...';
+            console.log('NAVEGAÇÃO: Indo para admin.html');
+            window.location.href = 'admin.html';
+        }
+        
+        function irParaAdminNova() {
+            const statusDiv = document.getElementById('status-nav');
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🔗 Abrindo admin.html em nova aba...';
+            console.log('NAVEGAÇÃO: Abrindo admin.html em nova aba');
+            window.open('admin.html', '_blank');
+        }
+        
+        function voltarIndex() {
+            const statusDiv = document.getElementById('status-nav');
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🏠 Voltando para index.html...';
+            console.log('NAVEGAÇÃO: Voltando para index.html');
+            window.location.href = 'index.html';
+        }
+        
+        function limparLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🧪 Página de teste carregada');
+            addLog('SUCCESS', 'Página de teste carregada com sucesso');
+            
+            await waitForAuth();
+            addLog('SUCCESS', 'Sistema de autenticação carregado');
+            
+            // Testar status inicial
+            await testarStatusAuth();
+        });
+    </script>
+</body>
+</html>

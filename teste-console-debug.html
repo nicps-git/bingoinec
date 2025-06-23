@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Teste Console - Debug Rápido</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 2px solid #007bff;
+        }
+        .codigo {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste Console - Debug Rápido Telefone 85966666666</h1>
+        <p><strong>Instruções:</strong></p>
+        <ol>
+            <li>Abra o console do navegador (F12)</li>
+            <li>Cole e execute os comandos abaixo</li>
+            <li>Analise os resultados detalhados</li>
+        </ol>
+        
+        <button onclick="copiarComando1()">📋 Copiar Comando 1</button>
+        <button onclick="copiarComando2()">📋 Copiar Comando 2</button>
+        <button onclick="executarTeste()">🚀 Executar Teste Direto</button>
+    </div>
+
+    <div class="container">
+        <h2>📋 Comando 1: Listar todas as cartelas</h2>
+        <div class="codigo" id="comando1">// Listar todas as cartelas no banco
+window.firebaseService.carregarCartelas().then(cartelas => {
+    console.log('📊 Total de cartelas:', cartelas.length);
+    const vendidas = cartelas.filter(c => c.vendida);
+    console.log('💰 Cartelas vendidas:', vendidas.length);
+    
+    // Procurar cartelas com telefone similar
+    const similares = cartelas.filter(c => {
+        const tel = c.telefone ? c.telefone.toString() : '';
+        return tel.includes('8596') || tel.includes('6666');
+    });
+    
+    console.log('🔍 Cartelas com números similares:', similares);
+    similares.forEach((c, i) => {
+        console.log(`${i+1}. ID: ${c.id} | Tel: "${c.telefone}" | Comp: "${c.comprador}"`);
+    });
+    
+    return similares;
+}).catch(console.error);</div>
+    </div>
+
+    <div class="container">
+        <h2>📱 Comando 2: Busca específica por telefone</h2>
+        <div class="codigo" id="comando2">// Buscar especificamente por 85966666666
+const telefone = '85966666666';
+window.firebaseService.carregarCartelasPorComprador(telefone, null).then(cartelas => {
+    console.log(`📱 Busca por "${telefone}":`, cartelas.length, 'cartela(s)');
+    cartelas.forEach((c, i) => {
+        console.log(`${i+1}. ID: ${c.id} | Tel: "${c.telefone}" | Comp: "${c.comprador}"`);
+    });
+    
+    if (cartelas.length === 0) {
+        console.log('❌ Nenhuma cartela encontrada! Vamos investigar...');
+        
+        // Testar variações
+        const variacoes = ['85966666666', '8596666666', '859666666666'];
+        
+        Promise.all(variacoes.map(async (tel) => {
+            const result = await window.firebaseService.carregarCartelasPorComprador(tel, null);
+            return { telefone: tel, cartelas: result.length };
+        })).then(resultados => {
+            console.log('🔍 Teste de variações:', resultados);
+        });
+    }
+    
+    return cartelas;
+}).catch(console.error);</div>
+    </div>
+
+    <div class="container">
+        <h2>🔧 Resultado do Teste Direto</h2>
+        <div id="resultado">Clique no botão "Executar Teste Direto" para ver os resultados aqui.</div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+
+    <script>
+        function copiarComando1() {
+            const texto = document.getElementById('comando1').textContent;
+            navigator.clipboard.writeText(texto).then(() => {
+                alert('📋 Comando 1 copiado! Cole no console (F12)');
+            });
+        }
+
+        function copiarComando2() {
+            const texto = document.getElementById('comando2').textContent;
+            navigator.clipboard.writeText(texto).then(() => {
+                alert('📋 Comando 2 copiado! Cole no console (F12)');
+            });
+        }
+
+        async function executarTeste() {
+            const resultadoDiv = document.getElementById('resultado');
+            resultadoDiv.innerHTML = '<p>🔄 Executando teste...</p>';
+
+            try {
+                if (typeof window.firebaseService === 'undefined') {
+                    throw new Error('FirebaseService não carregado');
+                }
+
+                let html = '<h3>📊 Resultados do Teste:</h3>';
+
+                // Teste 1: Listar todas
+                const cartelas = await window.firebaseService.carregarCartelas();
+                const vendidas = cartelas.filter(c => c.vendida);
+                
+                html += `<p><strong>Total de cartelas:</strong> ${cartelas.length}</p>`;
+                html += `<p><strong>Cartelas vendidas:</strong> ${vendidas.length}</p>`;
+
+                // Teste 2: Procurar similares
+                const similares = cartelas.filter(c => {
+                    const tel = c.telefone ? c.telefone.toString() : '';
+                    return tel.includes('8596') || tel.includes('6666');
+                });
+
+                html += `<p><strong>Cartelas com números similares:</strong> ${similares.length}</p>`;
+                
+                if (similares.length > 0) {
+                    html += '<ul>';
+                    similares.forEach((c, i) => {
+                        html += `<li><strong>Cartela ${i+1}:</strong> ID: ${c.id} | Tel: "${c.telefone}" | Comp: "${c.comprador || 'N/A'}"</li>`;
+                    });
+                    html += '</ul>';
+                }
+
+                // Teste 3: Busca específica
+                const telefone = '85966666666';
+                const resultado = await window.firebaseService.carregarCartelasPorComprador(telefone, null);
+                
+                html += `<p><strong>Busca por "${telefone}":</strong> ${resultado.length} cartela(s)</p>`;
+                
+                if (resultado.length > 0) {
+                    html += '<ul>';
+                    resultado.forEach((c, i) => {
+                        html += `<li><strong>Resultado ${i+1}:</strong> ID: ${c.id} | Tel: "${c.telefone}" | Comp: "${c.comprador}"</li>`;
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p style="color: red;"><strong>❌ PROBLEMA:</strong> Nenhuma cartela encontrada para este telefone!</p>';
+                    
+                    // Se não encontrou, procurar o que pode estar errado
+                    const possiveis = similares.filter(c => c.telefone && c.telefone.toString().replace(/\D/g, '').includes('8596'));
+                    if (possiveis.length > 0) {
+                        html += '<p><strong>🔍 Possíveis cartelas relacionadas:</strong></p><ul>';
+                        possiveis.forEach((c, i) => {
+                            html += `<li>Tel: "${c.telefone}" | Comp: "${c.comprador}" | ID: ${c.id}</li>`;
+                        });
+                        html += '</ul>';
+                    }
+                }
+
+                resultadoDiv.innerHTML = html;
+
+            } catch (error) {
+                resultadoDiv.innerHTML = `<p style="color: red;">❌ Erro: ${error.message}</p>`;
+                console.error('Erro no teste:', error);
+            }
+        }
+
+        // Auto-inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🧪 Página de teste console carregada');
+            
+            // Aguardar Firebase
+            const checkFirebase = setInterval(() => {
+                if (typeof window.firebaseService !== 'undefined') {
+                    clearInterval(checkFirebase);
+                    console.log('✅ Firebase pronto! Você pode executar os testes.');
+                    console.log('💡 Dica: Use F12 para abrir o console e execute os comandos manualmente.');
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

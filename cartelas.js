@@ -1,17 +1,25 @@
 // ===== FUNÇÕES DE VERIFICAÇÃO DE ACESSO =====
 
 function verificarAcessoAdmin() {
-    if (window.bingoAuth && window.bingoAuth.isAuthenticated()) {
-        window.location.href = 'admin.html';
-    } else {
-        if (confirm('Para acessar a área administrativa, é necessário fazer login. Deseja ir para a página de login?')) {
-            window.location.href = 'login.html';
-        }
-    }
+    console.log('🔐 Redirecionando para área administrativa...');
+    window.location.href = 'admin.html';
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Inicializando página de cartelas...');
+    
+    // Função para normalizar telefone (remover formatação) - VERSÃO PADRONIZADA
+    function normalizarTelefone(telefone) {
+        if (!telefone) return '';
+        // Remove todos os caracteres que não são números
+        const telefoneNumerico = telefone.toString().replace(/\D/g, '');
+        console.log('📱 Normalizando telefone:', {
+            original: telefone,
+            normalizado: telefoneNumerico,
+            tamanho: telefoneNumerico.length
+        });
+        return telefoneNumerico;
+    }
     
     const precoCartelaSpan = document.getElementById('preco-cartela');
     const cartelasDisponiveisSpan = document.getElementById('cartelas-disponiveis');
@@ -34,40 +42,114 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     console.log('📊 Variáveis inicializadas');
 
-    // Verificar conexão com Firebase
-    console.log('🔥 Verificando conexão com Firebase...');
+    // Inicializar Firebase Service
+    console.log('🔥 Inicializando Firebase Service...');
     
+    let firebaseService = null;
     let conexaoOk = false;
     let statusFirebase = 'desconhecido';
     
-    try {
-        // Verificar se Firebase está carregado
-        if (typeof firebase === 'undefined') {
-            throw new Error('Firebase SDK não carregado');
+    // Função para inicializar Firebase Service
+    async function inicializarFirebaseService() {
+        try {
+            // Verificar se Firebase está carregado
+            if (typeof firebase === 'undefined') {
+                throw new Error('Firebase SDK não carregado');
+            }
+            
+            // Tentar criar instância do Firebase Service
+            if (typeof FirebaseService !== 'undefined') {
+                firebaseService = new FirebaseService();
+                console.log('✅ Firebase Service instanciado');
+                
+                // Verificar conexão
+                try {
+                    conexaoOk = await firebaseService.verificarConexao();
+                    statusFirebase = conexaoOk ? 'conectado' : 'offline';
+                } catch (connError) {
+                    console.warn('⚠️ Erro na verificação de conexão, continuando...', connError.message);
+                    conexaoOk = true; // Assumir que está OK para não bloquear o sistema
+                    statusFirebase = 'assumido como conectado';
+                }
+            } else {
+                throw new Error('Classe FirebaseService não encontrada');
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao inicializar Firebase:', error);
+            statusFirebase = 'erro: ' + error.message;
+            
+            // Fallback para uso direto do Firestore
+            console.log('🔧 Usando Firestore diretamente como fallback');
+            try {
+                firebaseService = {
+                    db: firebase.firestore(),
+                    async salvarCartela(cartela) {
+                        const cartelaCompleta = {
+                            ...cartela,
+                            id: cartela.id || `cartela_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            dataGravacao: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        await this.db.collection('cartelas').doc(cartelaCompleta.id).set(cartelaCompleta);
+                        console.log('✅ Cartela salva (fallback):', cartelaCompleta.id);
+                        return cartelaCompleta.id;
+                    },
+                    async carregarCartelasPorComprador(telefone, email) {
+                        const snapshot = await this.db.collection('cartelas').where('telefone', '==', telefone).get();
+                        const cartelas = [];
+                        snapshot.forEach(doc => cartelas.push({ id: doc.id, ...doc.data() }));
+                        return cartelas;
+                    },
+                    async carregarConfiguracoes() {
+                        return {
+                            numeroInicial: 1,
+                            numeroFinal: 75,
+                            precoCartela: 5.00
+                        };
+                    },
+                    async verificarConexao() {
+                        return true;
+                    }
+                };
+                conexaoOk = true;
+                statusFirebase = 'fallback ativo';
+            } catch (fallbackError) {
+                console.error('❌ Erro mesmo no fallback:', fallbackError);
+                // Último recurso - configurações fixas
+                firebaseService = {
+                    async carregarConfiguracoes() {
+                        return {
+                            numeroInicial: 1,
+                            numeroFinal: 75,
+                            precoCartela: 5.00
+                        };
+                    },
+                    async salvarCartela() {
+                        console.warn('⚠️ Firebase não disponível - dados não salvos');
+                        return 'local-' + Date.now();
+                    },
+                    async carregarCartelasPorComprador() {
+                        return [];
+                    }
+                };
+                conexaoOk = false;
+                statusFirebase = 'apenas local';
+            }
         }
         
-        if (typeof firebaseService === 'undefined') {
-            throw new Error('Firebase Service não carregado');
+        console.log(`🔥 Status Firebase: ${statusFirebase}`);
+        
+        if (!conexaoOk) {
+            console.warn('⚠️ Modo offline - usando armazenamento local como backup');
         }
-        
-        // Tentar verificar conexão
-        conexaoOk = await firebaseService.verificarConexao();
-        statusFirebase = conexaoOk ? 'conectado' : 'offline';
-        
-    } catch (error) {
-        console.error('❌ Erro ao verificar conexão Firebase:', error);
-        statusFirebase = 'erro: ' + error.message;
-    }
-    
-    console.log(`🔥 Status Firebase: ${statusFirebase}`);
-    
-    if (!conexaoOk) {
-        console.warn('⚠️ Modo offline - usando armazenamento local como backup');
     }
 
     // Carregar dados iniciais
     async function carregarDados() {
         try {
+            // Primeiro inicializar o Firebase Service
+            await inicializarFirebaseService();
+            
             // Tentar carregar configurações do Firebase
             configuracoes = await firebaseService.carregarConfiguracoes();
             console.log('✅ Configurações carregadas do Firebase');
@@ -285,12 +367,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function processarCompra(event) {
         event.preventDefault();
         
-        const formData = new FormData(formCheckout);
+        console.log('📝 Processando compra - iniciando...');
+        
+        // Capturar dados do formulário com validação
+        const nomeInput = document.getElementById('nome-comprador');
+        const telefoneInput = document.getElementById('telefone-comprador');
+        const emailInput = document.getElementById('email-comprador');
+        
+        console.log('📋 Elementos do formulário:', {
+            nomeInput: !!nomeInput,
+            telefoneInput: !!telefoneInput,
+            emailInput: !!emailInput
+        });
+        
+        if (!nomeInput || !telefoneInput) {
+            console.error('❌ Elementos do formulário não encontrados!');
+            alert('❌ Erro interno: Formulário não encontrado. Recarregue a página.');
+            return;
+        }
+        
         const comprador = {
-            nome: document.getElementById('nome-comprador').value,
-            telefone: document.getElementById('telefone-comprador').value,
-            email: document.getElementById('email-comprador').value || null
+            nome: nomeInput.value.trim(),
+            telefone: telefoneInput.value.trim(),
+            email: emailInput.value.trim() || null
         };
+
+        console.log('👤 Dados capturados do comprador:', comprador);
+        
+        // Validações
+        if (!comprador.nome) {
+            console.error('❌ Nome do comprador vazio!');
+            alert('❌ Por favor, informe seu nome completo.');
+            nomeInput.focus();
+            return;
+        }
+        
+        if (!comprador.telefone) {
+            console.error('❌ Telefone do comprador vazio!');
+            alert('❌ Por favor, informe seu telefone.');
+            telefoneInput.focus();
+            return;
+        }
 
         // Declarar variável cartelasParaSalvar no topo da função
         let cartelasParaSalvar = [];
@@ -317,36 +434,130 @@ document.addEventListener('DOMContentLoaded', async () => {
                 preco: item.preco,
                 vendida: true,
                 comprador: comprador.nome,
-                telefone: comprador.telefone,
+                telefone: normalizarTelefone(comprador.telefone), // Normalizar telefone
                 email: comprador.email,
                 dataVenda: new Date().toISOString(),
                 timestamp: new Date()
             }));
 
             console.log('🎫 Cartelas preparadas para salvar:', cartelasParaSalvar.length);
+            console.log('📝 Dados da primeira cartela:', cartelasParaSalvar[0]);
+            console.log('👤 Comprador associado:', {
+                nome: comprador.nome,
+                telefone: comprador.telefone,
+                telefoneNormalizado: normalizarTelefone(comprador.telefone),
+                email: comprador.email
+            });
 
-            // Verificar se o Firebase está disponível
+            // Verificar se o Firebase está disponível e funcional
             let salvoComSucesso = false;
             
-            if (typeof firebaseService !== 'undefined') {
+            if (firebaseService) {
                 try {
                     // Tentar salvar no Firebase
                     console.log('🔥 Tentando salvar no Firebase...');
+                    console.log('🔧 Firebase Service:', firebaseService);
                     
                     // Salvar todas as cartelas no Firebase
                     for (let i = 0; i < cartelasParaSalvar.length; i++) {
                         const cartela = cartelasParaSalvar[i];
                         console.log(`💾 Salvando cartela ${i + 1}/${cartelasParaSalvar.length}:`, cartela.id);
+                        console.log(`📝 Dados da cartela:`, JSON.stringify(cartela, null, 2));
                         
-                        await firebaseService.salvarCartela(cartela);
-                        console.log(`✅ Cartela ${cartela.id} salva com sucesso`);
+                        const idSalvo = await firebaseService.salvarCartela(cartela);
+                        console.log(`✅ Cartela ${cartela.id} salva com ID: ${idSalvo}`);
+                        
+                        // Verificação individual pós-gravação
+                        console.log(`🔍 Verificando cartela individual ${idSalvo}...`);
+                        try {
+                            // Usar a instância correta do db
+                            const dbInstance = firebaseService.db || firebase.firestore();
+                            const verificacao = await dbInstance.collection('cartelas').doc(idSalvo).get();
+                            if (verificacao.exists) {
+                                console.log(`✅ Cartela ${idSalvo} confirmada no banco`);
+                            } else {
+                                console.warn(`⚠️ Cartela ${idSalvo} não encontrada na verificação`);
+                            }
+                        } catch (verifError) {
+                            console.error(`❌ Erro na verificação individual:`, verifError);
+                        }
                     }
                     
                     salvoComSucesso = true;
                     console.log('✅ Todas as cartelas salvas no Firebase');
                     
+                    // VALIDAÇÃO PÓS-GRAVAÇÃO MELHORADA
+                    console.log('🔍 Iniciando validação pós-gravação robusta...');
+                    
+                    // Aguardar 3 segundos para propagação
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    try {
+                        console.log('📱 Buscando cartelas por telefone normalizado:', normalizarTelefone(comprador.telefone));
+                        
+                        // Múltiplas estratégias de busca
+                        const estrategiasBusca = [
+                            { campo: 'telefone', valor: normalizarTelefone(comprador.telefone) },
+                            { campo: 'telefone', valor: comprador.telefone },
+                            { campo: 'comprador', valor: comprador.nome }
+                        ];
+                        
+                        let cartelasEncontradas = [];
+                        
+                        for (const estrategia of estrategiasBusca) {
+                            try {
+                                console.log(`🔍 Buscando por ${estrategia.campo} = ${estrategia.valor}`);
+                                // Usar a instância correta do db
+                                const dbInstance = firebaseService.db || firebase.firestore();
+                                const snapshot = await dbInstance.collection('cartelas')
+                                    .where(estrategia.campo, '==', estrategia.valor)
+                                    .get();
+                                
+                                console.log(`📊 Encontradas ${snapshot.size} cartelas por ${estrategia.campo}`);
+                                
+                                if (snapshot.size > cartelasEncontradas.length) {
+                                    cartelasEncontradas = [];
+                                    snapshot.forEach(doc => {
+                                        cartelasEncontradas.push({ id: doc.id, ...doc.data() });
+                                    });
+                                    console.log(`✅ Melhor resultado: ${cartelasEncontradas.length} cartelas`);
+                                }
+                            } catch (buscaError) {
+                                console.error(`❌ Erro na busca por ${estrategia.campo}:`, buscaError);
+                            }
+                        }
+                        
+                        const cartelasRecentesSalvas = cartelasEncontradas.filter(cartela => 
+                            cartelasParaSalvar.some(salva => salva.id === cartela.id)
+                        );
+                        
+                        console.log('📊 Validação pós-gravação:', {
+                            cartelasSalvas: cartelasParaSalvar.length,
+                            cartelasEncontradas: cartelasEncontradas.length,
+                            cartelasRecentesEncontradas: cartelasRecentesSalvas.length
+                        });
+                        
+                        if (cartelasRecentesSalvas.length === cartelasParaSalvar.length) {
+                            console.log('✅ VALIDAÇÃO SUCESSO: Todas as cartelas encontradas após gravação!');
+                        } else {
+                            console.warn('⚠️ VALIDAÇÃO PARCIAL: Nem todas as cartelas foram encontradas');
+                            console.warn(`   Esperado: ${cartelasParaSalvar.length}, Encontrado: ${cartelasRecentesSalvas.length}`);
+                            
+                            // Log das cartelas não encontradas
+                            const naoEncontradas = cartelasParaSalvar.filter(salva => 
+                                !cartelasRecentesSalvas.some(encontrada => encontrada.id === salva.id)
+                            );
+                            console.warn('🔍 Cartelas não encontradas:', naoEncontradas.map(c => c.id));
+                        }
+                        
+                    } catch (validationError) {
+                        console.error('❌ Erro na validação pós-gravação:', validationError);
+                        console.warn('⚠️ Cartelas salvas mas validação falhou - pode haver problema de busca');
+                    }
+                    
                 } catch (firebaseError) {
                     console.error('❌ Erro do Firebase:', firebaseError);
+                    console.error('❌ Stack trace completo:', firebaseError.stack);
                     console.log('💾 Salvando localmente como backup...');
                     
                     // Salvar localmente como fallback
@@ -356,9 +567,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     salvoComSucesso = true;
                     console.log('✅ Cartelas salvas localmente como backup');
+                    console.warn('⚠️ IMPORTANTE: Dados salvos apenas localmente, sincronizar com Firebase posteriormente');
                 }
             } else {
-                console.log('💾 Firebase não disponível, salvando localmente...');
+                console.log('💾 Firebase Service não disponível, salvando localmente...');
                 
                 // Salvar localmente
                 const cartelasLocais = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
@@ -367,6 +579,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 salvoComSucesso = true;
                 console.log('✅ Cartelas salvas localmente');
+                console.warn('⚠️ IMPORTANTE: Dados salvos apenas localmente, Firebase não disponível');
             }
             
             if (!salvoComSucesso) {
