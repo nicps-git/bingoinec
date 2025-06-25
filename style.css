@@ -772,7 +772,7 @@ header p {
         opacity: 1;
     }
     100% {
-        transform: translateY(100vh) rotate(720deg);
+        transform: translateY(110vh) rotate(720deg);
         opacity: 0;
     }
 }
@@ -899,4 +899,181 @@ header p {
     margin-left: auto !important;
     margin-right: auto !important;
     transform: translateX(0) !important;
+}
+
+/* ===== ESTILOS PARA SISTEMA DE PRÊMIOS ===== */
+
+/* Alertas flutuantes de prêmios */
+.premio-anuncio {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #FFD700, #FFA000);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    z-index: 10000;
+    animation: premio-aparecer 0.8s ease-out;
+    border: 5px solid #FF6B35;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+}
+
+.premio-anuncio.premio-quina {
+    background: linear-gradient(135deg, #FF6B35, #FF9800);
+    border-color: #FFD700;
+}
+
+.premio-anuncio.premio-bingo {
+    background: linear-gradient(135deg, #FFD700, #FFC107);
+    border-color: #FF6B35;
+    box-shadow: 0 8px 32px rgba(255, 215, 0, 0.5);
+}
+
+.premio-conteudo h2 {
+    font-size: 2.5em;
+    margin: 0 0 15px 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    animation: premio-pulsa 1s ease-in-out infinite;
+}
+
+.premio-conteudo p {
+    font-size: 1.3em;
+    margin: 10px 0;
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+.premio-tipo {
+    background: rgba(255, 255, 255, 0.3);
+    padding: 10px 20px;
+    border-radius: 25px;
+    margin-top: 15px;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+@keyframes premio-aparecer {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(-180deg);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2) rotate(-90deg);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes premio-pulsa {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* Confete especial para prêmios */
+.confetti-premio {
+    position: fixed;
+    font-size: 1.5em;
+    z-index: 9999;
+    pointer-events: none;
+    animation: confetti-fall 6s linear forwards;
+}
+
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(110vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* Animação de explosão para fogos */
+@keyframes explode {
+    0% {
+        transform: scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5) rotate(180deg);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(3) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* Indicadores de prêmios na tela principal */
+.premios-display {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    max-width: 300px;
+}
+
+.premio-info {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+.premio-info.quina {
+    background: linear-gradient(135deg, #FF6B35, #FF9800);
+    color: white;
+}
+
+.premio-info.bingo {
+    background: linear-gradient(135deg, #FFD700, #FFC107);
+    color: #2c3e50;
+}
+
+.premio-info h4 {
+    margin: 0 0 5px 0;
+    font-size: 1.1em;
+}
+
+.premio-info p {
+    margin: 0;
+    font-size: 0.9em;
+}
+
+/* Responsividade para prêmios */
+@media (max-width: 768px) {
+    .premio-anuncio {
+        width: 95%;
+        padding: 20px;
+    }
+    
+    .premio-conteudo h2 {
+        font-size: 2em;
+    }
+    
+    .premio-conteudo p {
+        font-size: 1.1em;
+    }
+    
+    .premios-display {
+        top: 5px;
+        right: 5px;
+        max-width: 250px;
+        padding: 10px;
+    }
 }

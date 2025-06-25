@@ -26,6 +26,336 @@ let bingoGlobal = {
     inicializado: false
 };
 
+// ===== SISTEMA DE PRÊMIOS: QUINA E BINGO =====
+
+// Estado dos prêmios
+let premiosGlobal = {
+    quinaEncontrada: false,
+    bingoEncontrado: false,
+    vencedorQuina: null,
+    vencedorBingo: null,
+    cartelasVerificadas: new Set()
+};
+
+// Verificar se uma coluna está completa (QUINA)
+function verificarQuina(numerosCartela, numerosSorteados) {
+    // Converter cartela para formato array simples se necessário
+    let numerosArray = [];
+    
+    if (Array.isArray(numerosCartela) && Array.isArray(numerosCartela[0])) {
+        // Formato matriz 5x5 - converter para array
+        for (let col = 0; col < numerosCartela.length; col++) {
+            for (let row = 0; row < numerosCartela[col].length; row++) {
+                if (numerosCartela[col][row] !== 'FREE' && !isNaN(numerosCartela[col][row])) {
+                    numerosArray.push(numerosCartela[col][row]);
+                }
+            }
+        }
+    } else if (Array.isArray(numerosCartela)) {
+        // Formato array simples - usar diretamente
+        numerosArray = numerosCartela.filter(num => !isNaN(num));
+    } else {
+        console.warn('⚠️ Formato de cartela não reconhecido:', numerosCartela);
+        return { temQuina: false };
+    }
+    
+    // Garantir que temos exatamente 24 números
+    if (numerosArray.length !== 24) {
+        console.warn('⚠️ Cartela não tem 24 números:', numerosArray.length, numerosArray);
+        return { temQuina: false };
+    }
+    
+    // Organizar cartela em matriz 5x5 com espaço livre no centro
+    // Layout: 0  1  2  3  4
+    //         5  6  7  8  9
+    //        10 11 XX 12 13  (XX = LIVRE)
+    //        14 15 16 17 18
+    //        19 20 21 22 23
+    
+    const matriz = [
+        [numerosArray[0], numerosArray[5], numerosArray[10], numerosArray[14], numerosArray[19]], // Coluna B (0)
+        [numerosArray[1], numerosArray[6], numerosArray[11], numerosArray[15], numerosArray[20]], // Coluna I (1)
+        [numerosArray[2], numerosArray[7], 'LIVRE', numerosArray[16], numerosArray[21]],          // Coluna N (2) - com LIVRE
+        [numerosArray[3], numerosArray[8], numerosArray[12], numerosArray[17], numerosArray[22]], // Coluna G (3)
+        [numerosArray[4], numerosArray[9], numerosArray[13], numerosArray[18], numerosArray[23]]  // Coluna O (4)
+    ];
+    
+    const nomesColunas = ['B', 'I', 'N', 'G', 'O'];
+    
+    // Verificar cada coluna
+    for (let col = 0; col < 5; col++) {
+        const coluna = matriz[col];
+        let numerosCompletos = 0;
+        
+        for (let numero of coluna) {
+            if (numero === 'LIVRE' || numerosSorteados.includes(numero)) {
+                numerosCompletos++;
+            }
+        }
+        
+        // Se uma coluna tem todos os 5 números/espaços marcados
+        if (numerosCompletos === 5) {
+            return {
+                temQuina: true,
+                coluna: col + 1,
+                nomeColuna: nomesColunas[col],
+                numerosColuna: coluna
+            };
+        }
+    }
+    
+    return { temQuina: false };
+}
+
+// Verificar se a cartela está completa (BINGO)
+function verificarBingo(numerosCartela, numerosSorteados) {
+    // Converter cartela para formato array simples se necessário
+    let numerosArray = [];
+    
+    if (Array.isArray(numerosCartela) && Array.isArray(numerosCartela[0])) {
+        // Formato matriz 5x5 - converter para array
+        for (let col = 0; col < numerosCartela.length; col++) {
+            for (let row = 0; row < numerosCartela[col].length; row++) {
+                if (numerosCartela[col][row] !== 'FREE' && !isNaN(numerosCartela[col][row])) {
+                    numerosArray.push(numerosCartela[col][row]);
+                }
+            }
+        }
+    } else if (Array.isArray(numerosCartela)) {
+        // Formato array simples - usar diretamente
+        numerosArray = numerosCartela.filter(num => !isNaN(num));
+    } else {
+        console.warn('⚠️ Formato de cartela não reconhecido:', numerosCartela);
+        return { temBingo: false, numerosCompletos: 0 };
+    }
+    
+    // Contar números sorteados
+    let numerosCompletos = 0;
+    
+    for (let numero of numerosArray) {
+        if (numerosSorteados.includes(numero)) {
+            numerosCompletos++;
+        }
+    }
+    
+    // BINGO = todos os números marcados (24 para cartela de 24 números)
+    const totalNumerosCartela = numerosArray.length;
+    return {
+        temBingo: numerosCompletos === totalNumerosCartela,
+        numerosCompletos: numerosCompletos,
+        totalNumeros: totalNumerosCartela
+    };
+}
+
+// Verificar todas as cartelas vendidas em busca de prêmios
+async function verificarPremios(numeroRecemSorteado) {
+    if (!firebaseService) {
+        console.log('⚠️ Firebase não disponível para verificar prêmios');
+        return;
+    }
+    
+    try {
+        console.log('🔍 Verificando prêmios após sortear número:', numeroRecemSorteado);
+        
+        // Buscar todas as cartelas vendidas
+        const cartelas = await firebaseService.buscarTodasCartelas();
+        
+        if (!cartelas || cartelas.length === 0) {
+            console.log('📋 Nenhuma cartela vendida encontrada');
+            return;
+        }
+        
+        console.log(`🎫 Verificando ${cartelas.length} cartela(s) vendida(s)`);
+        
+        for (let cartela of cartelas) {
+            if (!cartela.numeros || !Array.isArray(cartela.numeros)) {
+                continue;
+            }
+            
+            // Verificar QUINA primeiro (se ainda não foi encontrada)
+            if (!premiosGlobal.quinaEncontrada) {
+                const resultadoQuina = verificarQuina(cartela.numeros, bingoGlobal.numerosSorteados);
+                
+                if (resultadoQuina.temQuina) {
+                    premiosGlobal.quinaEncontrada = true;
+                    premiosGlobal.vencedorQuina = cartela;
+                    
+                    console.log('🏆 QUINA ENCONTRADA!', cartela);
+                    
+                    // Anunciar QUINA
+                    anunciarQuina(cartela, resultadoQuina);
+                    
+                    // Salvar prêmio no Firebase
+                    await salvarPremioNoFirebase('QUINA', cartela, resultadoQuina);
+                }
+            }
+            
+            // Verificar BINGO (se ainda não foi encontrado)
+            if (!premiosGlobal.bingoEncontrado) {
+                const resultadoBingo = verificarBingo(cartela.numeros, bingoGlobal.numerosSorteados);
+                
+                if (resultadoBingo.temBingo) {
+                    premiosGlobal.bingoEncontrado = true;
+                    premiosGlobal.vencedorBingo = cartela;
+                    
+                    console.log('🎉 BINGO ENCONTRADO!', cartela);
+                    
+                    // Anunciar BINGO
+                    anunciarBingo(cartela, resultadoBingo);
+                    
+                    // Salvar prêmio no Firebase
+                    await salvarPremioNoFirebase('BINGO', cartela, resultadoBingo);
+                    
+                    // Se já tem BINGO, pode encerrar o jogo
+                    if (confirm('🎉 BINGO! O jogo foi concluído. Deseja encerrar o sorteio?')) {
+                        encerrarJogo();
+                    }
+                    
+                    break; // Para de verificar outras cartelas
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao verificar prêmios:', error);
+    }
+}
+
+// Anunciar QUINA
+function anunciarQuina(cartela, resultado) {
+    console.log('🏆 ANUNCIANDO QUINA!');
+    
+    // Efeitos visuais
+    criarConfete();
+    tocarSomFesta();
+    
+    // Modal/Alert de QUINA
+    const nomeComprador = cartela.nome || cartela.comprador?.nome || 'Ganhador';
+    const telefone = cartela.telefone || cartela.comprador?.telefone || '';
+    
+    const mensagem = `
+🏆🎉 QUINA! 🎉🏆
+
+🎫 Primeira QUINA encontrada!
+👤 Ganhador: ${nomeComprador}
+📱 Telefone: ${telefone}
+📋 Cartela: ${cartela.id}
+📍 Coluna ${resultado.nomeColuna} completa!
+
+🎊 Parabéns! Procure os organizadores para receber seu prêmio!
+    `;
+    
+    alert(mensagem);
+    
+    // Adicionar indicação visual na tela
+    adicionarIndicacaoPremio('QUINA', nomeComprador);
+}
+
+// Anunciar BINGO
+function anunciarBingo(cartela, resultado) {
+    console.log('🎉 ANUNCIANDO BINGO!');
+    
+    // Efeitos visuais intensos
+    criarConfete();
+    criarFogosArtificio();
+    tocarSomFesta();
+    
+    // Modal/Alert de BINGO
+    const nomeComprador = cartela.nome || cartela.comprador?.nome || 'Ganhador';
+    const telefone = cartela.telefone || cartela.comprador?.telefone || '';
+    
+    const mensagem = `
+🎉🏆 BINGO! 🏆🎉
+
+🎫 CARTELA COMPLETA!
+👤 GRANDE VENCEDOR: ${nomeComprador}
+📱 Telefone: ${telefone}
+📋 Cartela: ${cartela.id}
+🎯 ${resultado.numerosCompletos}/24 números completos!
+
+🏆 PARABÉNS! VOCÊ GANHOU O PRÊMIO PRINCIPAL!
+🎊 Procure IMEDIATAMENTE os organizadores!
+    `;
+    
+    alert(mensagem);
+    
+    // Adicionar indicação visual na tela
+    adicionarIndicacaoPremio('BINGO', nomeComprador);
+}
+
+// Adicionar indicação visual de prêmio na tela
+function adicionarIndicacaoPremio(tipo, nomeGanhador) {
+    const container = document.querySelector('.main-container') || document.body;
+    
+    const premioDiv = document.createElement('div');
+    premioDiv.className = `premio-anuncio premio-${tipo.toLowerCase()}`;
+    premioDiv.innerHTML = `
+        <div class="premio-conteudo">
+            <h2>${tipo === 'QUINA' ? '🏆 QUINA!' : '🎉 BINGO!'}</h2>
+            <p>Ganhador: <strong>${nomeGanhador}</strong></p>
+            <div class="premio-tipo">${tipo === 'QUINA' ? '1º Prêmio: QUINA' : '2º Prêmio: BINGO'}</div>
+        </div>
+    `;
+    
+    container.appendChild(premioDiv);
+    
+    // Remover após 10 segundos
+    setTimeout(() => {
+        if (premioDiv.parentNode) {
+            premioDiv.parentNode.removeChild(premioDiv);
+        }
+    }, 10000);
+}
+
+// Salvar prêmio no Firebase
+async function salvarPremioNoFirebase(tipo, cartela, resultado) {
+    if (!firebaseService) return;
+    
+    try {
+        const premio = {
+            tipo: tipo,
+            timestamp: new Date(),
+            cartela: cartela,
+            ganhador: {
+                nome: cartela.nome || cartela.comprador?.nome || '',
+                telefone: cartela.telefone || cartela.comprador?.telefone || ''
+            },
+            detalhes: resultado,
+            numerosSorteados: [...bingoGlobal.numerosSorteados]
+        };
+        
+        await firebaseService.salvarPremio(tipo, premio);
+        console.log(`✅ Prêmio ${tipo} salvo no Firebase`);
+        
+    } catch (error) {
+        console.error(`❌ Erro ao salvar prêmio ${tipo}:`, error);
+    }
+}
+
+// Encerrar jogo após BINGO
+function encerrarJogo() {
+    bingoGlobal.sortearBtn.disabled = true;
+    bingoGlobal.sortearBtn.textContent = '🏆 Jogo Encerrado';
+    
+    // Exibir resumo final
+    const resumo = `
+🎊 JOGO ENCERRADO! 🎊
+
+${premiosGlobal.quinaEncontrada ? 
+    `🏆 1º Prêmio (QUINA): ${premiosGlobal.vencedorQuina?.nome || 'Ganhador da Quina'}` : 
+    '❌ Nenhuma QUINA foi encontrada'}
+
+${premiosGlobal.bingoEncontrado ? 
+    `🎉 2º Prêmio (BINGO): ${premiosGlobal.vencedorBingo?.nome || 'Ganhador do Bingo'}` : 
+    '❌ Nenhum BINGO foi encontrado'}
+
+📊 Total de números sorteados: ${bingoGlobal.numerosSorteados.length}
+🎪 Obrigado por participar do Bingo Arraiá INEC!
+    `;
+    
+    alert(resumo);
+}
+
 // ===== FUNÇÃO PRINCIPAL DE SORTEIO (ESCOPO GLOBAL) =====
 window.sortearNumero = function() {
     if (!bingoGlobal.inicializado) {
@@ -110,7 +440,13 @@ window.sortearNumero = function() {
                 // Confete para cada número
                 criarConfetePequeno();
                 
-                // Verificar status das cartelas após o sorteio
+                // *** INTEGRAÇÃO SISTEMA DE PRÊMIOS DUPLOS ***
+                // Verificar prêmios (QUINA e BINGO) em todas as cartelas vendidas
+                setTimeout(async () => {
+                    await verificarPremios(numero);
+                }, 500);
+                
+                // Verificar status das cartelas locais após o sorteio
                 setTimeout(() => {
                     verificarStatusCartelas();
                 }, 1000); // Delay para permitir que o número seja processado
@@ -230,7 +566,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 atualizarInterfaceNumeros();
                 atualizarContador();
                 
-                // Verificar cartelas após mudança
+                // Verificar prêmios automaticamente quando números são sincronizados
+                if (bingoGlobal.numerosSorteados.length > 0) {
+                    const ultimoNumero = bingoGlobal.numerosSorteados[bingoGlobal.numerosSorteados.length - 1];
+                    setTimeout(async () => {
+                        await verificarPremios(ultimoNumero);
+                    }, 500);
+                }
+                
+                // Verificar cartelas locais após mudança
                 setTimeout(() => {
                     verificarStatusCartelas();
                 }, 1000);
@@ -250,52 +594,75 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Sons de festa junina (simulados com vibração se disponível)
     function tocarSomFesta() {
         if (navigator.vibrate) {
-            navigator.vibrate([100, 50, 100, 50, 100]);
+            navigator.vibrate([200, 100, 200, 100, 200]);
+        }
+        
+        // Tentar reproduzir som se disponível
+        try {
+            if (typeof Audio !== 'undefined') {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBziR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEgBSuCz/LZfiQAA');
+                audio.volume = 0.4;
+                audio.play().catch(() => console.log('Som não disponível'));
+            }
+        } catch (e) {
+            console.log('Som de festa não disponível');
         }
     }
 
-    // Criar fogos de artifício
+    // Confete especial para prêmios
+    function criarConfete() {
+        const elementosConfete = ['🏆', '🎉', '🎊', '✨', '🌟', '⭐', '🥇', '👑', '🎪', '🌽', '🔥', '🎈'];
+        for (let i = 0; i < 80; i++) {
+            setTimeout(() => {
+                const confete = document.createElement('div');
+                confete.className = 'confetti-premio';
+                confete.style.position = 'fixed';
+                confete.style.left = Math.random() * 100 + 'vw';
+                confete.style.top = '-50px';
+                confete.style.fontSize = Math.random() * 1.5 + 1.5 + 'em';
+                confete.style.zIndex = '9999';
+                confete.style.pointerEvents = 'none';
+                confete.style.color = ['#FFD700', '#FF6B35', '#FF1744', '#00BCD4', '#4CAF50'][Math.floor(Math.random() * 5)];
+                confete.style.animation = `confetti-fall ${Math.random() * 4 + 4}s linear forwards`;
+                confete.textContent = elementosConfete[Math.floor(Math.random() * elementosConfete.length)];
+                
+                document.body.appendChild(confete);
+                
+                setTimeout(() => {
+                    if (confete.parentNode) {
+                        confete.remove();
+                    }
+                }, 8000);
+            }, i * 60);
+        }
+    }
+
+    // Fogos de artifício para BINGO
     function criarFogosArtificio() {
-        for (let i = 0; i < 20; i++) {
+        const fogosEl = document.getElementById('fogos') || document.body;
+        
+        for (let i = 0; i < 30; i++) {
             setTimeout(() => {
                 const fogo = document.createElement('div');
-                fogo.style.position = 'absolute';
-                fogo.style.left = Math.random() * 100 + '%';
-                fogo.style.top = Math.random() * 50 + '%';
-                fogo.style.fontSize = '2em';
-                fogo.textContent = ['💥', '✨', '🎆', '🎇'][Math.floor(Math.random() * 4)];
-                fogo.style.animation = 'explode 1s ease-out forwards';
+                fogo.style.position = 'fixed';
+                fogo.style.left = Math.random() * 100 + 'vw';
+                fogo.style.top = Math.random() * 50 + 'vh';
+                fogo.style.fontSize = Math.random() * 2 + 2 + 'em';
+                fogo.style.zIndex = '9998';
+                fogo.style.pointerEvents = 'none';
+                fogo.textContent = ['💥', '✨', '🎆', '🎇', '🌟', '⭐'][Math.floor(Math.random() * 6)];
+                fogo.style.animation = 'explode 1.5s ease-out forwards';
+                fogo.style.color = ['#FFD700', '#FF6B35', '#FF1744', '#9C27B0', '#00BCD4'][Math.floor(Math.random() * 5)];
+                
                 fogosEl.appendChild(fogo);
                 
-                setTimeout(() => fogo.remove(), 1000);
-            }, i * 200);
+                setTimeout(() => {
+                    if (fogo.parentNode) {
+                        fogo.remove();
+                    }
+                }, 1500);
+            }, i * 150);
         }
-    }
-
-    // Animar caipiras dançando
-    function animarQuadrilha() {
-        const caipiras = document.querySelectorAll('.caipira');
-        caipiras.forEach((caipira, index) => {
-            setTimeout(() => {
-                caipira.style.animation = 'danca-festa 1s ease-in-out';
-                setTimeout(() => {
-                    caipira.style.animation = 'danca 2s ease-in-out infinite';
-                }, 1000);
-            }, index * 300);
-        });
-    }
-
-    // Animar comidas
-    function animarComidas() {
-        const comidas = document.querySelectorAll('.comida');
-        comidas.forEach((comida, index) => {
-            setTimeout(() => {
-                comida.style.animation = 'comida-festa 0.8s ease-out';
-                setTimeout(() => {
-                    comida.style.animation = 'delicia 3s ease-in-out infinite';
-                }, 800);
-            }, index * 150);
-        });
     }
 
     // Atualizar contador
@@ -310,35 +677,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Criar confetes temáticos
-    function criarConfete() {
-        const elementosConfete = ['🌽', '🎪', '🎈', '⭐', '🎆', '🎇', '🔥', '🪗'];
-        for (let i = 0; i < 50; i++) {
-            setTimeout(() => {
-                const confete = document.createElement('div');
-                confete.className = 'confetti';
-                confete.style.left = Math.random() * 100 + 'vw';
-                confete.style.animationDelay = Math.random() * 2 + 's';
-                confete.textContent = elementosConfete[Math.floor(Math.random() * elementosConfete.length)];
-                confete.style.fontSize = '1.5em';
-                confete.style.background = 'none';
-                document.body.appendChild(confete);
-                
-                setTimeout(() => confete.remove(), 3000);
-            }, i * 100);
-        }
-    }
-
-    // Função para salvar número sorteado no Firebase
-    async function salvarNumeroNoFirebase(numero) {
-        try {
-            await firebaseService.salvarNumeroSorteado(numero);
-            console.log(`✅ Número ${numero} salvo no Firebase`);
-        } catch (error) {
-            console.error(`❌ Erro ao salvar número ${numero}:`, error);
-            // Não bloquear a interface em caso de erro de salvamento
-        }
-    }
-
     function criarConfetePequeno() {
         const elementosConfete = ['🌽', '🎪', '🎈'];
         for (let i = 0; i < 15; i++) {

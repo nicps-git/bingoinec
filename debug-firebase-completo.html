@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Completo Firebase - Bingo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .btn-success { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
+        .btn-warning { background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); }
+        .btn-danger { background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); }
+        .btn-info { background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); }
+        
+        .result {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            max-height: 500px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        .success { background: #f0fff4; border-color: #9ae6b4; color: #276749; }
+        .error { background: #fed7d7; border-color: #feb2b2; color: #742a2a; }
+        .info { background: #ebf8ff; border-color: #90cdf4; color: #2a4365; }
+        .warning { background: #fffbeb; border-color: #f6e05e; color: #744210; }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        .online { background: #48bb78; color: white; }
+        .offline { background: #f56565; color: white; }
+        .loading { background: #ed8936; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Debug Completo Firebase - Sistema Bingo</h1>
+        
+        <div class="status-bar" style="text-align: center; margin-bottom: 20px;">
+            <span id="status-firebase" class="status loading">🔄 Verificando Firebase...</span>
+            <span id="status-conexao" class="status loading">🌐 Testando Conexão...</span>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn" onclick="testarConexaoCompleta()">🔌 Teste Completo</button>
+            <button class="btn btn-success" onclick="buscarTodosNumeros()">🎲 Buscar Números</button>
+            <button class="btn btn-info" onclick="buscarCartelas()">🎫 Buscar Cartelas</button>
+            <button class="btn btn-warning" onclick="explorarEstrutura()">📂 Explorar Estrutura</button>
+            <button class="btn btn-danger" onclick="limparTudo()">🗑️ Limpar</button>
+        </div>
+        
+        <div id="resultado" class="result">
+Aguardando comandos... 🚀
+
+💡 Dicas:
+- Use "Teste Completo" para verificar tudo
+- "Buscar Números" testa especificamente os números sorteados
+- "Explorar Estrutura" mostra todas as coleções e documentos
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <script>
+        let logContainer = document.getElementById('resultado');
+        let logCount = 0;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}\n`;
+            
+            console.log(message);
+            
+            if (logContainer) {
+                logContainer.textContent += logMessage;
+                logContainer.className = `result ${type}`;
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            logCount++;
+        }
+        
+        function limparTudo() {
+            if (logContainer) {
+                logContainer.textContent = 'Log limpo! 🧹\n\n';
+                logContainer.className = 'result';
+            }
+            logCount = 0;
+        }
+        
+        function updateStatus(elementId, status, text) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.className = `status ${status}`;
+                element.textContent = text;
+            }
+        }
+        
+        async function testarConexaoCompleta() {
+            log('🚀 === INICIANDO TESTE COMPLETO ===', 'info');
+            
+            try {
+                updateStatus('status-firebase', 'loading', '🔄 Testando Firebase...');
+                
+                // 1. Verificar Firebase SDK
+                if (typeof firebase === 'undefined') {
+                    log('❌ Firebase SDK não carregado!', 'error');
+                    updateStatus('status-firebase', 'offline', '❌ SDK não carregado');
+                    return;
+                }
+                log('✅ Firebase SDK carregado');
+                
+                // 2. Inicializar Firebase
+                if (!firebase.apps.length) {
+                    if (window.firebaseConfig) {
+                        firebase.initializeApp(window.firebaseConfig);
+                        log('✅ Firebase inicializado');
+                    } else {
+                        log('❌ Configuração do Firebase não encontrada!', 'error');
+                        updateStatus('status-firebase', 'offline', '❌ Config não encontrada');
+                        return;
+                    }
+                } else {
+                    log('✅ Firebase já inicializado');
+                }
+                
+                updateStatus('status-firebase', 'online', '✅ Firebase OK');
+                
+                // 3. Testar Firestore
+                updateStatus('status-conexao', 'loading', '🔄 Testando Firestore...');
+                const db = firebase.firestore();
+                log('✅ Firestore conectado');
+                
+                // 4. Teste de conectividade
+                const testRef = db.collection('test').doc('connectivity');
+                await testRef.set({ timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                log('✅ Teste de escrita bem-sucedido');
+                
+                const testDoc = await testRef.get();
+                if (testDoc.exists) {
+                    log('✅ Teste de leitura bem-sucedido');
+                } else {
+                    log('⚠️ Documento de teste não encontrado após escrita');
+                }
+                
+                // Limpar teste
+                await testRef.delete();
+                log('✅ Limpeza do teste concluída');
+                
+                updateStatus('status-conexao', 'online', '✅ Conexão OK');
+                
+                log('🎉 TESTE COMPLETO CONCLUÍDO COM SUCESSO!', 'success');
+                
+            } catch (error) {
+                log(`❌ ERRO no teste completo: ${error.message}`, 'error');
+                updateStatus('status-firebase', 'offline', '❌ Erro');
+                updateStatus('status-conexao', 'offline', '❌ Erro');
+                console.error('Erro completo:', error);
+            }
+        }
+        
+        async function buscarTodosNumeros() {
+            log('🎲 === BUSCANDO TODOS OS NÚMEROS SORTEADOS ===', 'info');
+            
+            try {
+                const db = firebase.firestore();
+                
+                // Estratégia 1: Método exato do firebase-service.js
+                log('🎯 Estratégia 1: "numeros-sorteados" com orderBy("dataSorteio")');
+                try {
+                    const snapshot1 = await db.collection('numeros-sorteados').orderBy('dataSorteio', 'asc').get();
+                    log(`📊 Encontrados ${snapshot1.size} documentos`);
+                    
+                    if (snapshot1.size > 0) {
+                        const numeros1 = [];
+                        snapshot1.forEach(doc => {
+                            const data = doc.data();
+                            log(`   📄 ID: ${doc.id}`);
+                            log(`   📋 Data: ${JSON.stringify(data, null, 2)}`);
+                            if (data.numero !== undefined) {
+                                numeros1.push(data.numero);
+                            }
+                        });
+                        
+                        if (numeros1.length > 0) {
+                            log(`✅ SUCESSO! Encontrados ${numeros1.length} números:`, 'success');
+                            log(`🎯 Números: ${numeros1.join(', ')}`, 'success');
+                            return numeros1;
+                        }
+                    }
+                } catch (err) {
+                    log(`❌ Estratégia 1 falhou: ${err.message}`, 'error');
+                }
+                
+                // Estratégia 2: Sem orderBy
+                log('🔄 Estratégia 2: "numeros-sorteados" sem orderBy');
+                try {
+                    const snapshot2 = await db.collection('numeros-sorteados').get();
+                    log(`📊 Encontrados ${snapshot2.size} documentos`);
+                    
+                    if (snapshot2.size > 0) {
+                        const numeros2 = [];
+                        snapshot2.forEach(doc => {
+                            const data = doc.data();
+                            log(`   📄 ID: ${doc.id}, Data: ${JSON.stringify(data)}`);
+                            if (data.numero !== undefined) {
+                                numeros2.push(data.numero);
+                            }
+                        });
+                        
+                        if (numeros2.length > 0) {
+                            log(`✅ SUCESSO ESTRATÉGIA 2! ${numeros2.length} números:`, 'success');
+                            log(`🎯 Números: ${numeros2.join(', ')}`, 'success');
+                            return numeros2;
+                        }
+                    }
+                } catch (err) {
+                    log(`❌ Estratégia 2 falhou: ${err.message}`, 'error');
+                }
+                
+                // Estratégia 3: Outras coleções
+                const outrasColecoes = ['numerosSorteados', 'sorteio', 'bingo-sorteio', 'sorteados'];
+                for (const colecao of outrasColecoes) {
+                    log(`🔍 Estratégia 3: Testando "${colecao}"`);
+                    try {
+                        const snapshot = await db.collection(colecao).get();
+                        log(`📊 "${colecao}": ${snapshot.size} documentos`);
+                        
+                        if (snapshot.size > 0) {
+                            snapshot.forEach(doc => {
+                                const data = doc.data();
+                                log(`   📄 ${colecao}/${doc.id}: ${JSON.stringify(data)}`);
+                            });
+                        }
+                    } catch (err) {
+                        log(`❌ Erro em "${colecao}": ${err.message}`);
+                    }
+                }
+                
+                log('❌ NENHUM NÚMERO ENCONTRADO', 'error');
+                
+            } catch (error) {
+                log(`❌ ERRO GERAL: ${error.message}`, 'error');
+            }
+        }
+        
+        async function buscarCartelas() {
+            log('🎫 === BUSCANDO CARTELAS ===', 'info');
+            
+            try {
+                const db = firebase.firestore();
+                
+                const snapshot = await db.collection('cartelas').limit(5).get();
+                log(`📊 Encontradas ${snapshot.size} cartelas (amostra)`);
+                
+                if (snapshot.size > 0) {
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        log(`📄 Cartela ID: ${doc.id}`);
+                        log(`📋 Dados: ${JSON.stringify(data, null, 2)}`);
+                        log('---');
+                    });
+                } else {
+                    log('❌ Nenhuma cartela encontrada', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro ao buscar cartelas: ${error.message}`, 'error');
+            }
+        }
+        
+        async function explorarEstrutura() {
+            log('📂 === EXPLORANDO ESTRUTURA COMPLETA ===', 'info');
+            
+            try {
+                const db = firebase.firestore();
+                
+                // Lista de coleções para testar
+                const colecoes = [
+                    'cartelas',
+                    'numeros-sorteados',
+                    'numerosSorteados',
+                    'configuracoes',
+                    'sorteio',
+                    'bingo-sorteio',
+                    'alertas',
+                    'usuarios'
+                ];
+                
+                for (const colecao of colecoes) {
+                    log(`🔍 Explorando coleção: "${colecao}"`);
+                    
+                    try {
+                        const snapshot = await db.collection(colecao).limit(3).get();
+                        log(`📊 "${colecao}": ${snapshot.size} documentos (amostra)`);
+                        
+                        if (snapshot.size > 0) {
+                            snapshot.forEach(doc => {
+                                const data = doc.data();
+                                log(`   📄 ${doc.id}: ${JSON.stringify(data, null, 2)}`);
+                            });
+                        }
+                        log('');
+                        
+                    } catch (err) {
+                        log(`❌ Erro em "${colecao}": ${err.message}`);
+                    }
+                }
+                
+                // Testar documentos específicos
+                log('🎯 Testando documentos específicos...');
+                const docsEspecificos = [
+                    'bingo/sorteio',
+                    'configuracoes/bingo',
+                    'configuracoes/main'
+                ];
+                
+                for (const docPath of docsEspecificos) {
+                    try {
+                        const doc = await db.doc(docPath).get();
+                        if (doc.exists) {
+                            log(`✅ Documento "${docPath}" encontrado:`);
+                            log(`📋 ${JSON.stringify(doc.data(), null, 2)}`);
+                        } else {
+                            log(`⚠️ Documento "${docPath}" não existe`);
+                        }
+                    } catch (err) {
+                        log(`❌ Erro em "${docPath}": ${err.message}`);
+                    }
+                }
+                
+                log('✅ EXPLORAÇÃO COMPLETA CONCLUÍDA!', 'success');
+                
+            } catch (error) {
+                log(`❌ Erro na exploração: ${error.message}`, 'error');
+            }
+        }
+        
+        // Inicialização automática
+        window.onload = function() {
+            log('🌟 Sistema de Debug Firebase Inicializado!', 'info');
+            log('💡 Use os botões acima para explorar o Firebase');
+            log('');
+            
+            // Teste inicial automático
+            setTimeout(testarConexaoCompleta, 1000);
+        };
+    </script>
+</body>
+</html>

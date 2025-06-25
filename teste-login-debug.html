@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Teste Login Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; }
+        .debug { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; margin: 10px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste Login Debug</h1>
+    
+    <form id="form-consulta">
+        <div class="form-group">
+            <label for="consulta-telefone">📱 Telefone:</label>
+            <input type="tel" id="consulta-telefone" name="telefone" placeholder="11999887766" value="11999887766">
+        </div>
+
+        <div class="form-group">
+            <label for="consulta-email">📧 E-mail:</label>
+            <input type="email" id="consulta-email" name="email" placeholder="teste@email.com">
+        </div>
+
+        <div class="form-group">
+            <button type="submit">🔍 Testar Submit</button>
+            <button type="button" onclick="testarManualmente()">🔧 Teste Manual</button>
+        </div>
+    </form>
+
+    <div id="debug-log" class="debug">
+        Console de debug aparecerá aqui...
+    </div>
+
+    <div id="alert-msg" style="display: none; padding: 10px; background: #cce5ff; border: 1px solid #007bff; margin: 10px 0;">
+        <span class="alert-message">Mensagem</span>
+    </div>
+
+    <script>
+        // Capturar logs
+        const debugLog = document.getElementById('debug-log');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addToDebug(message) {
+            debugLog.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            addToDebug(args.join(' '));
+            originalLog.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            addToDebug('ERROR: ' + args.join(' '));
+            originalError.apply(console, args);
+        };
+
+        // Função de alerta simples
+        function mostrarAlerta(mensagem, tipo = 'info') {
+            console.log(`ALERTA [${tipo}]: ${mensagem}`);
+            const alertMsg = document.getElementById('alert-msg');
+            if (alertMsg) {
+                alertMsg.querySelector('.alert-message').textContent = mensagem;
+                alertMsg.style.display = 'block';
+                setTimeout(() => alertMsg.style.display = 'none', 3000);
+            }
+        }
+
+        // Função de teste manual
+        function testarManualmente() {
+            console.log('🔧 Teste manual iniciado');
+            const telefone = document.getElementById('consulta-telefone').value;
+            const email = document.getElementById('consulta-email').value;
+            console.log('Dados:', { telefone, email });
+            mostrarAlerta('Teste manual executado com sucesso!', 'success');
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 DOM carregado - iniciando teste');
+            
+            const form = document.getElementById('form-consulta');
+            const telefoneInput = document.getElementById('consulta-telefone');
+            const emailInput = document.getElementById('consulta-email');
+            
+            console.log('Elementos encontrados:', {
+                form: !!form,
+                telefoneInput: !!telefoneInput,
+                emailInput: !!emailInput
+            });
+            
+            if (form) {
+                console.log('✅ Adicionando listener ao formulário');
+                form.addEventListener('submit', (e) => {
+                    console.log('🎯 SUBMIT CAPTURADO!');
+                    e.preventDefault();
+                    
+                    const telefone = telefoneInput.value.trim();
+                    const email = emailInput.value.trim();
+                    
+                    console.log('Dados do formulário:', { telefone, email });
+                    
+                    if (!telefone && !email) {
+                        mostrarAlerta('Informe pelo menos um dado!', 'warning');
+                        return;
+                    }
+                    
+                    mostrarAlerta('Formulário submetido com sucesso!', 'success');
+                    console.log('✅ Teste de submit concluído');
+                });
+                console.log('✅ Listener adicionado com sucesso');
+            } else {
+                console.error('❌ Formulário não encontrado!');
+            }
+        });
+    </script>
+</body>
+</html>

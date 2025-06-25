@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Teste Login Sem Conflitos</title>
+    <link rel="stylesheet" href="minhas-cartelas.css">
+</head>
+<body>
+    <h1>🔍 Teste Login Isolado - Sem login.js</h1>
+    <p>Este teste carrega apenas os scripts necessários, SEM o login.js que pode estar causando conflito.</p>
+
+    <main>
+        <!-- Tela de Login do Comprador -->
+        <div id="login-comprador" class="login-section">
+            <div class="login-card">
+                <div class="login-header">
+                    <h2>🔍 Consultar Minhas Cartelas</h2>
+                    <p>Digite seus dados para ver suas cartelas compradas</p>
+                </div>
+
+                <form id="form-consulta" class="consulta-form">
+                    <div class="input-group">
+                        <label for="consulta-telefone">📱 Telefone:</label>
+                        <input type="tel" id="consulta-telefone" name="telefone" required 
+                               placeholder="(11) 99999-9999" maxlength="15" value="11999887766">
+                        <span class="input-icon">📞</span>
+                    </div>
+
+                    <div class="ou-divider">
+                        <span>OU</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="consulta-email">📧 E-mail:</label>
+                        <input type="email" id="consulta-email" name="email" 
+                               placeholder="seu@email.com">
+                        <span class="input-icon">✉️</span>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-consultar">🔍 Consultar Cartelas</button>
+                    </div>
+
+                    <div class="info-consulta">
+                        <p>💡 <strong>Dica:</strong> Use o telefone ou e-mail que você cadastrou na compra</p>
+                        <p>📞 Problemas? Entre em contato com a organização</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tela de Cartelas do Comprador -->
+        <div id="area-cartelas" class="cartelas-section" style="display: none;">
+            <div class="comprador-info">
+                <div class="info-header">
+                    <h2>👤 <span id="nome-comprador-logado">Teste Usuario</span></h2>
+                    <button onclick="fazerLogout()" class="btn-logout-comprador">🚪 Sair</button>
+                </div>
+            </div>
+            <p>✅ Área de cartelas exibida com sucesso!</p>
+        </div>
+
+        <!-- Alert de mensagens -->
+        <div id="alert-msg" class="alert" style="display: none;">
+            <span class="alert-icon">ℹ️</span>
+            <span class="alert-message">Mensagem</span>
+            <button class="alert-close" onclick="fecharAlert()">&times;</button>
+        </div>
+    </main>
+
+    <!-- Scripts SEM login.js -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    <!-- NÃO carregando login.js nem patch-busca-robusta.js -->
+    <script src="minhas-cartelas.js"></script>
+
+    <script>
+        console.log('🚀 Teste login sem conflitos iniciado');
+        console.log('🔍 Scripts carregados:', {
+            firebase: typeof firebase !== 'undefined',
+            FirebaseService: typeof FirebaseService !== 'undefined',
+            loginJs: typeof handleLogin !== 'undefined', // deve ser false
+            minhasCartelasJs: typeof mostrarAlerta !== 'undefined'
+        });
+
+        // Função para simular logout
+        function fazerLogout() {
+            document.getElementById('area-cartelas').style.display = 'none';
+            document.getElementById('login-comprador').style.display = 'block';
+            console.log('🚪 Logout realizado');
+        }
+
+        // Função para fechar alert
+        function fecharAlert() {
+            const alertMsg = document.getElementById('alert-msg');
+            if (alertMsg) {
+                alertMsg.style.display = 'none';
+            }
+        }
+
+        // Verificar se o listener está funcionando após 2 segundos
+        setTimeout(() => {
+            const form = document.getElementById('form-consulta');
+            console.log('🔍 Verificação do formulário:', {
+                formExists: !!form,
+                formId: form ? form.id : 'N/A',
+                submitFunction: typeof fazerLogin !== 'undefined'
+            });
+        }, 2000);
+    </script>
+</body>
+</html>

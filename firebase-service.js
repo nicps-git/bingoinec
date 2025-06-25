@@ -468,6 +468,81 @@ class FirebaseService {
     async testConnection() {
         return await this.verificarConexao();
     }
+
+    // ===== FUNÇÕES PARA SISTEMA DE PRÊMIOS =====
+    
+    // Buscar todas as cartelas vendidas para verificação de prêmios
+    async buscarTodasCartelas() {
+        try {
+            console.log('🔍 Buscando todas as cartelas vendidas...');
+            
+            // Buscar cartelas vendidas
+            const snapshot = await this.db.collection(this.collections.cartelas)
+                .where('vendida', '==', true)
+                .get();
+                
+            const cartelas = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                cartelas.push({ 
+                    id: doc.id, 
+                    ...data
+                });
+            });
+            
+            console.log(`✅ ${cartelas.length} cartelas vendidas encontradas`);
+            return cartelas;
+        } catch (error) {
+            console.error('❌ Erro ao buscar cartelas:', error);
+            throw error;
+        }
+    }
+    
+    // Salvar prêmio no Firebase
+    async salvarPremio(tipo, dadosPremio) {
+        try {
+            console.log(`💾 Salvando prêmio ${tipo} no Firebase...`);
+            
+            const premio = {
+                ...dadosPremio,
+                id: `${tipo}_${Date.now()}`,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            // Salvar na coleção de prêmios
+            await this.db.collection('premios').doc(premio.id).set(premio);
+            
+            // Também salvar em configurações do jogo para fácil acesso
+            await this.db.collection(this.collections.configuracoes).doc('premios').set({
+                [tipo.toLowerCase()]: premio,
+                ultimaAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            
+            console.log(`✅ Prêmio ${tipo} salvo no Firebase`);
+            return premio.id;
+        } catch (error) {
+            console.error(`❌ Erro ao salvar prêmio ${tipo}:`, error);
+            throw error;
+        }
+    }
+    
+    // Buscar prêmios já concedidos
+    async buscarPremios() {
+        try {
+            const snapshot = await this.db.collection('premios').get();
+            const premios = [];
+            
+            snapshot.forEach(doc => {
+                premios.push({ id: doc.id, ...doc.data() });
+            });
+            
+            console.log(`✅ ${premios.length} prêmios encontrados`);
+            return premios;
+        } catch (error) {
+            console.error('❌ Erro ao buscar prêmios:', error);
+            throw error;
+        }
+    }
 }
 
 // Função para inicializar o serviço quando o Firebase estiver pronto

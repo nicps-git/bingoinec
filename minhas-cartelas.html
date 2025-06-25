@@ -66,6 +66,8 @@
                     <div class="form-actions">
                         <button type="submit" class="btn-consultar">🔍 Consultar Cartelas</button>
                         <button type="button" onclick="forcarTransicao()" class="btn-emergencia" style="background: orange; margin-top: 10px;">🚨 Forçar Acesso (Emergência)</button>
+                        <button type="button" onclick="testarFirebase()" class="btn-emergencia" style="background: blue; margin-top: 10px;">🧪 Testar Firebase</button>
+                        <button type="button" onclick="diagnosticarNumerosSorteados()" class="btn-emergencia" style="background: purple; margin-top: 10px;">🔍 Diagnóstico Números</button>
                     </div>
 
                     <div class="info-consulta">
@@ -94,7 +96,11 @@
             <div class="sorteio-status">
                 <div class="status-header">
                     <h3>🎲 Status do Sorteio</h3>
-                    <button onclick="atualizarSorteio()" class="btn-atualizar">🔄 Atualizar</button>
+                    <div class="botoes-teste">
+                        <button onclick="forcarAtualizacaoNumeros()" class="btn-atualizar">🔄 Atualizar</button>
+                        <button onclick="testarBuscaNumeros()" class="btn-teste" style="background: #17a2b8; color: white; margin-left: 5px;">🧪 Testar Busca</button>
+                        <button onclick="forcarDadosSimulados()" class="btn-teste" style="background: #28a745; color: white; margin-left: 5px;">🎮 Usar Simulados</button>
+                    </div>
                 </div>
                 <div class="status-info">
                     <div class="status-item">
@@ -170,10 +176,9 @@
     <!-- Firebase Configuration -->
     <script src="firebase-config.js"></script>
     <script src="firebase-service.js"></script>
-    <script src="patch-busca-robusta.js"></script>
+    <!-- Usando versão simplificada para teste -->
     
-    <script src="login.js"></script>
-    <script src="minhas-cartelas.js"></script>
+    <script src="minhas-cartelas-simple.js"></script>
     
     <script>
         // Debug para verificar se as funções estão disponíveis
