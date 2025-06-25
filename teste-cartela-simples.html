@@ -3,83 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teste Geração de Cartela</title>
+    <title>Teste Cartela Simples</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .cartela { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin: 20px 0; }
-        .numero { border: 1px solid #ccc; padding: 10px; text-align: center; background: #f0f0f0; }
-        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff8c00, #ffa500);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin: 10px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        #cartela-preview {
+            margin: 20px 0;
+            min-height: 200px;
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
-    <h1>Teste Geração de Cartela</h1>
-    <button id="gerar-cartela">Gerar Cartela</button>
-    <div id="cartela-preview"></div>
+    <div class="container">
+        <h1>🎫 Teste Cartela Simples</h1>
+        
+        <div id="cartela-preview">
+            <p>Clique no botão para gerar uma cartela</p>
+        </div>
+        
+        <div style="text-align: center;">
+            <button id="gerar-preview" class="btn-primary" onclick="gerarCartela()">🎲 Gerar Nova Cartela</button>
+        </div>
+        
+        <div id="debug" style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px; font-family: monospace; font-size: 12px;"></div>
+    </div>
 
     <script>
-        function gerarNumerosCartela(min, max) {
-            const numeros = [];
-            const totalRange = max - min + 1;
-            const colSize = Math.floor(totalRange / 5);
+        console.log('🚀 Script carregado');
+        
+        function log(message) {
+            console.log(message);
+            const debug = document.getElementById('debug');
+            debug.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+        }
+        
+        function gerarCartela() {
+            log('🎲 gerarCartela() chamada!');
             
-            const ranges = [
-                { min: min, max: Math.min(min + colSize - 1, max) },
-                { min: Math.min(min + colSize, max), max: Math.min(min + (colSize * 2) - 1, max) },
-                { min: Math.min(min + (colSize * 2), max), max: Math.min(min + (colSize * 3) - 1, max) },
-                { min: Math.min(min + (colSize * 3), max), max: Math.min(min + (colSize * 4) - 1, max) },
-                { min: Math.min(min + (colSize * 4), max), max: max }
-            ];
-
-            for (let col = 0; col < 5; col++) {
-                const colNums = [];
-                const range = ranges[col];
-                
-                if (range.min > range.max) continue;
-                
-                while (colNums.length < 5) {
-                    const num = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
-                    if (!colNums.includes(num)) {
-                        colNums.push(num);
-                    }
+            try {
+                // Gerar números aleatórios
+                const numeros = [];
+                for (let i = 0; i < 15; i++) {
+                    numeros.push(Math.floor(Math.random() * 75) + 1);
                 }
+                numeros.sort((a, b) => a - b);
                 
-                colNums.sort((a, b) => a - b);
-                numeros.push(...colNums);
+                log('📋 Números gerados: ' + numeros.join(', '));
+                
+                // Mostrar cartela
+                const container = document.getElementById('cartela-preview');
+                container.innerHTML = `
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <h3 style="margin: 0 0 15px 0;">🎫 Cartela ${Date.now().toString().slice(-6)}</h3>
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 300px; margin: 0 auto;">
+                            ${numeros.map(num => 
+                                `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold;">${num}</div>`
+                            ).join('')}
+                        </div>
+                        <p style="margin: 15px 0 0 0; font-weight: bold;">Preço: R$ 5,00</p>
+                    </div>
+                `;
+                
+                log('✅ Cartela gerada com sucesso!');
+                
+            } catch (error) {
+                log('❌ Erro: ' + error.message);
+                console.error(error);
             }
-            
-            return numeros;
         }
-
-        function exibirCartela(numeros) {
-            const preview = document.getElementById('cartela-preview');
+        
+        // Configurar eventos quando DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', function() {
+            log('📋 DOM carregado');
             
-            let html = '<div class="cartela">';
-            numeros.forEach(numero => {
-                html += `<div class="numero">${numero}</div>`;
-            });
-            html += '</div>';
+            const btn = document.getElementById('gerar-preview');
+            log('🔍 Botão encontrado: ' + (btn ? 'SIM' : 'NÃO'));
             
-            preview.innerHTML = html;
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const button = document.getElementById('gerar-cartela');
-            
-            button.addEventListener('click', () => {
-                console.log('Botão clicado!');
+            if (btn) {
+                // Adicionar event listener também
+                btn.addEventListener('click', function() {
+                    log('🖱️ Click event listener disparado');
+                });
                 
-                try {
-                    const numeros = gerarNumerosCartela(1, 75);
-                    console.log('Números gerados:', numeros);
-                    exibirCartela(numeros);
-                } catch (error) {
-                    console.error('Erro ao gerar cartela:', error);
-                    alert('Erro: ' + error.message);
-                }
-            });
-            
-            console.log('Página carregada, botão configurado');
+                log('✅ Event listener configurado');
+            }
         });
+        
+        log('🏁 Script inicializado');
     </script>
 </body>
 </html>

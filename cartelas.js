@@ -1,701 +1,767 @@
-// ===== FUNÇÕES DE VERIFICAÇÃO DE ACESSO =====
+// CARTELAS.JS - VERSÃO SIMPLES E FUNCIONAL
+console.log('🎫 Carregando cartelas.js...');
 
+// Variáveis globais
+let cartelaAtual = null;
+let carrinho = [];
+let configuracoes = {
+    numeroInicial: 1,
+    numeroFinal: 75,
+    precoCartela: 5.00
+};
+
+// Recuperar carrinho do localStorage
+function carregarCarrinhoDoStorage() {
+    try {
+        const carrinhoStorage = localStorage.getItem('bingo-carrinho');
+        if (carrinhoStorage) {
+            const carrinhoRecuperado = JSON.parse(carrinhoStorage);
+            if (Array.isArray(carrinhoRecuperado)) {
+                carrinho = carrinhoRecuperado;
+                window.carrinho = carrinho;
+                console.log('🔄 Carrinho recuperado do localStorage:', carrinho);
+                return true;
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Erro ao recuperar carrinho do localStorage:', error);
+    }
+    return false;
+}
+
+// Variáveis Firebase
+let firebaseService = null;
+
+// Função principal para gerar cartela (renomeada para evitar conflito)
+function gerarCartelaCompleta() {
+    console.log('🎲 Gerando nova cartela completa...');
+    
+    try {
+        // Gerar números aleatórios
+        const numeros = [];
+        const numeroInicial = 1;
+        const numeroFinal = 75;
+        
+        // Criar array de números disponíveis
+        const disponiveis = [];
+        for (let i = numeroInicial; i <= numeroFinal; i++) {
+            disponiveis.push(i);
+        }
+        
+        // Escolher 24 números aleatórios (padrão do BINGO sem o espaço livre central)
+        for (let i = 0; i < 24; i++) {
+            const indice = Math.floor(Math.random() * disponiveis.length);
+            numeros.push(disponiveis.splice(indice, 1)[0]);
+        }
+        
+        // Ordenar números
+        numeros.sort((a, b) => a - b);
+        
+        // Criar objeto da cartela
+        cartelaAtual = {
+            id: `CART-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            numeros: numeros,
+            preco: 5.00,
+            status: 'preview'
+        };
+        
+        console.log('📋 Cartela gerada:', cartelaAtual);
+        
+        // Mostrar cartela na tela
+        mostrarCartela(cartelaAtual);
+        
+        console.log('✅ Cartela exibida com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar cartela:', error);
+        alert('Erro ao gerar cartela: ' + error.message);
+    }
+}
+
+// Inicializar Firebase
+async function inicializarFirebase() {
+    try {
+        console.log('🔥 Inicializando Firebase...');
+        
+        // Verificar se firebase está disponível
+        if (typeof firebase === 'undefined') {
+            console.warn('⚠️ Firebase SDK não disponível ainda');
+            return;
+        }
+        
+        // Verificar se a função de inicialização unificada existe
+        if (typeof initializeFirebaseUnified === 'function') {
+            await initializeFirebaseUnified();
+            console.log('✅ Firebase inicializado via função unificada');
+        } else if (typeof FirebaseService !== 'undefined') {
+            firebaseService = new FirebaseService();
+            console.log('✅ Firebase Service criado');
+        } else {
+            console.warn('⚠️ Nenhuma função de inicialização encontrada');
+        }
+        
+        // Verificar se FirebaseDB está disponível
+        if (window.FirebaseDB) {
+            console.log('✅ FirebaseDB disponível e pronto para uso');
+        } else {
+            console.warn('⚠️ FirebaseDB não foi inicializado');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao inicializar Firebase:', error);
+    }
+}
+
+// Função para verificar acesso admin (corrige erro do console)
 function verificarAcessoAdmin() {
     console.log('🔐 Redirecionando para área administrativa...');
     window.location.href = 'admin.html';
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 Inicializando página de cartelas...');
+// Registrar função completa globalmente
+window.gerarCartelaCompleta = gerarCartelaCompleta;
+window.gerarCartela = gerarCartelaCompleta; // Alias para compatibilidade
+window.adicionarAoCarrinhoCompleta = adicionarAoCarrinhoCompleta;
+window.abrirModalCompleto = abrirModal;
+window.processarCompraCompleta = processarCompra;
+
+// Expor variáveis e funções globais para sincronização
+window.carrinho = carrinho;
+window.atualizarCarrinho = atualizarCarrinho;
+window.verificarAcessoAdmin = verificarAcessoAdmin;
+
+// Aguardar DOM carregar
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 DOM carregado, configurando eventos...');
     
-    // Função para normalizar telefone (remover formatação) - VERSÃO PADRONIZADA
-    function normalizarTelefone(telefone) {
-        if (!telefone) return '';
-        // Remove todos os caracteres que não são números
-        const telefoneNumerico = telefone.toString().replace(/\D/g, '');
-        console.log('📱 Normalizando telefone:', {
-            original: telefone,
-            normalizado: telefoneNumerico,
-            tamanho: telefoneNumerico.length
-        });
-        return telefoneNumerico;
+    // Carregar carrinho do localStorage
+    carregarCarrinhoDoStorage();
+    
+    // Aguardar Firebase estar disponível
+    console.log('⏳ Aguardando Firebase...');
+    let tentativas = 0;
+    const maxTentativas = 50; // 5 segundos máximo
+    
+    while ((!window.FirebaseDB || typeof firebase === 'undefined') && tentativas < maxTentativas) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        tentativas++;
     }
     
-    const precoCartelaSpan = document.getElementById('preco-cartela');
-    const cartelasDisponiveisSpan = document.getElementById('cartelas-disponiveis');
-    const cartelaPreview = document.getElementById('cartela-preview');
-    const gerarPreviewBtn = document.getElementById('gerar-preview');
-    const comprarCartelaBtn = document.getElementById('comprar-cartela');
-    const carrinhoLista = document.getElementById('carrinho-lista');
-    const carrinhoTotal = document.getElementById('carrinho-total');
-    const finalizarCompraBtn = document.getElementById('finalizar-compra');
-    const limparCarrinhoBtn = document.getElementById('limpar-carrinho');
-    const modalCheckout = document.getElementById('modal-checkout');
-    const formCheckout = document.getElementById('form-checkout');
-    const closeModal = document.querySelector('.close');
-
-    console.log('📋 Elementos DOM obtidos');
-
-    let cartelaAtual = null;
-    let carrinho = [];
-    let configuracoes = {};
-
-    console.log('📊 Variáveis inicializadas');
-
-    // Inicializar Firebase Service
-    console.log('🔥 Inicializando Firebase Service...');
-    
-    let firebaseService = null;
-    let conexaoOk = false;
-    let statusFirebase = 'desconhecido';
-    
-    // Função para inicializar Firebase Service
-    async function inicializarFirebaseService() {
-        try {
-            // Verificar se Firebase está carregado
-            if (typeof firebase === 'undefined') {
-                throw new Error('Firebase SDK não carregado');
-            }
-            
-            // Tentar criar instância do Firebase Service
-            if (typeof FirebaseService !== 'undefined') {
-                firebaseService = new FirebaseService();
-                console.log('✅ Firebase Service instanciado');
-                
-                // Verificar conexão
-                try {
-                    conexaoOk = await firebaseService.verificarConexao();
-                    statusFirebase = conexaoOk ? 'conectado' : 'offline';
-                } catch (connError) {
-                    console.warn('⚠️ Erro na verificação de conexão, continuando...', connError.message);
-                    conexaoOk = true; // Assumir que está OK para não bloquear o sistema
-                    statusFirebase = 'assumido como conectado';
-                }
-            } else {
-                throw new Error('Classe FirebaseService não encontrada');
-            }
-            
-        } catch (error) {
-            console.error('❌ Erro ao inicializar Firebase:', error);
-            statusFirebase = 'erro: ' + error.message;
-            
-            // Fallback para uso direto do Firestore
-            console.log('🔧 Usando Firestore diretamente como fallback');
-            try {
-                firebaseService = {
-                    db: firebase.firestore(),
-                    async salvarCartela(cartela) {
-                        const cartelaCompleta = {
-                            ...cartela,
-                            id: cartela.id || `cartela_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                            dataGravacao: firebase.firestore.FieldValue.serverTimestamp()
-                        };
-                        await this.db.collection('cartelas').doc(cartelaCompleta.id).set(cartelaCompleta);
-                        console.log('✅ Cartela salva (fallback):', cartelaCompleta.id);
-                        return cartelaCompleta.id;
-                    },
-                    async carregarCartelasPorComprador(telefone, email) {
-                        const snapshot = await this.db.collection('cartelas').where('telefone', '==', telefone).get();
-                        const cartelas = [];
-                        snapshot.forEach(doc => cartelas.push({ id: doc.id, ...doc.data() }));
-                        return cartelas;
-                    },
-                    async carregarConfiguracoes() {
-                        return {
-                            numeroInicial: 1,
-                            numeroFinal: 75,
-                            precoCartela: 5.00
-                        };
-                    },
-                    async verificarConexao() {
-                        return true;
-                    }
-                };
-                conexaoOk = true;
-                statusFirebase = 'fallback ativo';
-            } catch (fallbackError) {
-                console.error('❌ Erro mesmo no fallback:', fallbackError);
-                // Último recurso - configurações fixas
-                firebaseService = {
-                    async carregarConfiguracoes() {
-                        return {
-                            numeroInicial: 1,
-                            numeroFinal: 75,
-                            precoCartela: 5.00
-                        };
-                    },
-                    async salvarCartela() {
-                        console.warn('⚠️ Firebase não disponível - dados não salvos');
-                        return 'local-' + Date.now();
-                    },
-                    async carregarCartelasPorComprador() {
-                        return [];
-                    }
-                };
-                conexaoOk = false;
-                statusFirebase = 'apenas local';
-            }
-        }
-        
-        console.log(`🔥 Status Firebase: ${statusFirebase}`);
-        
-        if (!conexaoOk) {
-            console.warn('⚠️ Modo offline - usando armazenamento local como backup');
-        }
+    if (window.FirebaseDB && typeof firebase !== 'undefined') {
+        console.log('✅ Firebase disponível após', tentativas * 100, 'ms');
+    } else {
+        console.warn('⚠️ Firebase não disponível após timeout, continuando...');
     }
-
-    // Carregar dados iniciais
-    async function carregarDados() {
-        try {
-            // Primeiro inicializar o Firebase Service
-            await inicializarFirebaseService();
-            
-            // Tentar carregar configurações do Firebase
-            configuracoes = await firebaseService.carregarConfiguracoes();
-            console.log('✅ Configurações carregadas do Firebase');
-        } catch (error) {
-            console.error('❌ Erro ao carregar configurações do Firebase:', error);
-            // Usar configurações padrão
-            configuracoes = {
-                numeroInicial: 1,
-                numeroFinal: 75,
-                precoCartela: 5.00
-            };
-            console.log('🔧 Usando configurações padrão');
-        }
-        
-        const preco = configuracoes.precoCartela || 5.00;
-        precoCartelaSpan.textContent = `R$ ${preco.toFixed(2)}`;
-        
-        // Carregar carrinho do localStorage temporariamente (apenas sessão)
-        carrinho = JSON.parse(localStorage.getItem('bingo_carrinho') || '[]');
+    
+    setTimeout(function() {
+        configurarBotaoGerar();
+        configurarOutrosBotoes();
         atualizarCarrinho();
         
-        console.log('✅ Dados carregados - sistema pronto');
-    }
-
-    // Gerar preview da cartela
-    function gerarPreview() {
-        const inicial = configuracoes.numeroInicial || 1;
-        const final = configuracoes.numeroFinal || 75;
+        // Sincronizar com interface se há itens no carrinho simples
+        sincronizarCarrinhoInicial();
         
-        if (final - inicial + 1 < 25) {
-            alert('⚠️ Range insuficiente para gerar cartela. Configure no painel administrativo.');
-            return;
-        }
+        setTimeout(inicializarFirebase, 500);
+    }, 100);
+});
 
-        cartelaAtual = {
-            id: Date.now(),
-            numeros: gerarNumerosCartela(inicial, final),
-            preco: configuracoes.precoCartela || 5.00
-        };
-
-        exibirCartela(cartelaAtual);
-        comprarCartelaBtn.disabled = false;
-    }
-
-    // Gerar números da cartela
-    function gerarNumerosCartela(min, max) {
-        const numeros = [];
-        const totalRange = max - min + 1;
-        const colSize = Math.floor(totalRange / 5);
+// Sincronizar carrinho inicial com interface
+function sincronizarCarrinhoInicial() {
+    const itensSimples = document.querySelectorAll('#carrinho-lista .item-carrinho');
+    if (itensSimples.length > 0 && carrinho.length === 0) {
+        console.log('🔄 Sincronizando carrinho inicial...');
         
-        const ranges = [
-            { min: min, max: Math.min(min + colSize - 1, max) },
-            { min: Math.min(min + colSize, max), max: Math.min(min + (colSize * 2) - 1, max) },
-            { min: Math.min(min + (colSize * 2), max), max: Math.min(min + (colSize * 3) - 1, max) },
-            { min: Math.min(min + (colSize * 3), max), max: Math.min(min + (colSize * 4) - 1, max) },
-            { min: Math.min(min + (colSize * 4), max), max: max }
-        ];
-
-        for (let col = 0; col < 5; col++) {
-            const colNums = [];
-            const range = ranges[col];
-            
-            if (range.min > range.max) continue;
-            
-            while (colNums.length < 5) {
-                const num = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
-                if (!colNums.includes(num)) {
-                    colNums.push(num);
+        // Criar cartelas fictícias para cada item da interface
+        for (let i = 0; i < itensSimples.length; i++) {
+            const cartela = {
+                id: `CART-SYNC-${Date.now()}-${i}`,
+                // Gerar 24 números únicos de 1 a 75
+                const numerosUnicos = [];
+                const disponiveis = Array.from({length: 75}, (_, i) => i + 1);
+                for (let j = 0; j < 24; j++) {
+                    const indice = Math.floor(Math.random() * disponiveis.length);
+                    numerosUnicos.push(disponiveis.splice(indice, 1)[0]);
                 }
-            }
-            
-            colNums.sort((a, b) => a - b);
-            numeros.push(colNums);
-        }
-
-        // Espaço livre no centro
-        if (numeros[2]) {
-            numeros[2][2] = 'FREE';
+                numeros: numerosUnicos.sort((a, b) => a - b),
+                preco: 5.00,
+                status: 'no-carrinho'
+            };
+            carrinho.push(cartela);
         }
         
-        return numeros;
+        console.log(`✅ ${carrinho.length} cartela(s) sincronizada(s)`);
     }
+}
 
-    // Exibir cartela no preview
-    function exibirCartela(cartela) {
-        const html = `
-            <div class="cartela-bingo">
-                <div class="cell header">B</div>
-                <div class="cell header">I</div>
-                <div class="cell header">N</div>
-                <div class="cell header">G</div>
-                <div class="cell header">O</div>
-                ${cartela.numeros.map((col, colIndex) => 
-                    col.map((num, rowIndex) => 
-                        `<div class="cell ${num === 'FREE' ? 'free' : ''}">${num === 'FREE' ? '★' : num}</div>`
-                    ).join('')
+// Função dedicada para configurar o botão gerar
+function configurarBotaoGerar() {
+    console.log('🎯 Configurando botão gerar...');
+    
+    const btnGerar = document.getElementById('gerar-preview');
+    
+    if (!btnGerar) {
+        console.error('❌ Botão gerar-preview não encontrado no DOM');
+        return;
+    }
+    
+    console.log('✅ Botão encontrado:', btnGerar);
+    
+    // Configuração mais direta - apenas onclick
+    btnGerar.onclick = function() {
+        console.log('🖱️ CLIQUE DETECTADO!');
+        gerarCartelaCompleta();
+        return false;
+    };
+    
+    console.log('✅ Botão configurado');
+}
+
+// Função wrapper para executar geração
+function executarGeracao() {
+    console.log('🎲 Executando geração de cartela...');
+    
+    try {
+        gerarCartelaCompleta();
+    } catch (error) {
+        console.error('❌ Erro ao executar gerarCartelaCompleta:', error);
+        alert('Erro: ' + error.message);
+    }
+}
+
+// Mostrar cartela na interface
+function mostrarCartela(cartela) {
+    const container = document.getElementById('cartela-preview');
+    if (!container) {
+        console.error('❌ Container cartela-preview não encontrado');
+        return;
+    }
+    
+    // HTML da cartela com formato BINGO 5x5 (24 números + espaço livre)
+    container.innerHTML = `
+        <div style="background: white; color: black; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+            <h3 style="margin: 0 0 15px 0; text-align: center;">🎫 Cartela ${cartela.id.substring(5, 15)}</h3>
+            
+            <!-- Header BINGO -->
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px 0;">
+                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">B</div>
+                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">I</div>
+                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">N</div>
+                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">G</div>
+                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">O</div>
+            </div>
+            
+            <!-- Grid de números (5x5 com espaço livre central) -->
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 15px 0;">
+                ${cartela.numeros.slice(0, 12).map(num => 
+                    `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
+                ).join('')}
+                <div style="background: #f39c12; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 14px;">⭐<br>LIVRE</div>
+                ${cartela.numeros.slice(12).map(num => 
+                    `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
                 ).join('')}
             </div>
-        `;
-        
-        cartelaPreview.innerHTML = html;
-        
-        // Animação de entrada
-        const cells = cartelaPreview.querySelectorAll('.cell');
-        cells.forEach((cell, index) => {
-            cell.style.opacity = '0';
-            cell.style.transform = 'scale(0)';
-            setTimeout(() => {
-                cell.style.transition = 'all 0.3s ease';
-                cell.style.opacity = '1';
-                cell.style.transform = 'scale(1)';
-            }, index * 50);
-        });
+            
+            <p style="text-align: center; margin: 15px 0 0 0; font-size: 18px; font-weight: bold;">
+                💰 Preço: R$ ${cartela.preco.toFixed(2)} | 🎯 ${cartela.numeros.length} números
+            </p>
+        </div>
+    `;
+    
+    // Habilitar botão comprar
+    const btnComprar = document.getElementById('comprar-cartela');
+    if (btnComprar) {
+        btnComprar.disabled = false;
+        btnComprar.textContent = '🛒 Adicionar ao Carrinho';
     }
+    
+    console.log('✅ Cartela exibida na interface');
+}
 
-    // Adicionar cartela ao carrinho
-    function adicionarAoCarrinho() {
-        if (!cartelaAtual) return;
-
-        const item = {
-            id: cartelaAtual.id,
-            numeros: cartelaAtual.numeros,
-            preco: cartelaAtual.preco,
-            dataAdicao: new Date().toISOString()
-        };
-
-        carrinho.push(item);
-        localStorage.setItem('bingo_carrinho', JSON.stringify(carrinho));
-        
-        atualizarCarrinho();
-        
-        // Reset preview
-        cartelaAtual = null;
-        cartelaPreview.innerHTML = '<div class="cartela-vazia"><p>✅ Cartela adicionada ao carrinho!<br>Gere uma nova cartela para continuar.</p></div>';
-        comprarCartelaBtn.disabled = true;
-
-        // Feedback visual
-        comprarCartelaBtn.textContent = '✅ Adicionada!';
-        setTimeout(() => {
-            comprarCartelaBtn.textContent = '💳 Comprar Esta Cartela';
-        }, 2000);
+// Configurar outros botões
+function configurarOutrosBotoes() {
+    // Botão adicionar ao carrinho
+    const btnComprar = document.getElementById('comprar-cartela');
+    if (btnComprar) {
+        btnComprar.addEventListener('click', adicionarAoCarrinho);
+        console.log('✅ Botão comprar configurado');
     }
+    
+    // Botão finalizar compra
+    const btnFinalizar = document.getElementById('finalizar-compra');
+    if (btnFinalizar) {
+        btnFinalizar.addEventListener('click', abrirModal);
+        console.log('✅ Botão finalizar configurado');
+    }
+    
+    // Form de checkout
+    const formCheckout = document.getElementById('form-checkout');
+    if (formCheckout) {
+        console.log('📝 Formulário encontrado:', formCheckout);
+        
+        // Remover listeners anteriores se existirem
+        formCheckout.removeEventListener('submit', processarCompra);
+        
+        // Adicionar novo listener
+        formCheckout.addEventListener('submit', processarCompra);
+        console.log('✅ Form checkout configurado com processarCompra');
+        
+        // Teste direto do listener
+        console.log('🧪 Testando se listener foi adicionado...');
+        
+        // Adicionar também listener no botão submit para debug
+        const btnSubmit = formCheckout.querySelector('button[type="submit"]');
+        if (btnSubmit) {
+            btnSubmit.addEventListener('click', function(e) {
+                console.log('🖱️ Botão submit clicado!');
+                console.log('📋 Form será submetido...');
+            });
+            console.log('✅ Listener de debug adicionado ao botão submit');
+        }
+    } else {
+        console.error('❌ Formulário form-checkout não encontrado!');
+    }
+    
+    // Botão limpar carrinho
+    const btnLimpar = document.getElementById('limpar-carrinho');
+    if (btnLimpar) {
+        btnLimpar.addEventListener('click', limparCarrinho);
+        console.log('✅ Botão limpar configurado');
+    }
+}
 
-    // Atualizar exibição do carrinho
-    function atualizarCarrinho() {
+// Adicionar cartela ao carrinho
+function adicionarAoCarrinho() {
+    if (!cartelaAtual) {
+        alert('Gere uma cartela primeiro!');
+        return;
+    }
+    
+    console.log('🛒 Adicionando ao carrinho...');
+    
+    // Adicionar cópia ao carrinho
+    carrinho.push({ ...cartelaAtual });
+    
+    // Sincronizar com variável global
+    window.carrinho = carrinho;
+    
+    // Salvar no localStorage para persistência
+    try {
+        localStorage.setItem('bingo-carrinho', JSON.stringify(carrinho));
+        console.log('💾 Carrinho salvo no localStorage');
+    } catch (error) {
+        console.warn('⚠️ Erro ao salvar carrinho no localStorage:', error);
+    }
+    
+    // Limpar cartela atual
+    cartelaAtual = null;
+    
+    // Limpar preview
+    const container = document.getElementById('cartela-preview');
+    if (container) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><p>Clique em "Gerar Cartela" para ver sua cartela</p></div>';
+    }
+    
+    // Desabilitar botão comprar
+    const btnComprar = document.getElementById('comprar-cartela');
+    if (btnComprar) {
+        btnComprar.disabled = true;
+        btnComprar.textContent = '🛒 Comprar Esta Cartela';
+    }
+    
+    // Atualizar carrinho
+    atualizarCarrinho();
+    
+    console.log('✅ Cartela adicionada ao carrinho');
+}
+
+// Função completa para adicionar ao carrinho (com integração Firebase)
+function adicionarAoCarrinhoCompleta() {
+    console.log('🛒 Adicionando ao carrinho (versão completa)...');
+    adicionarAoCarrinho();
+}
+
+// Atualizar carrinho
+function atualizarCarrinho() {
+    const lista = document.getElementById('carrinho-lista');
+    const total = document.getElementById('carrinho-total');
+    
+    if (lista) {
         if (carrinho.length === 0) {
-            carrinhoLista.innerHTML = '<p class="carrinho-vazio">Carrinho vazio</p>';
-            carrinhoTotal.textContent = 'R$ 0,00';
-            finalizarCompraBtn.disabled = true;
-            return;
-        }
-
-        const total = carrinho.reduce((sum, item) => sum + item.preco, 0);
-        
-        carrinhoLista.innerHTML = carrinho.map((item, index) => `
-            <div class="carrinho-item">
-                <div>
-                    <strong>Cartela #${index + 1}</strong><br>
-                    <small>R$ ${item.preco.toFixed(2)}</small>
+            lista.innerHTML = '<p class="carrinho-vazio">Carrinho vazio</p>';
+        } else {
+            lista.innerHTML = carrinho.map((cartela, index) => `
+                <div class="item-carrinho" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee;">
+                    <span>Cartela ${index + 1}</span>
+                    <span>R$ ${cartela.preco.toFixed(2)}</span>
+                    <button onclick="removerDoCarrinho(${index})" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">❌</button>
                 </div>
-                <button onclick="removerDoCarrinho(${index})" class="btn-danger" style="padding: 5px 10px; font-size: 12px;">
-                    🗑️
-                </button>
-            </div>
-        `).join('');
-
-        carrinhoTotal.textContent = `R$ ${total.toFixed(2)}`;
-        finalizarCompraBtn.disabled = false;
-    }
-
-    // Remover item do carrinho
-    function removerDoCarrinho(index) {
-        carrinho.splice(index, 1);
-        localStorage.setItem('bingo_carrinho', JSON.stringify(carrinho));
-        atualizarCarrinho();
-    }
-
-    // Limpar carrinho
-    function limparCarrinho() {
-        if (carrinho.length === 0) return;
-        
-        if (confirm('🗑️ Deseja limpar todo o carrinho?')) {
-            carrinho = [];
-            localStorage.setItem('bingo_carrinho', JSON.stringify(carrinho));
-            atualizarCarrinho();
+            `).join('');
         }
     }
-
-    // Abrir modal de checkout
-    function abrirCheckout() {
-        if (carrinho.length === 0) return;
-
-        const total = carrinho.reduce((sum, item) => sum + item.preco, 0);
-        
-        // Preencher resumo
-        document.getElementById('resumo-cartelas').innerHTML = `
-            <p><strong>${carrinho.length} cartela(s) selecionada(s)</strong></p>
-            ${carrinho.map((item, index) => `
-                <p>Cartela #${index + 1}: R$ ${item.preco.toFixed(2)}</p>
-            `).join('')}
-        `;
-        
-        document.getElementById('total-final').textContent = `R$ ${total.toFixed(2)}`;
-        
-        modalCheckout.style.display = 'block';
+    
+    if (total) {
+        const valorTotal = carrinho.reduce((sum, cartela) => sum + cartela.preco, 0);
+        total.textContent = `R$ ${valorTotal.toFixed(2)}`;
     }
-
-    // Fechar modal de checkout
-    function fecharCheckout() {
-        modalCheckout.style.display = 'none';
-        formCheckout.reset();
+    
+    // Habilitar/desabilitar botão finalizar
+    const btnFinalizar = document.getElementById('finalizar-compra');
+    if (btnFinalizar) {
+        btnFinalizar.disabled = carrinho.length === 0;
     }
+}
 
-    // Processar compra
-    async function processarCompra(event) {
-        event.preventDefault();
+// Remover do carrinho
+function removerDoCarrinho(index) {
+    console.log('🗑️ Removendo item', index);
+    carrinho.splice(index, 1);
+    // Sincronizar com variável global
+    window.carrinho = carrinho;
+    atualizarCarrinho();
+}
+
+// Limpar carrinho
+function limparCarrinho() {
+    console.log('🧹 Limpando carrinho...');
+    carrinho = [];
+    // Sincronizar com variável global
+    window.carrinho = carrinho;
+    atualizarCarrinho();
+}
+
+// Abrir modal
+function abrirModal() {
+    console.log('🎯 === ABRINDO MODAL ===');
+    console.log('🛒 Carrinho atual:', carrinho);
+    console.log('📊 Tamanho do carrinho:', carrinho.length);
+    
+    if (carrinho.length === 0) {
+        console.log('❌ Carrinho vazio, não abrindo modal');
+        alert('Carrinho vazio!');
+        return;
+    }
+    
+    const modal = document.getElementById('modal-checkout');
+    console.log('🔍 Modal encontrado:', !!modal);
+    
+    if (modal) {
+        modal.style.display = 'block';
+        console.log('✅ Modal exibido');
         
-        console.log('📝 Processando compra - iniciando...');
+        // Atualizar resumo da compra
+        const resumoCartelas = document.getElementById('resumo-cartelas');
+        console.log('🔍 Resumo cartelas encontrado:', !!resumoCartelas);
         
-        // Capturar dados do formulário com validação
-        const nomeInput = document.getElementById('nome-comprador');
-        const telefoneInput = document.getElementById('telefone-comprador');
-        const emailInput = document.getElementById('email-comprador');
-        
-        console.log('📋 Elementos do formulário:', {
-            nomeInput: !!nomeInput,
-            telefoneInput: !!telefoneInput,
-            emailInput: !!emailInput
-        });
-        
-        if (!nomeInput || !telefoneInput) {
-            console.error('❌ Elementos do formulário não encontrados!');
-            alert('❌ Erro interno: Formulário não encontrado. Recarregue a página.');
-            return;
+        if (resumoCartelas) {
+            resumoCartelas.innerHTML = `
+                <p>${carrinho.length} cartela(s) selecionada(s)</p>
+                ${carrinho.map((cartela, index) => 
+                    `<p>Cartela ${index + 1}: R$ ${cartela.preco.toFixed(2)}</p>`
+                ).join('')}
+            `;
+            console.log('✅ Resumo atualizado');
         }
+        
+        const totalFinal = document.getElementById('total-final');
+        if (totalFinal) {
+            const total = carrinho.reduce((sum, cartela) => sum + cartela.preco, 0);
+            totalFinal.textContent = `R$ ${total.toFixed(2)}`;
+        }
+        
+        console.log('💳 Modal aberto');
+    }
+}
+
+// Fechar modal
+function fecharModal() {
+    const modal = document.getElementById('modal-checkout');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Função global para fechar modal (usada no HTML)
+function fecharCheckout() {
+    fecharModal();
+}
+
+// Processar compra e gravar no Firebase
+async function processarCompra(event) {
+    console.log('🎯 === PROCESSAR COMPRA CHAMADA ===');
+    console.log('📋 Event:', event);
+    console.log('📋 Event type:', event.type);
+    console.log('📋 Target:', event.target);
+    
+    event.preventDefault();
+    
+    console.log('💰 Processando compra...');
+    console.log('🔥 Firebase disponível:', typeof firebase !== 'undefined');
+    console.log('🔥 FirebaseDB disponível:', !!window.FirebaseDB);
+    
+    // === SINCRONIZAÇÃO CRÍTICA DO CARRINHO ===
+    console.log('🔄 Verificando sincronização do carrinho...');
+    console.log('🛒 Carrinho local:', carrinho);
+    console.log('🌐 Carrinho global:', window.carrinho);
+    
+    // Priorizar carrinho com mais itens ou o global se existir
+    if (window.carrinho && window.carrinho.length > 0) {
+        if (carrinho.length === 0 || window.carrinho.length > carrinho.length) {
+            carrinho = [...window.carrinho];
+            console.log('🔄 Carrinho sincronizado com dados globais:', carrinho);
+        }
+    }
+    
+    // Se ainda não há carrinho, tentar recuperar do localStorage
+    if (carrinho.length === 0) {
+        try {
+            const carrinhoStorage = localStorage.getItem('bingo-carrinho');
+            if (carrinhoStorage) {
+                const carrinhoRecuperado = JSON.parse(carrinhoStorage);
+                if (Array.isArray(carrinhoRecuperado) && carrinhoRecuperado.length > 0) {
+                    carrinho = carrinhoRecuperado;
+                    console.log('🔄 Carrinho recuperado do localStorage:', carrinho);
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Erro ao recuperar carrinho do localStorage:', error);
+        }
+    }
+    
+    console.log('📊 Carrinho final para processamento:', carrinho);
+    console.log('📊 Total de itens no carrinho:', carrinho.length);
+    
+    try {
+        // Verificar se o Firebase está disponível
+        if (typeof firebase === 'undefined') {
+            throw new Error('Firebase não está carregado. Verifique os scripts no HTML.');
+        }
+        
+        // Verificar se FirebaseDB foi inicializado
+        if (!window.FirebaseDB) {
+            console.warn('⚠️ FirebaseDB não disponível, tentando inicializar...');
+            
+            // Tentar inicializar Firebase manualmente
+            if (typeof initializeFirebaseUnified === 'function') {
+                await initializeFirebaseUnified();
+            } else {
+                throw new Error('Função de inicialização do Firebase não encontrada');
+            }
+            
+            // Verificar novamente
+            if (!window.FirebaseDB) {
+                throw new Error('Falha ao inicializar FirebaseDB');
+            }
+        }
+        
+        // Obter dados do formulário
+        const form = event.target;
+        const formData = new FormData(form);
         
         const comprador = {
-            nome: nomeInput.value.trim(),
-            telefone: telefoneInput.value.trim(),
-            email: emailInput.value.trim() || null
+            nome: formData.get('nome') || document.getElementById('nome-comprador').value,
+            telefone: formData.get('telefone') || document.getElementById('telefone-comprador').value
         };
-
-        console.log('👤 Dados capturados do comprador:', comprador);
         
-        // Validações
-        if (!comprador.nome) {
-            console.error('❌ Nome do comprador vazio!');
-            alert('❌ Por favor, informe seu nome completo.');
-            nomeInput.focus();
+        console.log('👤 Dados do comprador:', comprador);
+        
+        // Validar dados obrigatórios
+        if (!comprador.nome || !comprador.nome.trim()) {
+            alert('Nome é obrigatório!');
             return;
         }
         
-        if (!comprador.telefone) {
-            console.error('❌ Telefone do comprador vazio!');
-            alert('❌ Por favor, informe seu telefone.');
-            telefoneInput.focus();
+        if (!comprador.telefone || !comprador.telefone.trim()) {
+            alert('Telefone é obrigatório!');
             return;
         }
-
-        // Declarar variável cartelasParaSalvar no topo da função
-        let cartelasParaSalvar = [];
-
-        try {
-            // Desabilitar botão para evitar duplo envio
-            const submitBtn = formCheckout.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Processando...';
-
-            console.log('💳 Iniciando processamento da compra...');
-            console.log('🛒 Carrinho:', carrinho);
-            console.log('👤 Comprador:', comprador);
-
-            // Verificar se o carrinho não está vazio
-            if (!carrinho || carrinho.length === 0) {
-                throw new Error('Carrinho está vazio');
-            }
-
-            // Preparar cartelas para salvar no formato correto
-            cartelasParaSalvar = carrinho.map(item => ({
-                id: `cartela_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                numeros: item.numeros,
-                preco: item.preco,
-                vendida: true,
-                comprador: comprador.nome,
-                telefone: normalizarTelefone(comprador.telefone), // Normalizar telefone
-                email: comprador.email,
-                dataVenda: new Date().toISOString(),
-                timestamp: new Date()
-            }));
-
-            console.log('🎫 Cartelas preparadas para salvar:', cartelasParaSalvar.length);
-            console.log('📝 Dados da primeira cartela:', cartelasParaSalvar[0]);
-            console.log('👤 Comprador associado:', {
-                nome: comprador.nome,
-                telefone: comprador.telefone,
-                telefoneNormalizado: normalizarTelefone(comprador.telefone),
-                email: comprador.email
-            });
-
-            // Verificar se o Firebase está disponível e funcional
-            let salvoComSucesso = false;
+        
+        // Verificar se há cartelas no carrinho
+        // Primeiro, sincronizar carrinho com os dados globais
+        if (window.carrinho && window.carrinho.length > 0) {
+            carrinho = window.carrinho;
+            console.log('🔄 Carrinho sincronizado com dados globais:', carrinho);
+        }
+        
+        if (!carrinho || carrinho.length === 0) {
+            alert('Carrinho vazio! Adicione cartelas antes de finalizar.');
+            console.error('❌ Carrinho está vazio:', carrinho);
+            return;
+        }
+        
+        console.log('🛒 Carrinho atual detalhado:', carrinho);
+        console.log(`📊 Total de cartelas no carrinho: ${carrinho.length}`);
+        
+        // Mostrar loading
+        const btnSubmit = form.querySelector('button[type="submit"]');
+        let textoOriginal = btnSubmit.textContent;
+        btnSubmit.textContent = '⏳ Salvando no Firebase...';
+        btnSubmit.disabled = true;
+        
+        console.log(`💾 Preparando ${carrinho.length} cartela(s) para salvar...`);
+        
+        // Preparar cartelas para salvar
+        const cartelasParaSalvar = carrinho.map((cartela, index) => {
+            const cartelaPreparada = {
+                id: cartela.id,
+                numeros: cartela.numeros,
+                preco: cartela.preco,
+                status: 'vendida',
+                comprador: {
+                    nome: comprador.nome.trim(),
+                    telefone: normalizarTelefone(comprador.telefone)
+                },
+                nome: comprador.nome.trim(),
+                telefone: normalizarTelefone(comprador.telefone),
+                dataCompra: new Date(),
+                timestamp: Date.now()
+            };
             
-            if (firebaseService) {
-                try {
-                    // Tentar salvar no Firebase
-                    console.log('🔥 Tentando salvar no Firebase...');
-                    console.log('🔧 Firebase Service:', firebaseService);
-                    
-                    // Salvar todas as cartelas no Firebase
-                    for (let i = 0; i < cartelasParaSalvar.length; i++) {
-                        const cartela = cartelasParaSalvar[i];
-                        console.log(`💾 Salvando cartela ${i + 1}/${cartelasParaSalvar.length}:`, cartela.id);
-                        console.log(`📝 Dados da cartela:`, JSON.stringify(cartela, null, 2));
-                        
-                        const idSalvo = await firebaseService.salvarCartela(cartela);
-                        console.log(`✅ Cartela ${cartela.id} salva com ID: ${idSalvo}`);
-                        
-                        // Verificação individual pós-gravação
-                        console.log(`🔍 Verificando cartela individual ${idSalvo}...`);
-                        try {
-                            // Usar a instância correta do db
-                            const dbInstance = firebaseService.db || firebase.firestore();
-                            const verificacao = await dbInstance.collection('cartelas').doc(idSalvo).get();
-                            if (verificacao.exists) {
-                                console.log(`✅ Cartela ${idSalvo} confirmada no banco`);
-                            } else {
-                                console.warn(`⚠️ Cartela ${idSalvo} não encontrada na verificação`);
-                            }
-                        } catch (verifError) {
-                            console.error(`❌ Erro na verificação individual:`, verifError);
-                        }
-                    }
-                    
-                    salvoComSucesso = true;
-                    console.log('✅ Todas as cartelas salvas no Firebase');
-                    
-                    // VALIDAÇÃO PÓS-GRAVAÇÃO MELHORADA
-                    console.log('🔍 Iniciando validação pós-gravação robusta...');
-                    
-                    // Aguardar 3 segundos para propagação
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                    
-                    try {
-                        console.log('📱 Buscando cartelas por telefone normalizado:', normalizarTelefone(comprador.telefone));
-                        
-                        // Múltiplas estratégias de busca
-                        const estrategiasBusca = [
-                            { campo: 'telefone', valor: normalizarTelefone(comprador.telefone) },
-                            { campo: 'telefone', valor: comprador.telefone },
-                            { campo: 'comprador', valor: comprador.nome }
-                        ];
-                        
-                        let cartelasEncontradas = [];
-                        
-                        for (const estrategia of estrategiasBusca) {
-                            try {
-                                console.log(`🔍 Buscando por ${estrategia.campo} = ${estrategia.valor}`);
-                                // Usar a instância correta do db
-                                const dbInstance = firebaseService.db || firebase.firestore();
-                                const snapshot = await dbInstance.collection('cartelas')
-                                    .where(estrategia.campo, '==', estrategia.valor)
-                                    .get();
-                                
-                                console.log(`📊 Encontradas ${snapshot.size} cartelas por ${estrategia.campo}`);
-                                
-                                if (snapshot.size > cartelasEncontradas.length) {
-                                    cartelasEncontradas = [];
-                                    snapshot.forEach(doc => {
-                                        cartelasEncontradas.push({ id: doc.id, ...doc.data() });
-                                    });
-                                    console.log(`✅ Melhor resultado: ${cartelasEncontradas.length} cartelas`);
-                                }
-                            } catch (buscaError) {
-                                console.error(`❌ Erro na busca por ${estrategia.campo}:`, buscaError);
-                            }
-                        }
-                        
-                        const cartelasRecentesSalvas = cartelasEncontradas.filter(cartela => 
-                            cartelasParaSalvar.some(salva => salva.id === cartela.id)
-                        );
-                        
-                        console.log('📊 Validação pós-gravação:', {
-                            cartelasSalvas: cartelasParaSalvar.length,
-                            cartelasEncontradas: cartelasEncontradas.length,
-                            cartelasRecentesEncontradas: cartelasRecentesSalvas.length
-                        });
-                        
-                        if (cartelasRecentesSalvas.length === cartelasParaSalvar.length) {
-                            console.log('✅ VALIDAÇÃO SUCESSO: Todas as cartelas encontradas após gravação!');
-                        } else {
-                            console.warn('⚠️ VALIDAÇÃO PARCIAL: Nem todas as cartelas foram encontradas');
-                            console.warn(`   Esperado: ${cartelasParaSalvar.length}, Encontrado: ${cartelasRecentesSalvas.length}`);
-                            
-                            // Log das cartelas não encontradas
-                            const naoEncontradas = cartelasParaSalvar.filter(salva => 
-                                !cartelasRecentesSalvas.some(encontrada => encontrada.id === salva.id)
-                            );
-                            console.warn('🔍 Cartelas não encontradas:', naoEncontradas.map(c => c.id));
-                        }
-                        
-                    } catch (validationError) {
-                        console.error('❌ Erro na validação pós-gravação:', validationError);
-                        console.warn('⚠️ Cartelas salvas mas validação falhou - pode haver problema de busca');
-                    }
-                    
-                } catch (firebaseError) {
-                    console.error('❌ Erro do Firebase:', firebaseError);
-                    console.error('❌ Stack trace completo:', firebaseError.stack);
-                    console.log('💾 Salvando localmente como backup...');
-                    
-                    // Salvar localmente como fallback
-                    const cartelasLocais = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
-                    cartelasLocais.push(...cartelasParaSalvar);
-                    localStorage.setItem('bingo_cartelas_vendidas', JSON.stringify(cartelasLocais));
-                    
-                    salvoComSucesso = true;
-                    console.log('✅ Cartelas salvas localmente como backup');
-                    console.warn('⚠️ IMPORTANTE: Dados salvos apenas localmente, sincronizar com Firebase posteriormente');
+            console.log(`📋 Cartela ${index + 1} preparada:`, cartelaPreparada);
+            return cartelaPreparada;
+        });
+        
+        console.log(`💾 Preparando ${cartelasParaSalvar.length} cartela(s) para salvar`);
+        
+        // Salvar cada cartela
+        const resultados = [];
+        console.log('🔥 Tentando salvar cartelas no Firebase...');
+        
+        // Verificar se FirebaseDB está disponível
+        if (!window.FirebaseDB) {
+            throw new Error('FirebaseDB não está disponível. Verifique se o firebase-config.js foi carregado.');
+        }
+        
+        for (let i = 0; i < cartelasParaSalvar.length; i++) {
+            const cartela = cartelasParaSalvar[i];
+            console.log(`💾 Salvando cartela ${i + 1}/${cartelasParaSalvar.length}:`, cartela);
+            
+            try {                        // Usar o método saveCartela do FirebaseDB (VERSÃO CORRIGIDA)
+                        console.log('🔥 Usando método FirebaseDB.saveCartela CORRIGIDO (método do admin)');
+                        const resultado = await window.FirebaseDB.saveCartela(cartela);
+                
+                if (resultado.success) {
+                    console.log(`✅ Cartela ${cartela.id} salva com ID Firebase: ${resultado.id}`);
+                    resultados.push({ id: resultado.id, status: 'sucesso', original: cartela.id });
+                } else {
+                    throw new Error('Falha ao salvar cartela');
                 }
-            } else {
-                console.log('💾 Firebase Service não disponível, salvando localmente...');
                 
-                // Salvar localmente
-                const cartelasLocais = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
-                cartelasLocais.push(...cartelasParaSalvar);
-                localStorage.setItem('bingo_cartelas_vendidas', JSON.stringify(cartelasLocais));
-                
-                salvoComSucesso = true;
-                console.log('✅ Cartelas salvas localmente');
-                console.warn('⚠️ IMPORTANTE: Dados salvos apenas localmente, Firebase não disponível');
+            } catch (error) {
+                console.error(`❌ Erro ao salvar cartela ${cartela.id}:`, error);
+                resultados.push({ id: cartela.id, status: 'erro', erro: error.message });
             }
+        }
+        
+        // Analisar resultados
+        const sucessos = resultados.filter(r => r.status === 'sucesso').length;
+        const erros = resultados.filter(r => r.status !== 'sucesso').length;
+        
+        console.log(`📊 RESULTADO FINAL: ${sucessos} sucessos, ${erros} erros`);
+        console.log('📋 Detalhes:', resultados);
+        
+        if (sucessos > 0) {
+            alert(`✅ ${sucessos} cartela(s) gravada(s) com sucesso no Firebase!${erros > 0 ? ` (${erros} erro(s))` : ''}`);
             
-            if (!salvoComSucesso) {
-                throw new Error('Não foi possível salvar as cartelas');
-            }
-
             // Limpar carrinho
             carrinho = [];
-            localStorage.setItem('bingo_carrinho', JSON.stringify(carrinho));
-
-            // Fechar modal
-            fecharCheckout();
+            // Sincronizar com variável global
+            window.carrinho = carrinho;
+            
+            // Limpar localStorage
+            try {
+                localStorage.removeItem('bingo-carrinho');
+                console.log('🧹 Carrinho removido do localStorage');
+            } catch (error) {
+                console.warn('⚠️ Erro ao limpar localStorage:', error);
+            }
+            
             atualizarCarrinho();
-
-            // Sucesso
-            alert(`🎉 Compra realizada com sucesso!\n\n👤 Comprador: ${comprador.nome}\n📱 Telefone: ${comprador.telefone}\n🎫 Cartelas: ${cartelasParaSalvar.length}\n\nSuas cartelas foram registradas no sistema!`);
             
-            // Criar confete
-            criarConfeteSucesso();
-
-        } catch (error) {
-            console.error('❌ Erro detalhado ao processar compra:', error);
-            console.error('❌ Stack trace:', error.stack);
+            // Fechar modal
+            fecharModal();
             
-            // Mostrar erro mais específico
-            let mensagemErro = 'Erro ao processar compra. ';
-            if (error.message.includes('Firebase Service')) {
-                mensagemErro += 'Sistema offline. Verifique sua conexão.';
-            } else if (error.message.includes('Permission denied')) {
-                mensagemErro += 'Problema de permissão no banco de dados.';
-            } else if (error.message.includes('Network')) {
-                mensagemErro += 'Problema de conexão. Verifique sua internet.';
-            } else {
-                mensagemErro += `Detalhes: ${error.message}`;
-            }
+            // Resetar formulário
+            form.reset();
             
-            alert('❌ ' + mensagemErro);
-        } finally {
-            // Reabilitar botão
-            const submitBtn = formCheckout.querySelector('button[type="submit"]');
-            submitBtn.disabled = false;
-            submitBtn.textContent = '🎉 Finalizar Compra';
+            console.log('🎉 Compra processada com sucesso!');
+        } else {
+            alert('❌ ERRO: Nenhuma cartela foi salva. Verifique sua conexão e tente novamente.');
+            console.error('❌ FALHA TOTAL: Nenhuma cartela foi salva');
         }
-    }
-
-    // Criar confete de sucesso
-    function criarConfeteSucesso() {
-        const elementos = ['🎉', '🎊', '✨', '🎈', '🌟', '⭐'];
         
-        for (let i = 0; i < 30; i++) {
-            setTimeout(() => {
-                const confete = document.createElement('div');
-                confete.style.position = 'fixed';
-                confete.style.left = Math.random() * 100 + 'vw';
-                confete.style.top = '-50px';
-                confete.style.fontSize = '2em';
-                confete.style.zIndex = '3000';
-                confete.style.pointerEvents = 'none';
-                confete.style.animation = 'confetti-fall 4s linear forwards';
-                confete.textContent = elementos[Math.floor(Math.random() * elementos.length)];
-                
-                document.body.appendChild(confete);
-                
-                setTimeout(() => confete.remove(), 4000);
-            }, i * 100);
+    } catch (error) {
+        console.error('❌ Erro crítico no processamento:', error);
+        alert(`❌ Erro crítico: ${error.message}`);
+    } finally {
+        // Restaurar botão
+        const btnSubmit = event.target.querySelector('button[type="submit"]');
+        if (btnSubmit) {
+            btnSubmit.textContent = textoOriginal;
+            btnSubmit.disabled = false;
         }
     }
+}
 
-    // Event listeners
-    console.log('🔗 Configurando event listeners...');
-    
-    gerarPreviewBtn.addEventListener('click', () => {
-        console.log('🎯 Botão Gerar Preview clicado!');
-        gerarPreview();
-    });
-    
-    comprarCartelaBtn.addEventListener('click', () => {
-        console.log('🛒 Botão Comprar clicado!');
-        adicionarAoCarrinho();
-    });
-    
-    finalizarCompraBtn.addEventListener('click', abrirCheckout);
-    limparCarrinhoBtn.addEventListener('click', limparCarrinho);
-    formCheckout.addEventListener('submit', processarCompra);
-    closeModal.addEventListener('click', fecharCheckout);
-    
-    // Fechar modal clicando fora
-    window.addEventListener('click', (event) => {
-        if (event.target === modalCheckout) {
-            fecharCheckout();
-        }
-    });
+// Normalizar telefone (remover formatação)
+function normalizarTelefone(telefone) {
+    if (!telefone) return '';
+    return telefone.toString().replace(/\D/g, '');
+}
 
-    // Tornar função global
-    window.removerDoCarrinho = removerDoCarrinho;
-    window.fecharCheckout = fecharCheckout;
-
-    // Adicionar estilos de animação
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes confetti-fall {
-            0% {
-                transform: translateY(-100vh) rotate(0deg);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(100vh) rotate(720deg);
-                opacity: 0;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Carregar dados ao iniciar
-    console.log('📊 Carregando dados iniciais...');
-    await carregarDados();
+// Função de teste para debug
+window.testarProcessarCompra = function() {
+    console.log('🧪 === TESTE DIRETO PROCESSAR COMPRA ===');
     
-    console.log('✅ Cartelas page loaded - Sistema pronto!');
-});
+    // Simular event
+    const fakeEvent = {
+        preventDefault: function() { console.log('preventDefault chamado'); },
+        type: 'submit',
+        target: document.getElementById('form-checkout')
+    };
+    
+    processarCompra(fakeEvent);
+};
+
+// Função para adicionar cartela de teste diretamente
+window.adicionarCartelaTest = function() {
+    console.log('🧪 Adicionando cartela de teste...');
+    
+    // Gerar 24 números únicos de 1 a 75
+    const numerosUnicos = [];
+    const disponiveis = Array.from({length: 75}, (_, i) => i + 1);
+    for (let j = 0; j < 24; j++) {
+        const indice = Math.floor(Math.random() * disponiveis.length);
+        numerosUnicos.push(disponiveis.splice(indice, 1)[0]);
+    }
+    
+    const cartelaTest = {
+        id: `TEST-${Date.now()}`,
+        numeros: numerosUnicos.sort((a, b) => a - b),
+        preco: 5.00,
+        status: 'preview'
+    };
+    
+    carrinho.push(cartelaTest);
+    window.carrinho = carrinho;
+    
+    // Salvar no localStorage
+    try {
+        localStorage.setItem('bingo-carrinho', JSON.stringify(carrinho));
+    } catch {}
+    
+    atualizarCarrinho();
+    console.log('✅ Cartela de teste adicionada:', cartelaTest);
+};
+
+// Função para preencher formulário automaticamente
+window.preencherFormulario = function() {
+    const nomeInput = document.getElementById('nome-comprador');
+    const telefoneInput = document.getElementById('telefone-comprador');
+    
+    if (nomeInput) nomeInput.value = 'Teste Debug';
+    if (telefoneInput) telefoneInput.value = '(11) 99999-0001';
+    
+    console.log('✅ Formulário preenchido automaticamente');
+};
+
+console.log('✅ Cartelas.js carregado - aguardando DOM...');

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚨 Debug Final - Sistema Cartelas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .debug-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 11px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        
+        .form-test {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .form-group {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .resultado-final {
+            background: #e9ecef;
+            border: 2px solid #6c757d;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚨 Debug Final - Sistema Cartelas</h1>
+    <p>Este é o teste definitivo para identificar por que as cartelas não estão sendo gravadas no Firebase.</p>
+    
+    <div class="debug-section">
+        <h3>📊 Status dos Componentes</h3>
+        <div id="status-firebase" class="status info">Verificando Firebase...</div>
+        <div id="status-firebasedb" class="status info">Verificando FirebaseDB...</div>
+        <div id="status-metodo" class="status info">Verificando método saveCartela...</div>
+        <div id="status-funcao-global" class="status info">Verificando função global...</div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>🔧 Testes Diretos</h3>
+        <button onclick="testarFirebaseConexao()">🔥 Testar Conexão Firebase</button>
+        <button onclick="testarMetodoSaveCartela()">💾 Testar Método saveCartela</button>
+        <button onclick="testarFuncaoGlobal()">🌐 Testar Função Global</button>
+        <button onclick="simularFluxoCompleto()">🎯 Simular Fluxo REAL</button>
+    </div>
+    
+    <div class="form-test">
+        <h3>📋 Formulário de Teste (Idêntico ao Real)</h3>
+        <form id="form-teste-real">
+            <div class="form-group">
+                <label for="nome-test">Nome Completo:</label>
+                <input type="text" id="nome-test" name="nome" value="Teste Final Debug" required>
+            </div>
+            <div class="form-group">
+                <label for="telefone-test">Telefone:</label>
+                <input type="tel" id="telefone-test" name="telefone" value="(11) 99999-0001" required>
+            </div>
+            <button type="submit">✅ Confirmar Compra (REAL)</button>
+        </form>
+    </div>
+    
+    <div class="debug-section">
+        <h3>📝 Log Detalhado</h3>
+        <button onclick="limparLog()">🧹 Limpar Log</button>
+        <div id="log-debug" class="log">Iniciando debug...</div>
+    </div>
+    
+    <div id="resultado-final" class="resultado-final" style="display: none;">
+        RESULTADO SERÁ EXIBIDO AQUI
+    </div>
+
+    <!-- Scripts EXATAMENTE como na página real -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    <script src="login.js"></script>
+    <script src="cartelas.js"></script>
+
+    <script>
+        let contadorTeste = 1;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('log-debug');
+            const color = type === 'error' ? 'red' : type === 'success' ? 'green' : type === 'warning' ? 'orange' : 'blue';
+            
+            logDiv.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        function updateStatus(id, message, type) {
+            const element = document.getElementById(id);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+        
+        function mostrarResultado(message, tipo) {
+            const div = document.getElementById('resultado-final');
+            div.textContent = message;
+            div.className = `resultado-final ${tipo}`;
+            div.style.display = 'block';
+        }
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Debug final carregado');
+            
+            // Configurar formulário REAL
+            const form = document.getElementById('form-teste-real');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                log('📝 === FORMULÁRIO REAL SUBMETIDO ===');
+                
+                // Chamar EXATAMENTE a mesma lógica do HTML principal
+                if (typeof window.processarCompraCompleta === 'function') {
+                    log('✅ Chamando window.processarCompraCompleta (MÉTODO REAL)');
+                    window.processarCompraCompleta(e);
+                } else {
+                    log('❌ window.processarCompraCompleta NÃO DISPONÍVEL', 'error');
+                    log('🔍 Tentando chamar função simples como fallback');
+                    
+                    // Tentar usar Firebase diretamente
+                    if (window.FirebaseDB && typeof window.FirebaseDB.saveCartela === 'function') {
+                        log('🔥 Usando Firebase diretamente...');
+                        testarGravacaoForçada();
+                    } else {
+                        log('❌ Firebase não disponível', 'error');
+                    }
+                }
+            });
+            
+            setTimeout(verificarStatusCompleto, 2000);
+        });
+        
+        function verificarStatusCompleto() {
+            log('🔍 === VERIFICAÇÃO COMPLETA DE STATUS ===');
+            
+            // 1. Firebase SDK
+            if (typeof firebase !== 'undefined') {
+                updateStatus('status-firebase', '✅ Firebase SDK carregado', 'success');
+                log('✅ Firebase SDK OK', 'success');
+            } else {
+                updateStatus('status-firebase', '❌ Firebase SDK não carregado', 'error');
+                log('❌ Firebase SDK FALHOU', 'error');
+            }
+            
+            // 2. FirebaseDB
+            if (window.FirebaseDB) {
+                updateStatus('status-firebasedb', '✅ FirebaseDB inicializado', 'success');
+                log('✅ FirebaseDB OK', 'success');
+            } else {
+                updateStatus('status-firebasedb', '❌ FirebaseDB não inicializado', 'error');
+                log('❌ FirebaseDB FALHOU', 'error');
+            }
+            
+            // 3. Método saveCartela
+            if (window.FirebaseDB && typeof window.FirebaseDB.saveCartela === 'function') {
+                updateStatus('status-metodo', '✅ Método saveCartela disponível', 'success');
+                log('✅ Método saveCartela OK', 'success');
+            } else {
+                updateStatus('status-metodo', '❌ Método saveCartela não encontrado', 'error');
+                log('❌ Método saveCartela FALHOU', 'error');
+            }
+            
+            // 4. Função global
+            if (typeof window.processarCompraCompleta === 'function') {
+                updateStatus('status-funcao-global', '✅ Função global disponível', 'success');
+                log('✅ Função global OK', 'success');
+            } else {
+                updateStatus('status-funcao-global', '❌ Função global não encontrada', 'error');
+                log('❌ Função global FALHOU', 'error');
+            }
+            
+            // Verificar carrinho
+            if (typeof window.carrinho !== 'undefined') {
+                log(`🛒 Carrinho global: ${window.carrinho.length} itens`);
+            } else {
+                log('🛒 Carrinho global não encontrado');
+            }
+        }
+        
+        async function testarFirebaseConexao() {
+            log('🔥 === TESTANDO CONEXÃO FIREBASE ===');
+            
+            try {
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                
+                log('✅ Firebase SDK disponível');
+                
+                const db = firebase.firestore();
+                log('✅ Firestore inicializado');
+                
+                // Teste de leitura simples
+                const testDoc = await db.collection('teste').doc('conexao').set({
+                    teste: true,
+                    timestamp: Date.now()
+                });
+                
+                log('✅ Teste de escrita no Firestore OK', 'success');
+                
+            } catch (error) {
+                log(`❌ Erro na conexão Firebase: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testarMetodoSaveCartela() {
+            log('💾 === TESTANDO MÉTODO SAVECARTELA ===');
+            
+            if (!window.FirebaseDB) {
+                log('❌ FirebaseDB não disponível', 'error');
+                return;
+            }
+            
+            if (typeof window.FirebaseDB.saveCartela !== 'function') {
+                log('❌ Método saveCartela não é uma função', 'error');
+                return;
+            }
+            
+            const cartelaTeste = {
+                id: `DEBUG-METODO-${Date.now()}`,
+                numeros: Array.from({length: 15}, () => Math.floor(Math.random() * 75) + 1).sort((a, b) => a - b),
+                preco: 5.00,
+                status: 'vendida',
+                comprador: {
+                    nome: 'Teste Método',
+                    telefone: '(11) 99999-0002'
+                },
+                nome: 'Teste Método',
+                telefone: '(11) 99999-0002',
+                dataCompra: new Date(),
+                timestamp: Date.now()
+            };
+            
+            try {
+                log('📤 Chamando FirebaseDB.saveCartela...');
+                const resultado = await window.FirebaseDB.saveCartela(cartelaTeste);
+                
+                if (resultado.success) {
+                    log(`✅ MÉTODO OK! ID: ${resultado.id}`, 'success');
+                    mostrarResultado('✅ MÉTODO SAVECARTELA FUNCIONA!', 'success');
+                } else {
+                    log('❌ Método retornou falha', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro no método: ${error.message}`, 'error');
+            }
+        }
+        
+        function testarFuncaoGlobal() {
+            log('🌐 === TESTANDO FUNÇÃO GLOBAL ===');
+            
+            if (typeof window.processarCompraCompleta !== 'function') {
+                log('❌ Função global não disponível', 'error');
+                return;
+            }
+            
+            // Criar evento fake
+            const eventoFake = {
+                preventDefault: () => log('preventDefault() chamado'),
+                target: document.getElementById('form-teste-real'),
+                type: 'submit'
+            };
+            
+            // Criar carrinho fake
+            if (!window.carrinho) {
+                window.carrinho = [];
+            }
+            
+            const cartelaFake = {
+                id: `FAKE-${Date.now()}`,
+                numeros: Array.from({length: 15}, () => Math.floor(Math.random() * 75) + 1).sort((a, b) => a - b),
+                preco: 5.00,
+                status: 'preview'
+            };
+            
+            window.carrinho.push(cartelaFake);
+            log(`🛒 Carrinho fake criado com 1 item`);
+            
+            try {
+                log('📤 Chamando window.processarCompraCompleta...');
+                window.processarCompraCompleta(eventoFake);
+                log('✅ Função chamada sem erro', 'success');
+            } catch (error) {
+                log(`❌ Erro na função global: ${error.message}`, 'error');
+            }
+        }
+        
+        async function simularFluxoCompleto() {
+            log('🎯 === SIMULAÇÃO FLUXO COMPLETO ===');
+            
+            try {
+                // 1. Verificar tudo
+                if (!window.FirebaseDB || typeof window.FirebaseDB.saveCartela !== 'function') {
+                    throw new Error('Firebase não disponível');
+                }
+                
+                // 2. Criar cartela
+                const cartela = {
+                    id: `FLUXO-COMPLETO-${Date.now()}`,
+                    numeros: Array.from({length: 15}, () => Math.floor(Math.random() * 75) + 1).sort((a, b) => a - b),
+                    preco: 5.00,
+                    status: 'vendida',
+                    comprador: {
+                        nome: 'Fluxo Completo',
+                        telefone: '(11) 99999-0003'
+                    },
+                    nome: 'Fluxo Completo',
+                    telefone: '(11) 99999-0003',
+                    dataCompra: new Date(),
+                    timestamp: Date.now()
+                };
+                
+                log(`📋 Cartela criada: ${cartela.id}`);
+                
+                // 3. Salvar diretamente
+                log('💾 Salvando no Firebase...');
+                const resultado = await window.FirebaseDB.saveCartela(cartela);
+                
+                if (resultado.success) {
+                    log(`✅ SUCESSO TOTAL! ID: ${resultado.id}`, 'success');
+                    mostrarResultado('🎉 FLUXO COMPLETO FUNCIONOU! CARTELA SALVA!', 'success');
+                    
+                    // 4. Verificar se foi realmente salva
+                    setTimeout(async () => {
+                        try {
+                            const db = firebase.firestore();
+                            const doc = await db.collection('cartelas').doc(resultado.id).get();
+                            
+                            if (doc.exists) {
+                                log('✅ CONFIRMADO: Cartela existe no Firebase!', 'success');
+                                const data = doc.data();
+                                log(`📋 Dados: ${data.nome} - ${data.telefone} - ${data.numeros?.length} números`);
+                            } else {
+                                log('❌ ERRO: Cartela não encontrada no Firebase', 'error');
+                            }
+                        } catch (error) {
+                            log(`❌ Erro ao verificar: ${error.message}`, 'error');
+                        }
+                    }, 2000);
+                    
+                } else {
+                    log('❌ Falha na gravação', 'error');
+                    mostrarResultado('❌ FALHA NA GRAVAÇÃO', 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 ERRO NO FLUXO: ${error.message}`, 'error');
+                mostrarResultado(`💥 ERRO: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testarGravacaoForçada() {
+            log('🚀 === GRAVAÇÃO FORÇADA ===');
+            
+            const nome = document.getElementById('nome-test').value;
+            const telefone = document.getElementById('telefone-test').value;
+            
+            const cartela = {
+                id: `FORCADA-${Date.now()}`,
+                numeros: Array.from({length: 15}, () => Math.floor(Math.random() * 75) + 1).sort((a, b) => a - b),
+                preco: 5.00,
+                status: 'vendida',
+                comprador: { nome, telefone },
+                nome, telefone,
+                dataCompra: new Date(),
+                timestamp: Date.now()
+            };
+            
+            try {
+                const resultado = await window.FirebaseDB.saveCartela(cartela);
+                if (resultado.success) {
+                    log(`✅ FORÇADA OK! ID: ${resultado.id}`, 'success');
+                    mostrarResultado('✅ GRAVAÇÃO FORÇADA FUNCIONOU!', 'success');
+                } else {
+                    log('❌ Gravação forçada falhou', 'error');
+                }
+            } catch (error) {
+                log(`❌ Erro na gravação forçada: ${error.message}`, 'error');
+            }
+        }
+        
+        function limparLog() {
+            document.getElementById('log-debug').innerHTML = 'Log limpo...';
+            document.getElementById('resultado-final').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

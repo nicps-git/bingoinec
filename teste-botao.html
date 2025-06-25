@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Botão</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        #resultado {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste do Botão Gerar Cartela</h1>
+    
+    <p>Clique no botão abaixo para testar a função:</p>
+    
+    <button id="gerar-preview" class="btn-primary" onclick="testarGeracao()">🎲 Gerar Nova Cartela</button>
+    
+    <div id="resultado">
+        <p>Aguardando clique...</p>
+    </div>
+
+    <script>
+        console.log('🧪 Teste carregado');
+
+        function testarGeracao() {
+            console.log('🎲 Função testarGeracao chamada!');
+            document.getElementById('resultado').innerHTML = `
+                <h3>✅ Sucesso!</h3>
+                <p>O botão funcionou! Timestamp: ${new Date().toLocaleString()}</p>
+                <p>Agora vamos testar a geração real...</p>
+            `;
+            
+            // Simular geração de cartela
+            const numeros = [];
+            for (let i = 0; i < 15; i++) {
+                numeros.push(Math.floor(Math.random() * 75) + 1);
+            }
+            numeros.sort((a, b) => a - b);
+            
+            document.getElementById('resultado').innerHTML += `
+                <h4>🎫 Cartela Teste:</h4>
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; max-width: 300px;">
+                    ${numeros.map(num => 
+                        `<div style="background: #4CAF50; color: white; padding: 8px; text-align: center; border-radius: 3px;">${num}</div>`
+                    ).join('')}
+                </div>
+            `;
+        }
+
+        // Configurar evento via JavaScript também
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('gerar-preview');
+            btn.addEventListener('click', function() {
+                console.log('🖱️ Event listener funcionando!');
+            });
+        });
+    </script>
+</body>
+</html>

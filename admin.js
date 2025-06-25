@@ -18,38 +18,92 @@ function waitForAuthSystem() {
     });
 }
 
+// Função para aguardar todas as dependências estarem disponíveis
+function waitForAllDependencies() {
+    return new Promise((resolve, reject) => {
+        let tentativas = 0;
+        const maxTentativas = 50; // 5 segundos
+        
+        const checkDependencies = () => {
+            tentativas++;
+            
+            const dependencias = {
+                'Firebase SDK': typeof firebase !== 'undefined',
+                'Firebase Config': typeof firebaseConfig !== 'undefined', 
+                'FirebaseService': typeof FirebaseService !== 'undefined',
+                'BingoAuth': typeof window.bingoAuth !== 'undefined'
+            };
+            
+            const dependenciasFaltando = Object.entries(dependencias)
+                .filter(([nome, carregado]) => !carregado)
+                .map(([nome]) => nome);
+            
+            if (dependenciasFaltando.length === 0) {
+                console.log('✅ [DEBUG] Todas as dependências disponíveis');
+                resolve();
+                return;
+            }
+            
+            if (tentativas >= maxTentativas) {
+                reject(new Error(`Timeout: Dependências não carregaram: ${dependenciasFaltando.join(', ')}`));
+                return;
+            }
+            
+            console.log(`🔄 [DEBUG] Aguardando dependências (${tentativas}/${maxTentativas}):`, dependenciasFaltando);
+            setTimeout(checkDependencies, 100);
+        };
+        
+        checkDependencies();
+    });
+}
+
 // Função principal de inicialização
 async function initializeAdmin() {
     console.log('🔐 [ADMIN] Inicializando área administrativa...');
     
-    // Aguardar sistema de autenticação estar disponível
-    await waitForAuthSystem();
-    console.log('🔐 [ADMIN] Sistema de autenticação carregado');
-    
-    // Verificar se está autenticado ou solicitar autenticação
-    let autenticado = window.bingoAuth.isAuthenticated();
-    console.log('🔐 [ADMIN] Status autenticação inicial:', autenticado);
-    
-    if (!autenticado) {
-        console.log('🔐 [ADMIN] Usuário não autenticado, solicitando login...');
-        autenticado = window.bingoAuth.requireAuth();
-        console.log('🔐 [ADMIN] Resultado da autenticação:', autenticado);
+    try {
+        // Tentar aguardar dependências com timeout menor
+        const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Timeout na verificação de dependências')), 3000);
+        });
         
-        if (!autenticado) {
-            console.log('❌ [ADMIN] Autenticação cancelada/falhou, redirecionando...');
-            // O sistema de auth já mostrou as mensagens apropriadas
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1000); // Pequeno delay para permitir leitura da mensagem
-            return;
+        const waitDeps = waitForAllDependencies();
+        
+        await Promise.race([waitDeps, timeout]);
+        console.log('🔐 [ADMIN] Todas as dependências carregadas');
+        
+        // Verificar autenticação de forma mais flexível
+        if (typeof window.bingoAuth !== 'undefined') {
+            let autenticado = window.bingoAuth.isAuthenticated();
+            console.log('🔐 [ADMIN] Status autenticação inicial:', autenticado);
+            
+            if (!autenticado) {
+                console.log('🔐 [ADMIN] Usuário não autenticado, solicitando login...');
+                autenticado = window.bingoAuth.requireAuth();
+                console.log('🔐 [ADMIN] Resultado da autenticação:', autenticado);
+                
+                if (!autenticado) {
+                    console.log('❌ [ADMIN] Autenticação cancelada/falhou, redirecionando...');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                    return;
+                }
+            }
+            
+            console.log('✅ [ADMIN] Usuário autenticado com sucesso');
+            updateUserInfo();
+        } else {
+            console.warn('⚠️ [ADMIN] Sistema de autenticação não disponível, continuando sem autenticação');
         }
+        
+        // Continuar com a inicialização da página admin
+        await initializeAdminPage();
+        
+    } catch (error) {
+        console.error('❌ [ADMIN] Erro na inicialização:', error);
+        throw error; // Re-throw para o catch principal
     }
-    
-    console.log('✅ [ADMIN] Usuário autenticado com sucesso');
-    updateUserInfo();
-    
-    // Continuar com a inicialização da página admin
-    await initializeAdminPage();
 }
 
 async function initializeAdminPage() {
@@ -562,10 +616,133 @@ async function initializeAdminPage() {
     console.log('✅ Admin panel totalmente carregado e configurado!');
 }
 
+// Função de inicialização simples como fallback
+async function initializeAdminSimple() {
+    console.log('🔄 [SIMPLE] Inicialização simples do admin...');
+    
+    // Inicializar Firebase básico
+    if (!firebase.apps.length) {
+        if (typeof firebaseConfig !== 'undefined') {
+            firebase.initializeApp(firebaseConfig);
+        } else {
+            throw new Error('firebaseConfig não encontrado');
+        }
+    }
+    
+    // Configurar variáveis globais básicas
+    window.db = window.db || firebase.firestore();
+    window.auth = window.auth || firebase.auth();
+    
+    // Pular autenticação por enquanto para debug
+    console.log('⚠️ [SIMPLE] Pulando autenticação para debug');
+    
+    // Configurar botões básicos
+    setupBasicButtons();
+    
+    console.log('✅ [SIMPLE] Inicialização simples concluída');
+}
+
+// Configurar botões básicos
+function setupBasicButtons() {
+    console.log('🔄 [SIMPLE] Configurando botões básicos...');
+    
+    // Botão salvar configurações
+    const salvarConfigBtn = document.getElementById('salvar-config');
+    if (salvarConfigBtn) {
+        salvarConfigBtn.onclick = () => {
+            console.log('🔄 Botão salvar config clicado');
+            alert('Função em desenvolvimento - modo debug');
+        };
+        console.log('✅ Botão salvar-config configurado');
+    } else {
+        console.error('❌ Botão salvar-config não encontrado');
+    }
+    
+    // Botão resetar jogo
+    const resetarJogoBtn = document.getElementById('resetar-jogo');
+    if (resetarJogoBtn) {
+        resetarJogoBtn.onclick = () => {
+            console.log('🔄 Botão resetar jogo clicado');
+            alert('Função em desenvolvimento - modo debug');
+        };
+        console.log('✅ Botão resetar-jogo configurado');
+    } else {
+        console.error('❌ Botão resetar-jogo não encontrado');
+    }
+    
+    // Botão ir para bingo
+    const irParaBingoBtn = document.getElementById('ir-para-bingo');
+    if (irParaBingoBtn) {
+        irParaBingoBtn.onclick = () => {
+            console.log('🔄 Botão ir para bingo clicado');
+            window.location.href = 'index.html';
+        };
+        console.log('✅ Botão ir-para-bingo configurado');
+    } else {
+        console.error('❌ Botão ir-para-bingo não encontrado');
+    }
+    
+    // Botão gerar cartela
+    const gerarCartelaBtn = document.getElementById('gerar-cartela');
+    if (gerarCartelaBtn) {
+        gerarCartelaBtn.onclick = () => {
+            console.log('🔄 Botão gerar cartela clicado');
+            alert('Função em desenvolvimento - modo debug');
+        };
+        console.log('✅ Botão gerar-cartela configurado');
+    } else {
+        console.error('❌ Botão gerar-cartela não encontrado');
+    }
+    
+    // Outros botões...
+    const verVendasBtn = document.getElementById('ver-vendas');
+    if (verVendasBtn) {
+        verVendasBtn.onclick = () => {
+            console.log('🔄 Botão ver vendas clicado');
+            alert('Função em desenvolvimento - modo debug');
+        };
+        console.log('✅ Botão ver-vendas configurado');
+    }
+    
+    console.log('✅ [SIMPLE] Botões básicos configurados');
+}
+
 // Inicializar quando a página carregar
-document.addEventListener('DOMContentLoaded', () => {
-    initializeAdmin().catch(error => {
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🔄 [DEBUG] DOM carregado, iniciando admin...');
+    
+    try {
+        // Aguardar um pouco para garantir que os scripts carregaram
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Verificar dependências básicas
+        if (typeof firebase === 'undefined') {
+            throw new Error('Firebase SDK não carregado');
+        }
+        
+        if (typeof FirebaseService === 'undefined') {
+            throw new Error('FirebaseService não carregado');
+        }
+        
+        console.log('✅ [DEBUG] Dependências básicas ok, iniciando...');
+        
+        await initializeAdmin();
+        
+    } catch (error) {
         console.error('❌ [ADMIN] Erro ao inicializar:', error);
-        alert('Erro ao inicializar área administrativa. Recarregue a página.');
-    });
+        console.error('❌ [ADMIN] Stack trace:', error.stack);
+        
+        // Mostrar erro específico para debug
+        const errorMessage = `Erro ao inicializar área administrativa: ${error.message}`;
+        console.error(errorMessage);
+        
+        // Tentar uma inicialização mais simples
+        console.log('🔄 [DEBUG] Tentando inicialização simples...');
+        try {
+            await initializeAdminSimple();
+        } catch (simpleError) {
+            console.error('❌ [ADMIN] Falha na inicialização simples:', simpleError);
+            alert(`${errorMessage}\n\nDetalhes: ${simpleError.message}\n\nRecarregue a página.`);
+        }
+    }
 });

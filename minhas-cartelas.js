@@ -1,9 +1,259 @@
 // ===== SISTEMA DE ACOMPANHAMENTO DE CARTELAS =====
 
+// Variáveis globais para as funções dos botões
+let compradorAtual = null;
+let cartelasComprador = [];
+let numerosSorteados = [];
+let marcacoes = {};
+let cartelasArmadas = new Set();
+let cartelasBingo = new Set();
+let alertasBingoMostrados = new Set();
+
 // Função global para verificar acesso admin
 function verificarAcessoAdmin() {
     console.log('🔐 Redirecionando para área administrativa...');
     window.location.href = 'admin.html';
+}
+
+// ===== FUNÇÕES DOS BOTÕES DE AÇÃO (GLOBAIS) =====
+
+// Marcar todos os números sorteados automaticamente
+function marcarTodosNumeros() {
+    console.log('✅ Marcando todos os números sorteados...');
+    
+    if (!cartelasComprador || cartelasComprador.length === 0) {
+        mostrarAlerta('❌ Nenhuma cartela encontrada para marcar.', 'error');
+        return;
+    }
+    
+    if (!numerosSorteados || numerosSorteados.length === 0) {
+        mostrarAlerta('⚠️ Nenhum número foi sorteado ainda.', 'warning');
+        return;
+    }
+    
+    let totalMarcados = 0;
+    
+    cartelasComprador.forEach(cartela => {
+        if (!marcacoes[cartela.id]) {
+            marcacoes[cartela.id] = [];
+        }
+        
+        // Garantir que numeros é um array
+        let numerosCartela = [];
+        if (Array.isArray(cartela.numeros)) {
+            numerosCartela = cartela.numeros;
+        } else if (typeof cartela.numeros === 'string') {
+            try {
+                numerosCartela = JSON.parse(cartela.numeros);
+            } catch (e) {
+                console.warn('Erro ao fazer parse dos números da cartela:', e);
+                return;
+            }
+        }
+        
+        // Marcar todos os números da cartela que foram sorteados
+        numerosCartela.forEach(numero => {
+            if (numerosSorteados.includes(numero) && !marcacoes[cartela.id].includes(numero)) {
+                marcacoes[cartela.id].push(numero);
+                totalMarcados++;
+            }
+        });
+    });
+    
+    // Salvar marcações
+    const chave = compradorAtual ? (compradorAtual.telefone || compradorAtual.email) : 'temp';
+    localStorage.setItem(`bingo_marcacoes_${chave}`, JSON.stringify(marcacoes));
+    
+    // Tentar atualizar display se as funções existirem
+    if (typeof atualizarCartelas === 'function') {
+        atualizarCartelas();
+    }
+    if (typeof verificarStatusCartelas === 'function') {
+        verificarStatusCartelas();
+    }
+    
+    mostrarAlerta(`✅ ${totalMarcados} números marcados automaticamente!`, 'success');
+    console.log(`✅ Total de números marcados: ${totalMarcados}`);
+}
+
+// Limpar todas as marcações
+function limparMarcacoes() {
+    console.log('🗑️ Limpando todas as marcações...');
+    
+    if (!cartelasComprador || cartelasComprador.length === 0) {
+        mostrarAlerta('❌ Nenhuma cartela encontrada.', 'error');
+        return;
+    }
+    
+    if (confirm('🗑️ Tem certeza que deseja limpar todas as marcações?')) {
+        // Limpar marcações de todas as cartelas
+        cartelasComprador.forEach(cartela => {
+            marcacoes[cartela.id] = [];
+        });
+        
+        // Salvar no localStorage
+        const chave = compradorAtual ? (compradorAtual.telefone || compradorAtual.email) : 'temp';
+        localStorage.setItem(`bingo_marcacoes_${chave}`, JSON.stringify(marcacoes));
+        
+        // Limpar conjuntos de status
+        cartelasArmadas.clear();
+        cartelasBingo.clear();
+        alertasBingoMostrados.clear();
+        
+        // Tentar atualizar display se a função existir
+        if (typeof atualizarCartelas === 'function') {
+            atualizarCartelas();
+        }
+        
+        mostrarAlerta('🗑️ Todas as marcações foram removidas!', 'success');
+        console.log('✅ Marcações limpas com sucesso');
+    }
+}
+
+// Verificar se alguma cartela fez BINGO
+function verificarBingo() {
+    console.log('🎉 Verificando BINGO...');
+    
+    if (!cartelasComprador || cartelasComprador.length === 0) {
+        mostrarAlerta('❌ Nenhuma cartela encontrada.', 'error');
+        return;
+    }
+    
+    let cartelasBingoEncontradas = [];
+    let cartelasArmadasLista = [];
+    
+    cartelasComprador.forEach((cartela, index) => {
+        const numerosMarcados = contarNumerosMarcados(cartela.id);
+        
+        if (numerosMarcados === 24) {
+            cartelasBingoEncontradas.push({
+                cartela: cartela,
+                index: index + 1,
+                numerosMarcados: numerosMarcados
+            });
+        } else if (numerosMarcados === 23) {
+            cartelasArmadasLista.push({
+                cartela: cartela,
+                index: index + 1,
+                numerosMarcados: numerosMarcados
+            });
+        }
+    });
+    
+    // Verificar resultados
+    if (cartelasBingoEncontradas.length > 0) {
+        let mensagem = '🏆🎉 PARABÉNS! VOCÊ FEZ BINGO! 🎉🏆\n\n';
+        
+        cartelasBingoEncontradas.forEach(item => {
+            mensagem += `🎫 Cartela #${item.index} (ID: ${item.cartela.id})\n`;
+            mensagem += `✅ ${item.numerosMarcados}/24 números marcados\n\n`;
+        });
+        
+        mensagem += '🎊 Procure IMEDIATAMENTE os organizadores para validar seu prêmio!';
+        
+        alert(mensagem);
+        mostrarAlerta('🏆 BINGO! Procure os organizadores agora!', 'success');
+        
+    } else if (cartelasArmadasLista.length > 0) {
+        let mensagem = '🔥 CARTELAS ARMADAS! 🔥\n\n';
+        
+        cartelasArmadasLista.forEach(item => {
+            mensagem += `🎫 Cartela #${item.index} (ID: ${item.cartela.id})\n`;
+            mensagem += `⚡ ${item.numerosMarcados}/24 números marcados - Falta apenas 1!\n\n`;
+        });
+        
+        mensagem += '🎯 Você está muito perto do BINGO!';
+        
+        alert(mensagem);
+        mostrarAlerta('🔥 Cartelas armadas! Falta pouco para o BINGO!', 'warning');
+        
+    } else {
+        // Calcular estatísticas
+        let totalMarcados = 0;
+        let melhorCartela = 0;
+        
+        cartelasComprador.forEach(cartela => {
+            const marcados = contarNumerosMarcados(cartela.id);
+            totalMarcados += marcados;
+            if (marcados > melhorCartela) {
+                melhorCartela = marcados;
+            }
+        });
+        
+        const mediaMarcados = Math.round(totalMarcados / cartelasComprador.length);
+        
+        let mensagem = '📊 RELATÓRIO DAS SUAS CARTELAS:\n\n';
+        mensagem += `🎫 Total de cartelas: ${cartelasComprador.length}\n`;
+        mensagem += `🎯 Melhor cartela: ${melhorCartela}/24 números\n`;
+        mensagem += `📈 Média geral: ${mediaMarcados}/24 números\n`;
+        mensagem += `🎲 Números sorteados: ${numerosSorteados.length}\n\n`;
+        
+        if (melhorCartela >= 20) {
+            mensagem += '⚡ Você está bem perto do BINGO!';
+        } else if (melhorCartela >= 15) {
+            mensagem += '📈 Bom progresso! Continue assim!';
+        } else if (melhorCartela >= 10) {
+            mensagem += '🎯 No caminho certo!';
+        } else {
+            mensagem += '🎲 Ainda há muito jogo pela frente!';
+        }
+        
+        alert(mensagem);
+        mostrarAlerta('📊 Nenhum BINGO ainda, mas continue tentando!', 'info');
+    }
+    
+    console.log('✅ Verificação de BINGO concluída');
+}
+
+// Fechar modal de BINGO
+function fecharModalBingo() {
+    const modalBingo = document.getElementById('modal-bingo');
+    if (modalBingo) {
+        modalBingo.style.display = 'none';
+    }
+}
+
+// Fechar alerta
+function fecharAlert() {
+    const alertMsg = document.getElementById('alert-msg');
+    if (alertMsg) {
+        alertMsg.style.display = 'none';
+    }
+}
+
+// Função auxiliar para contar números marcados
+function contarNumerosMarcados(cartelaId) {
+    if (!marcacoes[cartelaId]) {
+        return 0;
+    }
+    
+    // Garantir que é um array
+    const marcacoesDaCartela = Array.isArray(marcacoes[cartelaId]) ? marcacoes[cartelaId] : [];
+    return marcacoesDaCartela.length;
+}
+
+// Função auxiliar para mostrar alertas (versão simplificada para funcionar globalmente)
+function mostrarAlerta(mensagem, tipo = 'info') {
+    console.log(`🔔 [${tipo.toUpperCase()}] ${mensagem}`);
+    
+    // Tentar usar o elemento de alerta se existir
+    const alertMsg = document.getElementById('alert-msg');
+    if (alertMsg) {
+        const alertMessage = alertMsg.querySelector('.alert-message');
+        if (alertMessage) {
+            alertMessage.textContent = mensagem;
+        }
+        alertMsg.className = `alert alert-${tipo}`;
+        alertMsg.style.display = 'block';
+        
+        // Auto-ocultar após 5 segundos
+        setTimeout(() => {
+            alertMsg.style.display = 'none';
+        }, 5000);
+    } else {
+        // Fallback para alert simples
+        alert(mensagem);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -38,16 +288,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const listaCartelasComprador = document.getElementById('lista-cartelas-comprador');
     const modalBingo = document.getElementById('modal-bingo');
     const cartelaBingoInfo = document.getElementById('cartela-bingo-info');
-
-    let compradorAtual = null;
-    let cartelasComprador = [];
-    let numerosSorteados = [];
-    let marcacoes = {};
-
-    // Estados das cartelas para alertas
-    let cartelasArmadas = new Set(); // Cartelas com 23 números
-    let cartelasBingo = new Set(); // Cartelas com BINGO
-    let alertasBingoMostrados = new Set(); // Para evitar spam de alertas
 
     // Inicialização robusta do Firebase Service
     console.log('🔥 [MINHAS-CARTELAS] Inicializando sistema...');
@@ -239,12 +479,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             console.log('✅ Cartelas encontradas:', cartelas.length);
 
-            // Configurar comprador
+            // Configurar comprador (compatível com novo formato)
+            const primeiraCartela = cartelas[0];
+            console.log('🔍 [DEBUG] Primeira cartela completa:', primeiraCartela);
+            
+            // Função auxiliar para extrair string de qualquer formato
+            function extrairTexto(valor) {
+                if (!valor) return '';
+                if (typeof valor === 'string') return valor;
+                if (typeof valor === 'object' && valor.nome) return valor.nome;
+                return converterParaTexto(valor);
+            }
+            
             compradorAtual = {
-                nome: cartelas[0].comprador,
-                telefone: cartelas[0].telefone,
-                email: cartelas[0].email
+                nome: extrairTexto(primeiraCartela.nome) || 
+                      extrairTexto(primeiraCartela.comprador) || 
+                      'Nome não informado',
+                telefone: extrairTexto(primeiraCartela.telefone) || 
+                         telefoneNormalizado || 
+                         'Telefone não informado',
+                email: extrairTexto(primeiraCartela.email) || 
+                       email || 
+                       'Email não informado'
             };
+            
+            console.log('👤 [DEBUG] Comprador configurado:', compradorAtual);
 
             cartelasComprador = cartelas;
 
@@ -359,19 +618,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         listaCartelasComprador.innerHTML = '';
 
         cartelasComprador.forEach((cartela, index) => {
-            console.log(`🃏 Processando cartela ${index + 1}/${cartelasComprador.length}:`, cartela.id);
+            console.log(`🃏 Processando cartela ${index + 1}/${cartelasComprador.length}:`, cartela);
             
             const cartelaDiv = document.createElement('div');
             cartelaDiv.className = 'cartela-comprador';
             cartelaDiv.id = `cartela-${cartela.id}`;
 
-            const numerosHtml = cartela.numeros.map(numero => {
-                const isSorteado = numerosSorteados.includes(numero);
-                const isMarcado = marcacoes[cartela.id] && marcacoes[cartela.id].includes(numero);
+            // Garantir que temos 24 números + espaço livre (25 total)
+            let numerosCartela = [];
+            if (Array.isArray(cartela.numeros)) {
+                numerosCartela = [...cartela.numeros];
+            } else if (typeof cartela.numeros === 'string') {
+                // Se for string, tentar fazer parse
+                try {
+                    numerosCartela = JSON.parse(cartela.numeros);
+                } catch (e) {
+                    console.warn('Erro ao fazer parse dos números:', e);
+                    numerosCartela = [];
+                }
+            }
+            
+            console.log('🎯 Números da cartela:', numerosCartela);
+            
+            // Organizar números em grid 5x5 com espaço livre no centro
+            const grid = [];
+            for (let i = 0; i < 25; i++) {
+                if (i === 12) { // Posição central (espaço livre)
+                    grid.push({ numero: 'FREE', isFree: true });
+                } else {
+                    const numeroIndex = i < 12 ? i : i - 1; // Ajustar índice para pular o centro
+                    const numero = numerosCartela[numeroIndex];
+                    if (numero !== undefined) {
+                        grid.push({ numero: numero, isFree: false });
+                    } else {
+                        grid.push({ numero: 0, isFree: false }); // Fallback
+                    }
+                }
+            }
+
+            const numerosHtml = grid.map((cell, index) => {
+                if (cell.isFree) {
+                    return `<div class="numero-cell free-space">⭐</div>`;
+                }
                 
-                return `<div class="numero-cartela ${isSorteado ? 'sorteado' : ''} ${isMarcado ? 'marcado' : ''}" 
-                            onclick="alternarMarcacao('${cartela.id}', ${numero})">
-                            ${numero}
+                const isSorteado = numerosSorteados.includes(cell.numero);
+                const isMarcado = marcacoes[cartela.id] && marcacoes[cartela.id].includes(cell.numero);
+                
+                return `<div class="numero-cell ${isSorteado ? 'sorteado' : ''} ${isMarcado ? 'marcado' : ''}" 
+                            onclick="alternarMarcacao('${cartela.id}', ${cell.numero})">
+                            ${cell.numero}
                         </div>`;
             }).join('');
 
@@ -385,13 +680,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ${status.texto} (${numerosMarcados}/24)
                     </div>
                 </div>
-                <div class="cartela-grid">
+                <div class="bingo-header">
+                    <div class="bingo-letter">B</div>
+                    <div class="bingo-letter">I</div>
+                    <div class="bingo-letter">N</div>
+                    <div class="bingo-letter">G</div>
+                    <div class="bingo-letter">O</div>
+                </div>
+                <div class="bingo-grid">
                     ${numerosHtml}
                 </div>
                 <div class="cartela-info">
                     <p><strong>ID:</strong> ${cartela.id}</p>
                     <p><strong>Preço:</strong> R$ ${(cartela.preco || 0).toFixed(2)}</p>
-                    <p><strong>Comprada em:</strong> ${new Date(cartela.dataVenda).toLocaleString()}</p>
+                    <p><strong>Comprada em:</strong> ${formatarDataCompra(cartela)}</p>
                 </div>
             `;
 
@@ -400,6 +702,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         atualizarNumerosSorteados();
         verificarStatusCartelas();
+    }
+
+    // Função auxiliar para formatar data
+    function formatarDataCompra(cartela) {
+        try {
+            // Tentar diferentes formatos de data
+            let data = null;
+            
+            if (cartela.dataCompra) {
+                if (cartela.dataCompra.seconds) {
+                    // Timestamp do Firebase
+                    data = new Date(cartela.dataCompra.seconds * 1000);
+                } else if (typeof cartela.dataCompra === 'string') {
+                    data = new Date(cartela.dataCompra);
+                } else if (cartela.dataCompra instanceof Date) {
+                    data = cartela.dataCompra;
+                }
+            } else if (cartela.dataVenda) {
+                if (cartela.dataVenda.seconds) {
+                    data = new Date(cartela.dataVenda.seconds * 1000);
+                } else {
+                    data = new Date(cartela.dataVenda);
+                }
+            } else if (cartela.timestamp) {
+                data = new Date(cartela.timestamp);
+            }
+            
+            if (data && !isNaN(data.getTime())) {
+                return data.toLocaleString('pt-BR');
+            } else {
+                return 'Data não disponível';
+            }
+        } catch (error) {
+            console.warn('Erro ao formatar data da cartela:', error);
+            return 'Data não disponível';
+        }
     }
 
     // Alternar marcação de número
@@ -657,6 +995,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // Fechar modal de BINGO
+    function fecharModalBingo() {
+        const modalBingo = document.getElementById('modal-bingo');
+        if (modalBingo) {
+            modalBingo.style.display = 'none';
+        }
+    }
+
+    // Tornar função global
+    window.fecharModalBingo = fecharModalBingo;
+
     // Tornar funções globais
     window.alternarMarcacao = alternarMarcacao;
 
@@ -779,4 +1128,29 @@ function fazerLogout() {
 function atualizarSorteio() {
     console.log('🔄 Atualizando dados do sorteio...');
     alert('🔄 Funcionalidade de atualização será implementada em breve.');
+}
+
+// Função para converter qualquer valor em string legível
+function converterParaTexto(valor) {
+    if (!valor) return '';
+    if (typeof valor === 'string') return valor;
+    if (typeof valor === 'number') return valor.toString();
+    if (typeof valor === 'object') {
+        // Se for objeto, tentar pegar propriedade nome
+        if (valor.nome) return String(valor.nome);
+        if (valor.comprador) return String(valor.comprador);
+        // Se não tiver propriedades úteis, usar toString
+        const stringValue = Object.prototype.toString.call(valor);
+        if (stringValue === '[object Object]') {
+            // Tentar converter para JSON legível
+            try {
+                const json = JSON.stringify(valor);
+                return json.length < 50 ? json : 'Objeto complexo';
+            } catch (e) {
+                return 'Valor não identificado';
+            }
+        }
+        return String(valor);
+    }
+    return String(valor);
 }

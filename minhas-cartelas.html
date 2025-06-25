@@ -122,9 +122,9 @@
 
             <!-- Botões de Ação -->
             <div class="acoes-container">
-                <button onclick="marcarTodosNumeros()" class="btn-acao">✅ Marcar Todos os Sorteados</button>
-                <button onclick="limparMarcacoes()" class="btn-acao">🗑️ Limpar Marcações</button>
-                <button onclick="verificarBingo()" class="btn-acao btn-bingo">🎉 Verificar BINGO!</button>
+                <button onclick="console.log('Botão Marcar clicado'); marcarTodosNumeros()" class="btn-acao">✅ Marcar Todos os Sorteados</button>
+                <button onclick="console.log('Botão Limpar clicado'); limparMarcacoes()" class="btn-acao">🗑️ Limpar Marcações</button>
+                <button onclick="console.log('Botão Bingo clicado'); verificarBingo()" class="btn-acao btn-bingo">🎉 Verificar BINGO!</button>
             </div>
         </div>
 
@@ -176,6 +176,48 @@
     <script src="minhas-cartelas.js"></script>
     
     <script>
+        // Debug para verificar se as funções estão disponíveis
+        console.log('=== DEBUG MINHAS CARTELAS ===');
+        
+        setTimeout(() => {
+            console.log('Verificando funções após carregamento...');
+            console.log('marcarTodosNumeros:', typeof marcarTodosNumeros);
+            console.log('limparMarcacoes:', typeof limparMarcacoes);
+            console.log('verificarBingo:', typeof verificarBingo);
+            console.log('fecharModalBingo:', typeof fecharModalBingo);
+            console.log('fecharAlert:', typeof fecharAlert);
+            
+            // Disponibilizar no console para teste
+            window.testMarcar = () => {
+                console.log('Testando marcarTodosNumeros...');
+                if (typeof marcarTodosNumeros === 'function') {
+                    marcarTodosNumeros();
+                } else {
+                    alert('Função marcarTodosNumeros não encontrada!');
+                }
+            };
+            
+            window.testLimpar = () => {
+                console.log('Testando limparMarcacoes...');
+                if (typeof limparMarcacoes === 'function') {
+                    limparMarcacoes();
+                } else {
+                    alert('Função limparMarcacoes não encontrada!');
+                }
+            };
+            
+            window.testBingo = () => {
+                console.log('Testando verificarBingo...');
+                if (typeof verificarBingo === 'function') {
+                    verificarBingo();
+                } else {
+                    alert('Função verificarBingo não encontrada!');
+                }
+            };
+            
+            console.log('Funções de teste criadas: testMarcar(), testLimpar(), testBingo()');
+        }, 1000);
+        
         // Função de debug para testar o botão
         function debugLogin() {
             console.log('🔧 Debug Login - Botão clicado!');
@@ -196,6 +238,126 @@
                 }
             }, 1000);
         });
+        
+        // ===== FUNÇÕES DE EMERGÊNCIA =====
+        function testeRapidoEmergencia() {
+            console.log('🧪 TESTE RÁPIDO DE EMERGÊNCIA INICIADO');
+            
+            // Forçar login com dados de teste
+            compradorAtual = {
+                nome: 'TESTE EMERGÊNCIA',
+                telefone: '85977777777',
+                email: 'teste@emergencia.com'
+            };
+            
+            cartelasComprador = [{
+                id: 'EMERG001',
+                numeros: [1, 16, 31, 46, 61, 2, 17, 32, 47, 62, 3, 18, 33, 48, 63, 4, 19, 34, 49, 64, 5, 20, 35, 50, 65],
+                preco: 5.00,
+                nome: 'TESTE EMERGÊNCIA',
+                telefone: '85977777777',
+                dataCompra: new Date()
+            }];
+            
+            // Forçar transição
+            const login = document.getElementById('login-comprador');
+            const area = document.getElementById('area-cartelas');
+            
+            if (login) login.style.display = 'none';
+            if (area) area.style.display = 'block';
+            
+            // Preencher dados
+            const nomeEl = document.getElementById('nome-comprador-logado');
+            const telEl = document.getElementById('telefone-comprador-logado');
+            const emailEl = document.getElementById('email-comprador-logado');
+            const totalEl = document.getElementById('total-cartelas-comprador');
+            
+            if (nomeEl) nomeEl.textContent = compradorAtual.nome;
+            if (telEl) telEl.textContent = compradorAtual.telefone;
+            if (emailEl) emailEl.textContent = compradorAtual.email;
+            if (totalEl) totalEl.textContent = cartelasComprador.length;
+            
+            // Criar cartela de emergência
+            criarCartelaEmergencia();
+            
+            alert('🧪 Teste de emergência ativo! Cartela criada com sucesso.');
+        }
+        
+        function criarCartelaEmergencia() {
+            const container = document.getElementById('lista-cartelas-comprador');
+            if (!container) return;
+            
+            const cartela = cartelasComprador[0];
+            const cartelaDiv = document.createElement('div');
+            cartelaDiv.className = 'cartela-comprador';
+            cartelaDiv.style.cssText = `
+                background: white;
+                border-radius: 10px;
+                padding: 20px;
+                margin: 20px auto;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                max-width: 400px;
+                border: 3px solid #dc3545;
+            `;
+            
+            // Header BINGO
+            const headerHtml = `
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px auto; max-width: 350px;">
+                    <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.3em; font-weight: bold; padding: 8px; border-radius: 6px;">B</div>
+                    <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.3em; font-weight: bold; padding: 8px; border-radius: 6px;">I</div>
+                    <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.3em; font-weight: bold; padding: 8px; border-radius: 6px;">N</div>
+                    <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.3em; font-weight: bold; padding: 8px; border-radius: 6px;">G</div>
+                    <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.3em; font-weight: bold; padding: 8px; border-radius: 6px;">O</div>
+                </div>
+            `;
+            
+            // Grid de números
+            const gridHtml = `
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px auto; max-width: 350px;">
+                    ${cartela.numeros.slice(0, 12).map(n => 
+                        `<div onclick="marcarNumeroEmergencia(this, ${n})" style="background: #ecf0f1; color: #2c3e50; text-align: center; font-size: 1.1em; font-weight: bold; padding: 10px 5px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; min-height: 40px; display: flex; align-items: center; justify-content: center;">${n}</div>`
+                    ).join('')}
+                    <div style="background: #f39c12; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 10px 5px; border-radius: 6px; min-height: 40px; display: flex; align-items: center; justify-content: center;">⭐</div>
+                    ${cartela.numeros.slice(12).map(n => 
+                        `<div onclick="marcarNumeroEmergencia(this, ${n})" style="background: #ecf0f1; color: #2c3e50; text-align: center; font-size: 1.1em; font-weight: bold; padding: 10px 5px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; min-height: 40px; display: flex; align-items: center; justify-content: center;">${n}</div>`
+                    ).join('')}
+                </div>
+            `;
+            
+            cartelaDiv.innerHTML = `
+                <div style="border-bottom: 2px solid #dc3545; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h3 style="color: #dc3545; margin: 0;">🎫 Cartela Emergência #1</h3>
+                    <div style="color: #666; font-size: 0.9em;">Modo de teste ativo - clique nos números para marcar</div>
+                </div>
+                ${headerHtml}
+                ${gridHtml}
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 0.9em; color: #666;">
+                    <p><strong>ID:</strong> ${cartela.id}</p>
+                    <p><strong>Preço:</strong> R$ ${cartela.preco.toFixed(2)}</p>
+                    <p><strong>Status:</strong> 🧪 MODO EMERGÊNCIA</p>
+                </div>
+            `;
+            
+            container.innerHTML = '';
+            container.appendChild(cartelaDiv);
+        }
+        
+        function marcarNumeroEmergencia(elemento, numero) {
+            if (elemento.style.backgroundColor === 'rgb(52, 152, 219)') {
+                // Desmarcar
+                elemento.style.backgroundColor = '#ecf0f1';
+                elemento.style.color = '#2c3e50';
+            } else {
+                // Marcar
+                elemento.style.backgroundColor = '#3498db';
+                elemento.style.color = 'white';
+            }
+            
+            // Contar marcados
+            const marcados = document.querySelectorAll('[onclick*="marcarNumeroEmergencia"]')
+                .length - document.querySelectorAll('[style*="rgb(52, 152, 219)"]').length;
+            console.log(`🎯 Números marcados: ${document.querySelectorAll('[style*="rgb(52, 152, 219)"]').length}`);
+        }
     </script>
 </body>
 </html>

@@ -3,185 +3,292 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🧪 Teste Firebase Direto</title>
+    <title>Teste Direto Firebase - Bypass Sistema</title>
     <style>
         body {
-            font-family: monospace;
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
-            background: #f0f0f0;
+            background: linear-gradient(45deg, #E3F2FD, #BBDEFB);
         }
-        .log {
-            background: #000;
-            color: #0f0;
+        .container {
+            background: white;
             padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #ddd;
             border-radius: 8px;
-            white-space: pre-wrap;
+        }
+        .success { border-color: #4CAF50; background: #f8fff8; }
+        .error { border-color: #f44336; background: #fff8f8; }
+        .warning { border-color: #FF9800; background: #fff8e1; }
+        button {
+            padding: 12px 24px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-test { background: #2196F3; color: white; }
+        .btn-direct { background: #4CAF50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .log {
+            background: #1e1e1e;
+            color: #00ff41;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
             max-height: 500px;
             overflow-y: auto;
-        }
-        button {
-            padding: 10px 20px;
-            margin: 10px;
-            font-size: 16px;
-            cursor: pointer;
+            white-space: pre-wrap;
         }
     </style>
 </head>
 <body>
-    <h1>🧪 Teste Firebase Direto</h1>
-    
-    <button onclick="testeCompleto()">🚀 Executar Teste Completo</button>
-    <button onclick="limparLog()">🗑️ Limpar Log</button>
-    
-    <div id="log" class="log">Aguardando teste...</div>
+    <div class="container">
+        <h1>🧪 Teste Direto Firebase - Bypass Sistema</h1>
+        <p>Este teste ignora completamente o sistema e testa o Firebase diretamente</p>
+        
+        <div class="test-section">
+            <h3>🔥 Testes Diretos</h3>
+            <button class="btn-test" onclick="testeFirebaseSDK()">1. Testar SDK Básico</button>
+            <button class="btn-test" onclick="testeInicializacaoManual()">2. Inicialização Manual</button>
+            <button class="btn-direct" onclick="testeGravacaoDireta()">3. Gravação Direta (sem sistema)</button>
+            <button class="btn-direct" onclick="testeCartelaModelo()">4. Cartela com Modelo Exato</button>
+            <button class="btn-danger" onclick="limparLogs()">Limpar Logs</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Console de Debug</h3>
+            <div id="log-output" class="log">Aguardando testes...</div>
+        </div>
+    </div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK v8 Compat -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     
-    <!-- Firebase Configuration -->
-    <script src="firebase-config.js"></script>
-    <script src="firebase-service.js"></script>
-
     <script>
-        const logElement = document.getElementById('log');
+        let logs = [];
         
-        function log(msg) {
+        // Configuração Firebase (copiada do firebase-config.js)
+        const firebaseConfig = {
+          apiKey: "AIzaSyC7CnYV9gkczJ8zIcmTLrvQlrFFKNVhJNw",
+          authDomain: "bingoinec.firebaseapp.com",
+          projectId: "bingoinec",
+          storageBucket: "bingoinec.firebasestorage.app",
+          messagingSenderId: "483007152008",
+          appId: "1:483007152008:web:6347c02216e162c0a3c43d"
+        };
+        
+        function log(message, type = 'info') {
             const timestamp = new Date().toLocaleTimeString();
-            logElement.textContent += `[${timestamp}] ${msg}\n`;
-            logElement.scrollTop = logElement.scrollHeight;
-            console.log(msg);
+            const icon = {
+                'success': '✅',
+                'error': '❌',
+                'warning': '⚠️',
+                'info': 'ℹ️'
+            }[type] || 'ℹ️';
+            
+            const logMessage = `[${timestamp}] ${icon} ${message}`;
+            logs.push(logMessage);
+            
+            console.log(logMessage);
+            
+            const logDiv = document.getElementById('log-output');
+            logDiv.textContent = logs.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
         }
         
-        function limparLog() {
-            logElement.textContent = 'Log limpo...\n';
+        function limparLogs() {
+            logs = [];
+            document.getElementById('log-output').textContent = 'Logs limpos...';
         }
         
-        async function testeCompleto() {
-            log('🚀 INICIANDO TESTE COMPLETO DO FIREBASE');
-            log('========================================');
+        async function testeFirebaseSDK() {
+            log('🔥 === TESTE 1: SDK BÁSICO ===');
             
             try {
-                // 1. Verificar se Firebase está carregado
-                log('1. Verificando Firebase SDK...');
                 if (typeof firebase === 'undefined') {
                     throw new Error('Firebase SDK não carregado');
                 }
-                log('✅ Firebase SDK carregado');
                 
-                // 2. Verificar se FirebaseService está disponível
-                log('2. Verificando FirebaseService...');
-                if (typeof window.firebaseService === 'undefined') {
-                    log('⚠️ FirebaseService não disponível, aguardando...');
-                    
-                    // Aguardar até 10 segundos
-                    for (let i = 0; i < 20; i++) {
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        if (typeof window.firebaseService !== 'undefined') {
-                            break;
-                        }
-                        log(`⏳ Aguardando... ${(i+1)*0.5}s`);
-                    }
-                    
-                    if (typeof window.firebaseService === 'undefined') {
-                        throw new Error('FirebaseService não carregou após 10 segundos');
-                    }
-                }
-                log('✅ FirebaseService disponível');
+                log(`SDK Firebase detectado: v${firebase.SDK_VERSION || 'desconhecida'}`, 'success');
+                log(`Apps inicializados: ${firebase.apps.length}`);
                 
-                // 3. Testar conexão
-                log('3. Testando conexão...');
-                const conexao = await window.firebaseService.verificarConexao();
-                if (!conexao) {
-                    throw new Error('Falha na conexão com Firebase');
-                }
-                log('✅ Conexão estabelecida');
-                
-                // 4. Criar cartela de teste
-                log('4. Criando cartela de teste...');
-                const cartelaTeste = {
-                    id: `teste_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                    numeros: [
-                        [1, 16, 31, 46, 61],
-                        [2, 17, 32, 47, 62],
-                        [3, 18, 'FREE', 48, 63],
-                        [4, 19, 34, 49, 64],
-                        [5, 20, 35, 50, 65]
-                    ],
-                    preco: 5.00,
-                    vendida: true,
-                    comprador: 'TESTE AUTOMATICO',
-                    telefone: '11999999999',
-                    email: 'teste@automatico.com',
-                    dataVenda: new Date().toISOString(),
-                    timestamp: new Date()
-                };
-                log(`✅ Cartela criada: ${cartelaTeste.id}`);
-                
-                // 5. Salvar no Firebase
-                log('5. Salvando no Firebase...');
-                const resultado = await window.firebaseService.salvarCartela(cartelaTeste);
-                log(`✅ Cartela salva com sucesso: ${resultado.id}`);
-                
-                // 6. Verificar se foi salva (buscar de volta)
-                log('6. Verificando se foi salva...');
-                const cartelas = await window.firebaseService.carregarCartelas();
-                const cartelaEncontrada = cartelas.find(c => c.id === cartelaTeste.id);
-                
-                if (cartelaEncontrada) {
-                    log(`✅ Cartela encontrada no banco: ${cartelaEncontrada.id}`);
-                    log(`👤 Comprador: ${cartelaEncontrada.comprador}`);
-                    log(`📱 Telefone: ${cartelaEncontrada.telefone}`);
-                    log(`📧 Email: ${cartelaEncontrada.email}`);
+                // Verificar se Firestore está disponível
+                if (typeof firebase.firestore === 'function') {
+                    log('Firestore disponível', 'success');
                 } else {
-                    throw new Error('Cartela não encontrada após salvamento');
+                    log('Firestore NÃO disponível', 'error');
                 }
                 
-                // 7. Testar busca por telefone
-                log('7. Testando busca por telefone...');
-                const cartelasPorTelefone = await window.firebaseService.carregarCartelasPorComprador('11999999999', null);
-                log(`✅ Encontradas ${cartelasPorTelefone.length} cartelas para o telefone`);
-                
-                // 8. Estatísticas finais
-                log('8. Estatísticas finais...');
-                const todasCartelas = await window.firebaseService.carregarCartelas();
-                const vendidas = todasCartelas.filter(c => c.vendida).length;
-                log(`📊 Total de cartelas: ${todasCartelas.length}`);
-                log(`📊 Cartelas vendidas: ${vendidas}`);
-                
-                log('========================================');
-                log('🎉 TESTE COMPLETO CONCLUÍDO COM SUCESSO!');
-                log('✅ Sistema de gravação está funcionando');
+                log('Teste SDK concluído', 'success');
                 
             } catch (error) {
-                log('========================================');
-                log(`❌ ERRO NO TESTE: ${error.message}`);
-                log(`❌ Stack: ${error.stack}`);
-                log('========================================');
+                log(`Erro no teste SDK: ${error.message}`, 'error');
             }
         }
         
-        // Auto-executar teste quando Firebase estiver pronto
-        document.addEventListener('DOMContentLoaded', () => {
-            log('🔥 Página carregada, aguardando Firebase...');
+        async function testeInicializacaoManual() {
+            log('⚙️ === TESTE 2: INICIALIZAÇÃO MANUAL ===');
             
-            // Verificar periodicamente se Firebase está pronto
-            const checkFirebase = setInterval(() => {
-                if (typeof window.firebaseService !== 'undefined') {
-                    clearInterval(checkFirebase);
-                    log('✅ Firebase detectado, executando teste automático em 2 segundos...');
-                    setTimeout(testeCompleto, 2000);
+            try {
+                // Tentar inicializar app manualmente
+                let app;
+                try {
+                    app = firebase.app(); // Verificar se já existe
+                    log('App Firebase já existe', 'info');
+                } catch {
+                    app = firebase.initializeApp(firebaseConfig);
+                    log('Nova app Firebase criada', 'success');
                 }
-            }, 500);
+                
+                log(`Nome da app: ${app.name}`);
+                log(`Projeto ID: ${app.options.projectId}`);
+                
+                // Testar Firestore
+                const db = firebase.firestore();
+                log('Instância Firestore criada', 'success');
+                
+                // Teste de configuração
+                const settings = db._settings || {};
+                log(`Host Firestore: ${settings.host || 'padrão'}`);
+                
+                log('Inicialização manual concluída', 'success');
+                
+            } catch (error) {
+                log(`Erro na inicialização: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testeGravacaoDireta() {
+            log('💾 === TESTE 3: GRAVAÇÃO DIRETA ===');
             
-            // Timeout de segurança
+            try {
+                const db = firebase.firestore();
+                
+                const dadosTeste = {
+                    teste: 'gravacao-direta',
+                    timestamp: Date.now(),
+                    timestampServer: firebase.firestore.FieldValue.serverTimestamp(),
+                    data: new Date(),
+                    numero: Math.floor(Math.random() * 1000),
+                    objeto: {
+                        propriedade1: 'valor1',
+                        propriedade2: 123
+                    },
+                    array: [1, 2, 3, 'teste']
+                };
+                
+                log('Dados preparados para gravação direta');
+                log(`ID do teste: ${dadosTeste.numero}`);
+                
+                // Gravar diretamente
+                const docRef = await db.collection('teste-direto').add(dadosTeste);
+                log(`GRAVAÇÃO DIRETA REALIZADA! Doc ID: ${docRef.id}`, 'success');
+                
+                // Verificar imediatamente
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    log('Verificação: documento gravado com sucesso', 'success');
+                    const data = doc.data();
+                    log(`Campos gravados: ${Object.keys(data).join(', ')}`);
+                } else {
+                    log('Verificação: documento NÃO encontrado', 'error');
+                }
+                
+            } catch (error) {
+                log(`ERRO na gravação direta: ${error.message}`, 'error');
+                log(`Código do erro: ${error.code || 'nenhum'}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+            }
+        }
+        
+        async function testeCartelaModelo() {
+            log('🎯 === TESTE 4: CARTELA MODELO EXATO ===');
+            
+            try {
+                const db = firebase.firestore();
+                
+                // Cartela com o modelo EXATO especificado
+                const cartelaModelo = {
+                    id: `CART-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                    numeros: [1, 16, 31, 46, 61, 2, 17, 32, 47, 62, 3, 18, 33, 48, 63],
+                    preco: 5.00,
+                    status: "vendida",
+                    comprador: {
+                        nome: "Teste Modelo Exato",
+                        telefone: "11999999999"
+                    },
+                    nome: "Teste Modelo Exato",
+                    telefone: "11999999999",
+                    dataCompra: new Date(),
+                    timestamp: Date.now(),
+                    timestampFirebase: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                log('Cartela modelo preparada:');
+                log(`- ID: ${cartelaModelo.id}`);
+                log(`- Números: ${cartelaModelo.numeros.join(', ')}`);
+                log(`- Preço: R$ ${cartelaModelo.preco}`);
+                log(`- Status: ${cartelaModelo.status}`);
+                log(`- Comprador: ${cartelaModelo.comprador.nome} (${cartelaModelo.comprador.telefone})`);
+                
+                // Gravar cartela na coleção 'cartelas'
+                const docRef = await db.collection('cartelas').add(cartelaModelo);
+                log(`CARTELA SALVA COM SUCESSO! Firebase ID: ${docRef.id}`, 'success');
+                
+                // Verificar se foi salva corretamente
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    log('Verificação: cartela existe no banco', 'success');
+                    const data = doc.data();
+                    
+                    // Verificar cada campo
+                    log('Verificando campos salvos:');
+                    log(`✓ id: ${data.id}`);
+                    log(`✓ numeros (${data.numeros?.length} itens): ${data.numeros?.join(', ')}`);
+                    log(`✓ preco: ${data.preco}`);
+                    log(`✓ status: ${data.status}`);
+                    log(`✓ comprador.nome: ${data.comprador?.nome}`);
+                    log(`✓ comprador.telefone: ${data.comprador?.telefone}`);
+                    log(`✓ nome: ${data.nome}`);
+                    log(`✓ telefone: ${data.telefone}`);
+                    log(`✓ dataCompra: ${data.dataCompra}`);
+                    log(`✓ timestamp: ${data.timestamp}`);
+                    log(`✓ timestampFirebase: ${data.timestampFirebase ? 'OK' : 'AUSENTE'}`);
+                    
+                    log('MODELO VERIFICADO: TODOS OS CAMPOS PRESENTES!', 'success');
+                    
+                } else {
+                    log('Verificação: cartela NÃO encontrada no banco', 'error');
+                }
+                
+            } catch (error) {
+                log(`ERRO ao testar cartela modelo: ${error.message}`, 'error');
+                log(`Código: ${error.code || 'nenhum'}`, 'error');
+                if (error.stack) {
+                    log(`Stack: ${error.stack}`, 'error');
+                }
+            }
+        }
+        
+        // Auto-start
+        window.addEventListener('load', () => {
             setTimeout(() => {
-                clearInterval(checkFirebase);
-                if (typeof window.firebaseService === 'undefined') {
-                    log('❌ Timeout: Firebase não carregou em 30 segundos');
-                }
-            }, 30000);
+                log('🚀 Sistema de teste direto carregado');
+                log('Execute os testes na ordem para diagnosticar o problema');
+            }, 1000);
         });
     </script>
 </body>

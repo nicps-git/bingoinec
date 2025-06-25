@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Login Admin - Bingo Arraiá INEC</title>
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <!-- Bandeirolas -->
+    <div class="bandeirolas">
+        <div class="bandeirola bandeirola-1"></div>
+        <div class="bandeirola bandeirola-2"></div>
+        <div class="bandeirola bandeirola-3"></div>
+        <div class="bandeirola bandeirola-4"></div>
+        <div class="bandeirola bandeirola-5"></div>
+        <div class="bandeirola bandeirola-6"></div>
+        <div class="bandeirola bandeirola-7"></div>
+        <div class="bandeirola bandeirola-8"></div>
+        <div class="bandeirola bandeirola-9"></div>
+        <div class="bandeirola bandeirola-10"></div>
+    </div>
+
+    <header>
+        <div class="logo-empresa">
+            <img src="inec.png" alt="Logo INEC" class="logo-inec">
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="btn-nav">🎪 Bingo</a>
+            <a href="cartelas.html" class="btn-nav">🎫 Cartelas</a>
+        </div>
+        <div class="chapeu-palha">👒</div>
+        <h1>🔐 Acesso Administrativo</h1>
+        <p>🛡️ Área restrita - Apenas administradores</p>
+    </header>
+
+    <main>
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <h2>🔑 Login do Administrador</h2>
+                    <p>Digite suas credenciais para acessar o painel</p>
+                </div>
+
+                <form id="login-form" class="login-form">
+                    <div class="input-group">
+                        <label for="email">📧 E-mail:</label>
+                        <input type="email" id="email" name="email" required placeholder="Digite seu e-mail">
+                        <span class="input-icon">👤</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="senha">🔒 Senha:</label>
+                        <input type="password" id="senha" name="senha" required placeholder="Digite sua senha">
+                        <span class="input-icon">🔐</span>
+                        <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-login">🚀 Entrar</button>
+                    </div>
+
+                    <div class="login-info">
+                        <p>⚠️ <strong>Acesso restrito</strong></p>
+                        <p>Para solicitar acesso, entre em contato com a TI da INEC</p>
+                    </div>
+                </form>
+
+                <div class="security-info">
+                    <div class="security-item">
+                        <span class="icon">🛡️</span>
+                        <span>Conexão segura</span>
+                    </div>
+                    <div class="security-item">
+                        <span class="icon">🔐</span>
+                        <span>Dados protegidos</span>
+                    </div>
+                    <div class="security-item">
+                        <span class="icon">📊</span>
+                        <span>Logs de acesso</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert de erro -->
+        <div id="alert-erro" class="alert alert-erro">
+            <span class="alert-icon">❌</span>
+            <span class="alert-message">Credenciais inválidas! Verifique e-mail e senha.</span>
+            <button class="alert-close" onclick="fecharAlert()">&times;</button>
+        </div>
+
+        <!-- Alert de sucesso -->
+        <div id="alert-sucesso" class="alert alert-sucesso">
+            <span class="alert-icon">✅</span>
+            <span class="alert-message">Login realizado com sucesso! Redirecionando...</span>
+        </div>
+    </main>
+
+    <!-- Elementos decorativos -->
+    <div class="fogueira">
+        <div class="fogo"></div>
+        <div class="lenha"></div>
+    </div>
+
+    <div class="estrelas">
+        <div class="estrela estrela-1">⭐</div>
+        <div class="estrela estrela-2">✨</div>
+        <div class="estrela estrela-3">⭐</div>
+        <div class="estrela estrela-4">✨</div>
+        <div class="estrela estrela-5">⭐</div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>

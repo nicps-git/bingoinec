@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração - Bingo Arraiá INEC</title>
+    <link rel="stylesheet" href="admin.css">
+    
+    <!-- Sistema de Autenticação (PRIMEIRO) -->
+    <script src="auth-simples.js"></script>
+    
+    <!-- Firebase SDK v9 Compat (para consistência com outras páginas) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    
+    <!-- Admin Logic (ÚLTIMO) -->
+    <script src="admin.js"></script>
+</head>
+<body>
+    <!-- Bandeirolas -->
+    <div class="bandeirolas">
+        <div class="bandeirola bandeirola-1"></div>
+        <div class="bandeirola bandeirola-2"></div>
+        <div class="bandeirola bandeirola-3"></div>
+        <div class="bandeirola bandeirola-4"></div>
+        <div class="bandeirola bandeirola-5"></div>
+        <div class="bandeirola bandeirola-6"></div>
+        <div class="bandeirola bandeirola-7"></div>
+        <div class="bandeirola bandeirola-8"></div>
+        <div class="bandeirola bandeirola-9"></div>
+        <div class="bandeirola bandeirola-10"></div>
+    </div>
+
+    <header>
+        <div class="logo-empresa">
+            <img src="inec.png" alt="Logo INEC" class="logo-inec">
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="btn-nav">🎪 Bingo</a>
+            <a href="cartelas.html" class="btn-nav">🎫 Cartelas</a>
+            <a href="minhas-cartelas.html" class="btn-nav">👀 Minhas Cartelas</a>
+            <button onclick="logout()" class="btn-logout">🚪 Sair</button>
+        </div>
+        <div class="chapeu-palha">👒</div>
+        <h1>🔧 Administração do Bingo</h1>
+        <p>⚙️ Configure o Arraiá INEC</p>
+        <div class="user-info">
+            <span id="admin-user">👤 Carregando...</span>
+            <span id="session-time">⏰ Carregando...</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="admin-panel">
+            <h2>📊 Configurações do Sorteio</h2>
+            
+            <div class="config-section">
+                <h3>🎯 Range de Números</h3>
+                <div class="input-group">
+                    <label for="numero-inicial">Número Inicial:</label>
+                    <input type="number" id="numero-inicial" min="1" max="999" value="1">
+                </div>
+                <div class="input-group">
+                    <label for="numero-final">Número Final:</label>
+                    <input type="number" id="numero-final" min="1" max="999" value="75">
+                </div>
+                <div class="range-info">
+                    <span id="total-numeros">Total de números: 75</span>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>🎮 Controles do Jogo</h3>
+                <div class="button-group">
+                    <button id="salvar-config" class="btn-primary">💾 Salvar Configurações</button>
+                    <button id="resetar-jogo" class="btn-warning">🔄 Resetar Jogo</button>
+                    <button id="ir-para-bingo" class="btn-success">🎪 Ir para o Bingo</button>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>📈 Status Atual</h3>
+                <div class="status-info">
+                    <div class="status-item">
+                        <span class="label">Range Atual:</span>
+                        <span id="range-atual">1 - 75</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Números Sorteados:</span>
+                        <span id="numeros-sorteados-count">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Números Restantes:</span>
+                        <span id="numeros-restantes">75</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>🗂️ Histórico de Números Sorteados</h3>
+                <div class="historico-container">
+                    <div id="historico-numeros" class="historico-numeros">
+                        <p class="sem-historico">Nenhum número sorteado ainda</p>
+                    </div>
+                    <button id="limpar-historico" class="btn-danger">🗑️ Limpar Histórico</button>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>🎫 Gerenciamento de Cartelas</h3>
+                <div class="cartelas-controls">
+                    <div class="input-group">
+                        <label for="preco-cartela">Preço por Cartela (R$):</label>
+                        <input type="number" id="preco-cartela" min="0" step="0.01" value="5.00">
+                    </div>
+                    <div class="button-group">
+                        <button id="gerar-cartela" class="btn-primary">🎫 Gerar Nova Cartela</button>
+                        <button id="ver-vendas" class="btn-success">💰 Ver Vendas</button>
+                    </div>
+                </div>
+                
+                <div class="vendas-info">
+                    <div class="status-item">
+                        <span class="label">Cartelas Geradas:</span>
+                        <span id="cartelas-geradas">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Cartelas Vendidas:</span>
+                        <span id="cartelas-vendidas">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Total Arrecadado:</span>
+                        <span id="total-arrecadado">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <div id="modal-vendas" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h3>💰 Controle de Vendas</h3>
+                        <div id="lista-cartelas" class="lista-cartelas"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Elementos decorativos -->
+    <div class="fogueira">
+        <div class="fogo"></div>
+        <div class="lenha"></div>
+    </div>
+
+    <div class="estrelas">
+        <div class="estrela estrela-1">⭐</div>
+        <div class="estrela estrela-2">✨</div>
+        <div class="estrela estrela-3">⭐</div>
+        <div class="estrela estrela-4">✨</div>
+        <div class="estrela estrela-5">⭐</div>
+    </div>
+
+    <!-- Scripts carregados no head -->
+    <script src="login.js"></script>
+</body>
+</html>

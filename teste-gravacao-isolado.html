@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Teste Isolado - Gravação Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        button:hover { background: #45a049; }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        .resultado {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .sucesso { background: #d4edda; color: #155724; }
+        .erro { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Teste Isolado - Gravação Firebase</h1>
+        <p>Este teste foca apenas na gravação no Firebase, isolando o problema.</p>
+        
+        <div class="form-group">
+            <label for="nome">Nome do Comprador:</label>
+            <input type="text" id="nome" value="Teste Isolado" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="telefone">Telefone:</label>
+            <input type="tel" id="telefone" value="(11) 99999-9999" required>
+        </div>
+        
+        <button onclick="testarGravacaoIsolada()">💾 Testar Gravação Isolada</button>
+        <button onclick="simularFluxoCompleto()">🎯 Simular Fluxo Completo</button>
+        <button onclick="limparLogs()">🧹 Limpar Logs</button>
+        
+        <div id="resultado"></div>
+        <div id="logs" class="log">Aguardando teste...</div>
+    </div>
+
+    <!-- Scripts Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+
+    <script>
+        let contadorTeste = 1;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        function mostrarResultado(message, tipo) {
+            const resultadoDiv = document.getElementById('resultado');
+            resultadoDiv.innerHTML = `<div class="resultado ${tipo}">${message}</div>`;
+        }
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Teste isolado carregado');
+            
+            setTimeout(() => {
+                if (window.FirebaseDB) {
+                    log('✅ FirebaseDB conectado');
+                    
+                    if (typeof window.FirebaseDB.saveCartela === 'function') {
+                        log('✅ Método saveCartela disponível');
+                    } else {
+                        log('❌ Método saveCartela não encontrado');
+                    }
+                } else {
+                    log('❌ FirebaseDB não disponível');
+                }
+            }, 2000);
+        });
+        
+        async function testarGravacaoIsolada() {
+            log('🎯 === TESTE GRAVAÇÃO ISOLADA ===');
+            
+            try {
+                // Verificar Firebase
+                if (!window.FirebaseDB) {
+                    throw new Error('FirebaseDB não disponível');
+                }
+                
+                // Obter dados do formulário
+                const nome = document.getElementById('nome').value;
+                const telefone = document.getElementById('telefone').value;
+                
+                if (!nome || !telefone) {
+                    throw new Error('Nome e telefone são obrigatórios');
+                }
+                
+                // Criar cartela de teste
+                const cartela = {
+                    id: `ISOLADO-${Date.now()}-${contadorTeste}`,
+                    numeros: Array.from({length: 15}, () => Math.floor(Math.random() * 75) + 1).sort((a, b) => a - b),
+                    preco: 5.00,
+                    status: 'vendida',
+                    comprador: {
+                        nome: nome,
+                        telefone: telefone
+                    },
+                    nome: nome,
+                    telefone: telefone,
+                    dataCompra: new Date(),
+                    timestamp: Date.now()
+                };
+                
+                log(`📋 Cartela criada: ${cartela.id}`);
+                log(`👤 Comprador: ${cartela.comprador.nome}`);
+                log(`📱 Telefone: ${cartela.comprador.telefone}`);
+                log(`🔢 Números: [${cartela.numeros.slice(0, 5).join(', ')}...]`);
+                
+                // Chamar método de gravação
+                log('💾 Chamando FirebaseDB.saveCartela...');
+                const resultado = await window.FirebaseDB.saveCartela(cartela);
+                
+                if (resultado.success) {
+                    log(`✅ SUCESSO! Cartela gravada com ID: ${resultado.id}`, 'success');
+                    mostrarResultado(`✅ Cartela gravada com sucesso! ID: ${resultado.id}`, 'sucesso');
+                    
+                    // Verificar no banco
+                    setTimeout(async () => {
+                        try {
+                            const db = firebase.firestore();
+                            const doc = await db.collection('cartelas').doc(resultado.id).get();
+                            
+                            if (doc.exists) {
+                                const data = doc.data();
+                                log('✅ Cartela confirmada no Firebase!');
+                                log(`📋 Dados salvos: Nome=${data.nome}, Tel=${data.telefone}, Nums=${data.numeros?.length}`);
+                                log(`📋 Status: ${data.status}, Vendida: ${data.vendida}`);
+                            } else {
+                                log('❌ Cartela não encontrada no Firebase após gravação!');
+                            }
+                        } catch (error) {
+                            log(`❌ Erro ao verificar: ${error.message}`);
+                        }
+                    }, 2000);
+                    
+                    contadorTeste++;
+                    
+                } else {
+                    throw new Error('Resultado indica falha na gravação');
+                }
+                
+            } catch (error) {
+                log(`❌ ERRO: ${error.message}`);
+                mostrarResultado(`❌ Erro: ${error.message}`, 'erro');
+                console.error('Erro completo:', error);
+            }
+        }
+        
+        async function simularFluxoCompleto() {
+            log('🎯 === SIMULANDO FLUXO COMPLETO ===');
+            
+            try {
+                // Simular carrinho com múltiplas cartelas
+                const carrinho = [];
+                
+                for (let i = 1; i <= 2; i++) {
+                    const cartela = {
+                        id: `FLUXO-${Date.now()}-${i}`,
+                        numeros: Array.from({length: 15}, () => Math.floor(Math.random() * 75) + 1).sort((a, b) => a - b),
+                        preco: 5.00,
+                        status: 'no-carrinho'
+                    };
+                    carrinho.push(cartela);
+                    log(`🛒 Cartela ${i} adicionada ao carrinho: ${cartela.id}`);
+                }
+                
+                // Obter dados do comprador
+                const nome = document.getElementById('nome').value;
+                const telefone = document.getElementById('telefone').value;
+                
+                log(`👤 Dados do comprador: ${nome} - ${telefone}`);
+                
+                // Processar cada cartela
+                let sucessos = 0;
+                let erros = 0;
+                
+                for (let i = 0; i < carrinho.length; i++) {
+                    const cartela = carrinho[i];
+                    
+                    // Preparar dados para salvar
+                    const cartelaParaSalvar = {
+                        ...cartela,
+                        status: 'vendida',
+                        comprador: {
+                            nome: nome,
+                            telefone: telefone
+                        },
+                        nome: nome,
+                        telefone: telefone,
+                        dataCompra: new Date(),
+                        timestamp: Date.now()
+                    };
+                    
+                    try {
+                        log(`💾 Salvando cartela ${i + 1}/${carrinho.length}: ${cartela.id}`);
+                        const resultado = await window.FirebaseDB.saveCartela(cartelaParaSalvar);
+                        
+                        if (resultado.success) {
+                            log(`✅ Cartela ${i + 1} salva: ${resultado.id}`);
+                            sucessos++;
+                        } else {
+                            throw new Error('Falha na gravação');
+                        }
+                        
+                        // Pequena pausa entre gravações
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                    } catch (error) {
+                        log(`❌ Erro na cartela ${i + 1}: ${error.message}`);
+                        erros++;
+                    }
+                }
+                
+                // Resultado final
+                if (sucessos > 0) {
+                    log(`🎉 FLUXO CONCLUÍDO: ${sucessos} sucessos, ${erros} erros`);
+                    mostrarResultado(`🎉 Fluxo concluído: ${sucessos} cartelas salvas, ${erros} erros`, 'sucesso');
+                } else {
+                    log(`💥 FLUXO FALHOU: Nenhuma cartela foi salva`);
+                    mostrarResultado(`💥 Fluxo falhou: Nenhuma cartela foi salva`, 'erro');
+                }
+                
+            } catch (error) {
+                log(`❌ ERRO NO FLUXO: ${error.message}`);
+                mostrarResultado(`❌ Erro no fluxo: ${error.message}`, 'erro');
+            }
+        }
+        
+        function limparLogs() {
+            document.getElementById('logs').innerHTML = 'Logs limpos...';
+            document.getElementById('resultado').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

@@ -71,16 +71,70 @@ function initializeFirebaseUnified() {
         // Método para salvar cartela
         async saveCartela(cartelaData) {
           try {
-            console.log('💾 Salvando cartela no Firebase...', cartelaData);
-            const docRef = await db.collection('cartelas').add({
-              ...cartelaData,
-              timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-              status: 'ativa'
-            });
-            console.log('✅ Cartela salva com ID:', docRef.id);
-            return { success: true, id: docRef.id };
+            console.log('� === INICIANDO SAVECARTELA ===');
+            console.log('💾 Dados recebidos:', cartelaData);
+            console.log('🔍 Tipo dos dados:', typeof cartelaData);
+            console.log('🔍 Firestore DB disponível:', !!db);
+            
+            // Verificar se dados essenciais estão presentes
+            if (!cartelaData) {
+              throw new Error('cartelaData está undefined/null');
+            }
+            
+            if (!cartelaData.id) {
+              console.warn('⚠️ ID da cartela não fornecido, gerando...');
+              cartelaData.id = `CART-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            }
+            
+            if (!cartelaData.comprador) {
+              throw new Error('Dados do comprador não fornecidos');
+            }
+            
+            console.log('✅ Dados básicos validados');
+            
+            // Preparar dados para salvar no formato correto (IGUAL AO ADMIN)
+            const dadosParaSalvar = {
+              id: cartelaData.id,
+              numeros: cartelaData.numeros || [],
+              preco: cartelaData.preco || 5.00,
+              status: cartelaData.status || 'vendida',
+              vendida: true, // Campo que admin usa
+              comprador: {
+                nome: cartelaData.comprador.nome,
+                telefone: cartelaData.comprador.telefone
+              },
+              nome: cartelaData.nome || cartelaData.comprador.nome,
+              telefone: cartelaData.telefone || cartelaData.comprador.telefone,
+              dataCompra: cartelaData.dataCompra || new Date(),
+              dataVenda: firebase.firestore.FieldValue.serverTimestamp(), // Campo que admin usa
+              dataGeracao: cartelaData.dataGeracao || firebase.firestore.FieldValue.serverTimestamp(),
+              timestamp: cartelaData.timestamp || Date.now(),
+              timestampFirebase: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            console.log('📝 Dados formatados para Firebase:', dadosParaSalvar);
+            console.log('🔍 Tamanho do array numeros:', dadosParaSalvar.numeros.length);
+            console.log('🔍 Comprador nome:', dadosParaSalvar.comprador.nome);
+            console.log('🔍 Comprador telefone:', dadosParaSalvar.comprador.telefone);
+            
+            console.log('🚀 Executando db.collection("cartelas").doc().set() [MÉTODO DO ADMIN]...');
+            
+            // USAR MESMO MÉTODO QUE ADMIN: .doc().set() ao invés de .add()
+            await db.collection('cartelas').doc(dadosParaSalvar.id).set(dadosParaSalvar);
+            
+            console.log('✅ Documento salvo usando método do admin!');
+            console.log('📄 Document ID:', dadosParaSalvar.id);
+            
+            const resultado = { success: true, id: dadosParaSalvar.id };
+            console.log('🎉 Resultado final:', resultado);
+            
+            return resultado;
           } catch (error) {
-            console.error('❌ Erro ao salvar cartela:', error);
+            console.error('❌ === ERRO NO SAVECARTELA ===');
+            console.error('❌ Mensagem:', error.message);
+            console.error('❌ Código:', error.code);
+            console.error('❌ Stack:', error.stack);
+            console.error('❌ Objeto erro completo:', error);
             throw error;
           }
         },

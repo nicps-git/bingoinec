@@ -682,6 +682,108 @@ main {
     color: #D2691E;
 }
 
+/* ===== CORREÇÃO URGENTE - GRID DAS CARTELAS ===== */
+
+/* Forçar grid para funcionar corretamente */
+.cartela-comprador .bingo-grid {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 3px !important;
+    width: 100% !important;
+    max-width: 350px !important;
+    margin: 10px auto !important;
+    padding: 0 !important;
+}
+
+.cartela-comprador .numero-cell {
+    background: linear-gradient(135deg, #ecf0f1, #bdc3c7) !important;
+    color: #2c3e50 !important;
+    text-align: center !important;
+    font-size: 1.1em !important;
+    font-weight: bold !important;
+    padding: 10px 5px !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    border: 2px solid transparent !important;
+    user-select: none !important;
+    position: relative !important;
+    min-height: 40px !important;
+    max-height: 50px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+.cartela-comprador .numero-cell:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+
+.cartela-comprador .numero-cell.free-space {
+    background: linear-gradient(135deg, #f39c12, #e67e22) !important;
+    color: white !important;
+    font-size: 1.5em !important;
+    cursor: default !important;
+}
+
+.cartela-comprador .numero-cell.free-space:hover {
+    transform: none !important;
+}
+
+.cartela-comprador .numero-cell.sorteado {
+    background: linear-gradient(135deg, #27ae60, #2ecc71) !important;
+    color: white !important;
+    border-color: #1e8449 !important;
+}
+
+.cartela-comprador .numero-cell.marcado {
+    background: linear-gradient(135deg, #3498db, #2980b9) !important;
+    color: white !important;
+    border-color: #1f4e79 !important;
+}
+
+.cartela-comprador .numero-cell.sorteado.marcado {
+    background: linear-gradient(135deg, #8e44ad, #9b59b6) !important;
+    border-color: #6c3483 !important;
+    box-shadow: 0 0 15px rgba(142, 68, 173, 0.6) !important;
+}
+
+/* Header BINGO também forçado */
+.cartela-comprador .bingo-header {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 3px !important;
+    margin: 5px auto 10px !important;
+    max-width: 350px !important;
+}
+
+.cartela-comprador .bingo-letter {
+    background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+    color: white !important;
+    text-align: center !important;
+    font-size: 1.3em !important;
+    font-weight: bold !important;
+    padding: 8px !important;
+    border-radius: 6px !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2) !important;
+}
+
+/* Container da cartela */
+.cartela-comprador {
+    background: white !important;
+    border-radius: 10px !important;
+    padding: 20px !important;
+    margin: 20px auto !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+    max-width: 400px !important;
+}
+
+/* ===== FIM DA CORREÇÃO URGENTE ===== */
+
 /* ===== RESPONSIVIDADE ===== */
 
 @media (max-width: 768px) {

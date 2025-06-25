@@ -279,23 +279,7 @@ class FirebaseService {
             
             console.log(`🎯 RESULTADO FINAL: ${cartelasEncontradas.length} cartelas encontradas`);
             return cartelasEncontradas;
-                    return cartelas;
-                }
-            } else if (email) {
-                console.log('🔍 [DEBUG] Iniciando busca por email:', email);
-                query = query.where('email', '==', email);
-                const snapshot = await query.get();
-                const cartelas = [];
-                snapshot.forEach(doc => {
-                    cartelas.push({ id: doc.id, ...doc.data() });
-                });
-                
-                console.log(`✅ [DEBUG] ${cartelas.length} cartelas encontradas para o email`);
-                return cartelas;
-            }
             
-            console.log('🔍 [DEBUG] Nenhum critério de busca fornecido');
-            return [];
         } catch (error) {
             console.error('❌ [DEBUG] Erro ao carregar cartelas do comprador:', error);
             console.error('❌ [DEBUG] Stack trace:', error.stack);

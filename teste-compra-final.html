@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Teste Final - Fluxo Completo de Compra</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .resultado {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        .erro { background: #f44336; }
+        .sucesso { background: #4CAF50; }
+        .info { background: #2196F3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste Final - Fluxo Completo de Compra</h1>
+        <p>Este teste simula o fluxo completo de compra de cartelas, desde a geração até a gravação no Firebase.</p>
+        
+        <div>
+            <button onclick="testarFluxoCompleto()">🎯 Testar Fluxo Completo</button>
+            <button onclick="verificarCartelas()">🔍 Verificar Cartelas no Firebase</button>
+            <button onclick="limparResultados()">🧹 Limpar Resultados</button>
+        </div>
+        
+        <div id="resultados"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        let resultadosDiv;
+        let contadorTeste = 1;
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            resultadosDiv = document.getElementById('resultados');
+            log('🚀 Página carregada, aguardando Firebase...');
+            
+            // Aguardar Firebase
+            setTimeout(() => {
+                if (window.FirebaseDB) {
+                    log('✅ Firebase conectado com sucesso!');
+                } else {
+                    log('❌ Firebase não conectado!', 'erro');
+                }
+            }, 2000);
+        });
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'erro' ? 'erro' : type === 'sucesso' ? 'sucesso' : 'info';
+            
+            resultadosDiv.innerHTML += `
+                <div class="resultado ${className}">
+                    [${timestamp}] ${message}
+                </div>
+            `;
+            
+            console.log(`[${timestamp}] ${message}`);
+            resultadosDiv.scrollTop = resultadosDiv.scrollHeight;
+        }
+        
+        function gerarCartela() {
+            log('🎲 Gerando cartela de teste...');
+            
+            const numeros = [];
+            for (let i = 0; i < 15; i++) {
+                numeros.push(Math.floor(Math.random() * 75) + 1);
+            }
+            numeros.sort((a, b) => a - b);
+            
+            const cartela = {
+                id: `TESTE-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                numeros: numeros,
+                preco: 5.00,
+                status: 'vendida',
+                comprador: {
+                    nome: `Teste Usuario ${contadorTeste}`,
+                    telefone: `(11) 99999-${String(contadorTeste).padStart(4, '0')}`
+                },
+                dataCompra: new Date(),
+                timestamp: Date.now()
+            };
+            
+            log(`✅ Cartela gerada: ${cartela.id}`);
+            log(`📱 Comprador: ${cartela.comprador.nome} - ${cartela.comprador.telefone}`);
+            log(`🔢 Números: [${cartela.numeros.join(', ')}]`);
+            
+            return cartela;
+        }
+        
+        async function salvarCartela(cartela) {
+            log(`💾 Tentando salvar cartela: ${cartela.id}`);
+            
+            try {
+                if (!window.FirebaseDB) {
+                    throw new Error('FirebaseDB não disponível');
+                }
+                
+                log('🔥 Chamando FirebaseDB.saveCartela...');
+                const resultado = await window.FirebaseDB.saveCartela(cartela);
+                
+                if (resultado.success) {
+                    log(`✅ Cartela salva com sucesso! ID Firebase: ${resultado.id}`, 'sucesso');
+                    return resultado;
+                } else {
+                    throw new Error('Resultado não indicou sucesso');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro ao salvar cartela: ${error.message}`, 'erro');
+                throw error;
+            }
+        }
+        
+        async function testarFluxoCompleto() {
+            log('🎯 === INICIANDO TESTE FLUXO COMPLETO ===');
+            log(`📊 Teste número: ${contadorTeste}`);
+            
+            try {
+                // 1. Gerar cartela
+                log('1️⃣ Etapa 1: Gerar cartela');
+                const cartela = gerarCartela();
+                
+                // 2. Simular adição ao carrinho
+                log('2️⃣ Etapa 2: Simular adição ao carrinho');
+                log('🛒 Cartela adicionada ao carrinho (simulado)');
+                
+                // 3. Simular preenchimento de dados
+                log('3️⃣ Etapa 3: Dados do comprador preenchidos');
+                log(`👤 Nome: ${cartela.comprador.nome}`);
+                log(`📱 Telefone: ${cartela.comprador.telefone}`);
+                
+                // 4. Finalizar compra (salvar no Firebase)
+                log('4️⃣ Etapa 4: Finalizar compra (salvar no Firebase)');
+                await salvarCartela(cartela);
+                
+                log('🎉 === TESTE CONCLUÍDO COM SUCESSO ===', 'sucesso');
+                contadorTeste++;
+                
+            } catch (error) {
+                log(`💥 === TESTE FALHOU: ${error.message} ===`, 'erro');
+            }
+        }
+        
+        async function verificarCartelas() {
+            log('🔍 === VERIFICANDO CARTELAS NO FIREBASE ===');
+            
+            try {
+                if (!window.FirebaseDB) {
+                    throw new Error('FirebaseDB não disponível');
+                }
+                
+                log('📊 Buscando todas as cartelas...');
+                
+                // Usar Firestore diretamente para buscar todas as cartelas
+                const db = firebase.firestore();
+                const snapshot = await db.collection('cartelas')
+                    .orderBy('timestamp', 'desc')
+                    .limit(10)
+                    .get();
+                
+                log(`📋 Encontradas ${snapshot.size} cartelas:`);
+                
+                snapshot.forEach((doc, index) => {
+                    const data = doc.data();
+                    log(`${index + 1}. ID: ${doc.id}`);
+                    log(`   👤 Comprador: ${data.nome || data.comprador?.nome || 'N/A'}`);
+                    log(`   📱 Telefone: ${data.telefone || data.comprador?.telefone || 'N/A'}`);
+                    log(`   🔢 Números: ${data.numeros?.length || 0} números`);
+                    log(`   💰 Preço: R$ ${data.preco || 'N/A'}`);
+                    log(`   📅 Data: ${data.dataCompra ? new Date(data.dataCompra.seconds * 1000).toLocaleString() : 'N/A'}`);
+                    log(`   ✅ Status: ${data.status || 'N/A'}`);
+                    log(`   🏷️ Vendida: ${data.vendida ? 'Sim' : 'Não'}`);
+                    log('   ---');
+                });
+                
+                log('✅ Verificação concluída', 'sucesso');
+                
+            } catch (error) {
+                log(`❌ Erro ao verificar cartelas: ${error.message}`, 'erro');
+            }
+        }
+        
+        function limparResultados() {
+            resultadosDiv.innerHTML = '';
+            log('🧹 Resultados limpos');
+        }
+    </script>
+</body>
+</html>

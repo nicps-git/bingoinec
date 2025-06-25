@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Rápido - Botões</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 15px 25px; margin: 10px; font-size: 16px; cursor: pointer; }
+        .resultado { background: #f0f0f0; padding: 20px; margin: 20px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste Rápido dos Botões</h1>
+    
+    <div>
+        <button onclick="testMarcar()">Testar Marcar</button>
+        <button onclick="testLimpar()">Testar Limpar</button>
+        <button onclick="testBingo()">Testar Bingo</button>
+    </div>
+    
+    <div id="resultado" class="resultado">
+        Aguardando teste...
+    </div>
+
+    <script src="minhas-cartelas.js"></script>
+    
+    <script>
+        function log(msg) {
+            document.getElementById('resultado').innerHTML += '<br>' + msg;
+            console.log(msg);
+        }
+
+        function testMarcar() {
+            log('🧪 Testando marcarTodosNumeros...');
+            if (typeof marcarTodosNumeros === 'function') {
+                log('✅ Função encontrada!');
+                try {
+                    marcarTodosNumeros();
+                    log('✅ Executada com sucesso!');
+                } catch (e) {
+                    log('❌ Erro: ' + e.message);
+                }
+            } else {
+                log('❌ Função não encontrada!');
+            }
+        }
+
+        function testLimpar() {
+            log('🧪 Testando limparMarcacoes...');
+            if (typeof limparMarcacoes === 'function') {
+                log('✅ Função encontrada!');
+                try {
+                    limparMarcacoes();
+                    log('✅ Executada com sucesso!');
+                } catch (e) {
+                    log('❌ Erro: ' + e.message);
+                }
+            } else {
+                log('❌ Função não encontrada!');
+            }
+        }
+
+        function testBingo() {
+            log('🧪 Testando verificarBingo...');
+            if (typeof verificarBingo === 'function') {
+                log('✅ Função encontrada!');
+                try {
+                    verificarBingo();
+                    log('✅ Executada com sucesso!');
+                } catch (e) {
+                    log('❌ Erro: ' + e.message);
+                }
+            } else {
+                log('❌ Função não encontrada!');
+            }
+        }
+
+        // Verificar se funções estão disponíveis ao carregar
+        setTimeout(() => {
+            log('🔍 Verificando funções disponíveis...');
+            log('marcarTodosNumeros: ' + (typeof marcarTodosNumeros));
+            log('limparMarcacoes: ' + (typeof limparMarcacoes));
+            log('verificarBingo: ' + (typeof verificarBingo));
+            log('compradorAtual: ' + (typeof compradorAtual));
+            log('cartelasComprador: ' + (typeof cartelasComprador));
+        }, 1000);
+    </script>
+</body>
+</html>

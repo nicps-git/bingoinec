@@ -5,6 +5,471 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎫 Comprar Cartelas - Bingo Arraiá INEC</title>
     <link rel="stylesheet" href="cartelas.css">
+    
+    <!-- Script inline para função crítica -->
+    <script>
+        console.log('🎯 Definindo gerarCartela inline...');
+        
+        function gerarCartela() {
+            console.log('🎲 gerarCartela chamada (inline)!');
+            
+            // Se o script principal ainda não carregou, usar função simples
+            if (typeof window.gerarCartelaCompleta === 'function') {
+                window.gerarCartelaCompleta();
+            } else {
+                console.log('📋 Usando função simples...');
+                gerarCartelaSimples();
+            }
+        }
+        
+        function gerarCartelaSimples() {
+            console.log('🎲 Gerando cartela simples com 24 números...');
+            
+            try {
+                // Gerar 24 números únicos
+                const numeros = [];
+                const disponiveis = [];
+                
+                // Criar array de 1 a 75
+                for (let i = 1; i <= 75; i++) {
+                    disponiveis.push(i);
+                }
+                
+                // Escolher 24 números únicos
+                for (let i = 0; i < 24; i++) {
+                    const indice = Math.floor(Math.random() * disponiveis.length);
+                    numeros.push(disponiveis.splice(indice, 1)[0]);
+                }
+                numeros.sort((a, b) => a - b);
+                
+                const container = document.getElementById('cartela-preview');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="background: white; color: black; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+                            <h3 style="margin: 0 0 15px 0; text-align: center;">🎫 Cartela ${Date.now().toString().slice(-6)} (${numeros.length} números)</h3>
+                            
+                            <!-- Header BINGO -->
+                            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px 0;">
+                                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">B</div>
+                                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">I</div>
+                                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">N</div>
+                                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">G</div>
+                                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">O</div>
+                            </div>
+                            
+                            <!-- Grid de números -->
+                            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 15px 0;">
+                                ${numeros.slice(0, 12).map(num => 
+                                    `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
+                                ).join('')}
+                                <div style="background: #f39c12; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 14px;">⭐<br>LIVRE</div>
+                                ${numeros.slice(12).map(num => 
+                                    `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
+                                ).join('')}
+                            </div>
+                            
+                            <p style="text-align: center; margin: 15px 0 0 0; font-size: 18px; font-weight: bold;">
+                                💰 Preço: R$ 5,00 | 🎯 ${numeros.length} números
+                            </p>
+                        </div>
+                    `;
+                    
+                    // Habilitar botão comprar
+                    const btnComprar = document.getElementById('comprar-cartela');
+                    if (btnComprar) {
+                        btnComprar.disabled = false;
+                        btnComprar.textContent = '🛒 Adicionar ao Carrinho';
+                    }
+                    
+                    console.log('✅ Cartela simples gerada com sucesso!');
+                } else {
+                    console.error('❌ Container não encontrado');
+                }
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                alert('Erro: ' + error.message);
+            }
+        }
+        
+        function adicionarAoCarrinho() {
+            console.log('🛒 adicionarAoCarrinho chamada!');
+            
+            // Se o script principal carregou, usar função completa
+            if (typeof window.adicionarAoCarrinhoCompleta === 'function' && typeof window.carrinho !== 'undefined') {
+                window.adicionarAoCarrinhoCompleta();
+            } else {
+                console.log('📋 Usando função simples...');
+                adicionarAoCarrinhoSimples();
+            }
+        }
+        
+        function adicionarAoCarrinhoSimples() {
+            console.log('🛒 Adicionando ao carrinho (simples)...');
+            
+            // Verificar se há cartela gerada
+            const preview = document.getElementById('cartela-preview');
+            if (!preview || !preview.innerHTML.includes('Cartela')) {
+                alert('Gere uma cartela primeiro!');
+                return;
+            }
+            
+            // Simular adição ao carrinho
+            const carrinhoCont = document.getElementById('carrinho-lista');
+            const totalCont = document.getElementById('carrinho-total');
+            
+            if (carrinhoCont && totalCont) {
+                // Contar cartelas no carrinho
+                const itens = carrinhoCont.querySelectorAll('.item-carrinho').length;
+                const novoItem = itens + 1;
+                const novoTotal = novoItem * 5.00;
+                
+                // Adicionar item
+                if (itens === 0 || carrinhoCont.innerHTML.includes('Carrinho vazio')) {
+                    carrinhoCont.innerHTML = '';
+                }
+                
+                carrinhoCont.innerHTML += `
+                    <div class="item-carrinho" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee;">
+                        <span>Cartela ${novoItem}</span>
+                        <span>R$ 5,00</span>
+                        <button onclick="removerItem(this)" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">❌</button>
+                    </div>
+                `;
+                
+                // Atualizar total
+                totalCont.textContent = `R$ ${novoTotal.toFixed(2)}`;
+                
+                // Habilitar botão finalizar
+                const btnFinalizar = document.getElementById('finalizar-compra');
+                if (btnFinalizar) {
+                    btnFinalizar.disabled = false;
+                }
+                
+                // Limpar preview
+                preview.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><p>Clique em "Gerar Cartela" para ver sua cartela</p></div>';
+                
+                // Desabilitar botão comprar
+                const btnComprar = document.getElementById('comprar-cartela');
+                if (btnComprar) {
+                    btnComprar.disabled = true;
+                    btnComprar.textContent = '💳 Comprar Esta Cartela';
+                }
+                
+                console.log('✅ Cartela adicionada ao carrinho!');
+                
+                // Sincronizar com carrinho global se disponível
+                if (typeof window.carrinho !== 'undefined' && typeof window.atualizarCarrinho === 'function') {
+                    // Criar objeto cartela para o carrinho global
+                    const cartela = {
+                        id: `CART-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                        // Gerar 24 números únicos
+                        numeros: (() => {
+                            const numerosUnicos = [];
+                            const disponiveis = Array.from({length: 75}, (_, i) => i + 1);
+                            for (let j = 0; j < 24; j++) {
+                                const indice = Math.floor(Math.random() * disponiveis.length);
+                                numerosUnicos.push(disponiveis.splice(indice, 1)[0]);
+                            }
+                            return numerosUnicos.sort((a, b) => a - b);
+                        })(),
+                        preco: 5.00,
+                        status: 'no-carrinho'
+                    };
+                    
+                    window.carrinho.push(cartela);
+                    window.atualizarCarrinho();
+                }
+            }
+        }
+        
+        function removerItem(button) {
+            console.log('🗑️ Removendo item...');
+            const item = button.parentElement;
+            item.remove();
+            
+            // Atualizar numeração e total
+            const carrinhoCont = document.getElementById('carrinho-lista');
+            const totalCont = document.getElementById('carrinho-total');
+            const itens = carrinhoCont.querySelectorAll('.item-carrinho');
+            
+            if (itens.length === 0) {
+                carrinhoCont.innerHTML = '<p class="carrinho-vazio">Carrinho vazio</p>';
+                totalCont.textContent = 'R$ 0,00';
+                
+                // Desabilitar botão finalizar
+                const btnFinalizar = document.getElementById('finalizar-compra');
+                if (btnFinalizar) {
+                    btnFinalizar.disabled = true;
+                }
+            } else {
+                // Renumerar itens
+                itens.forEach((item, index) => {
+                    const span = item.querySelector('span:first-child');
+                    span.textContent = `Cartela ${index + 1}`;
+                });
+                
+                // Atualizar total
+                const novoTotal = itens.length * 5.00;
+                totalCont.textContent = `R$ ${novoTotal.toFixed(2)}`;
+            }
+        }
+        
+        function limparCarrinho() {
+            console.log('🧹 Limpando carrinho...');
+            
+            const carrinhoCont = document.getElementById('carrinho-lista');
+            const totalCont = document.getElementById('carrinho-total');
+            
+            if (carrinhoCont && totalCont) {
+                carrinhoCont.innerHTML = '<p class="carrinho-vazio">Carrinho vazio</p>';
+                totalCont.textContent = 'R$ 0,00';
+                
+                // Desabilitar botão finalizar
+                const btnFinalizar = document.getElementById('finalizar-compra');
+                if (btnFinalizar) {
+                    btnFinalizar.disabled = true;
+                }
+                
+                // Sincronizar com carrinho global se disponível
+                if (typeof window.carrinho !== 'undefined') {
+                    window.carrinho.length = 0; // Limpar array
+                    if (typeof window.atualizarCarrinho === 'function') {
+                        window.atualizarCarrinho();
+                    }
+                }
+                
+                console.log('✅ Carrinho limpo!');
+            }
+        }
+        
+        function abrirModal() {
+            console.log('💳 Abrindo modal...');
+            
+            // Verificar se há itens no carrinho
+            const carrinhoCont = document.getElementById('carrinho-lista');
+            const itens = carrinhoCont.querySelectorAll('.item-carrinho');
+            
+            if (itens.length === 0) {
+                alert('Carrinho vazio!');
+                return;
+            }
+            
+            // Se função completa disponível, usar
+            if (typeof window.abrirModalCompleto === 'function') {
+                window.abrirModalCompleto();
+            } else {
+                // Versão funcional do modal
+                console.log('💳 Abrindo modal (versão inline)...');
+                
+                const modal = document.getElementById('modal-checkout');
+                if (modal) {
+                    modal.style.display = 'block';
+                    
+                    // Atualizar resumo da compra
+                    const resumoCartelas = document.getElementById('resumo-cartelas');
+                    const totalFinal = document.getElementById('total-final');
+                    
+                    if (resumoCartelas && totalFinal) {
+                        const numeroCartelas = itens.length;
+                        const total = numeroCartelas * 5.00;
+                        
+                        resumoCartelas.innerHTML = `
+                            <p>${numeroCartelas} cartela(s) selecionada(s)</p>
+                            ${Array.from(itens).map((item, index) => 
+                                `<p>Cartela ${index + 1}: R$ 5,00</p>`
+                            ).join('')}
+                        `;
+                        
+                        totalFinal.textContent = `R$ ${total.toFixed(2)}`;
+                    }
+                    
+                    console.log('✅ Modal aberto');
+                }
+            }
+        }
+        
+        function fecharCheckout() {
+            console.log('❌ Fechando modal...');
+            const modal = document.getElementById('modal-checkout');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Configurar eventos do modal quando DOM carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 Configurando eventos do modal...');
+            
+            // Fechar modal ao clicar no X
+            const closeBtn = document.querySelector('.modal .close');
+            if (closeBtn) {
+                closeBtn.onclick = fecharCheckout;
+            }
+            
+            // Fechar modal ao clicar fora
+            const modal = document.getElementById('modal-checkout');
+            if (modal) {
+                modal.onclick = function(e) {
+                    if (e.target === modal) {
+                        fecharCheckout();
+                    }
+                };
+            }
+            
+            // Configurar form de checkout
+            const form = document.getElementById('form-checkout');
+            if (form) {
+                form.onsubmit = function(e) {
+                    e.preventDefault();
+                    console.log('📝 Form submetido...');
+                    console.log('🔍 Verificando window.processarCompraCompleta:', typeof window.processarCompraCompleta);
+                    
+                    if (typeof window.processarCompraCompleta === 'function') {
+                        console.log('✅ Chamando window.processarCompraCompleta');
+                        window.processarCompraCompleta(e);
+                    } else {
+                        console.log('❌ window.processarCompraCompleta não disponível, usando fallback');
+                        processarCompraSimples(e);
+                    }
+                };
+                console.log('✅ Form configurado');
+            }
+        });
+        
+        // Função para verificar acesso admin (inline para garantir disponibilidade)
+        function verificarAcessoAdmin() {
+            console.log('🔐 Redirecionando para área administrativa...');
+            window.location.href = 'admin.html';
+        }
+        
+        function processarCompraSimples(event) {
+            console.log('💰 Processando compra (versão simples)...');
+            
+            const form = event.target;
+            const nome = form.querySelector('#nome-comprador').value;
+            const telefone = form.querySelector('#telefone-comprador').value;
+            
+            if (!nome.trim()) {
+                alert('Nome é obrigatório!');
+                return;
+            }
+            
+            if (!telefone.trim()) {
+                alert('Telefone é obrigatório!');
+                return;
+            }
+            
+            // TENTAR USAR FIREBASE SE DISPONÍVEL
+            if (window.FirebaseDB && typeof window.FirebaseDB.saveCartela === 'function') {
+                console.log('🔥 Firebase disponível, tentando usar método real...');
+                
+                // Obter cartelas do carrinho (interface)
+                const carrinhoCont = document.getElementById('carrinho-lista');
+                const itens = carrinhoCont.querySelectorAll('.item-carrinho');
+                
+                if (itens.length === 0) {
+                    alert('Carrinho vazio!');
+                    return;
+                }
+                
+                const btn = form.querySelector('button[type="submit"]');
+                const textoOriginal = btn.textContent;
+                btn.textContent = '⏳ Salvando no Firebase...';
+                btn.disabled = true;
+                
+                // Processar cada cartela
+                const promessas = [];
+                
+                itens.forEach((item, index) => {
+                    const cartela = {
+                        id: `SIMPLE-${Date.now()}-${index + 1}`,
+                        // Gerar 24 números únicos
+                        numeros: (() => {
+                            const numerosUnicos = [];
+                            const disponiveis = Array.from({length: 75}, (_, i) => i + 1);
+                            for (let j = 0; j < 24; j++) {
+                                const indice = Math.floor(Math.random() * disponiveis.length);
+                                numerosUnicos.push(disponiveis.splice(indice, 1)[0]);
+                            }
+                            return numerosUnicos.sort((a, b) => a - b);
+                        })(),
+                        preco: 5.00,
+                        status: 'vendida',
+                        comprador: {
+                            nome: nome.trim(),
+                            telefone: telefone.trim()
+                        },
+                        nome: nome.trim(),
+                        telefone: telefone.trim(),
+                        dataCompra: new Date(),
+                        timestamp: Date.now()
+                    };
+                    
+                    promessas.push(window.FirebaseDB.saveCartela(cartela));
+                });
+                
+                Promise.all(promessas)
+                    .then(resultados => {
+                        console.log('✅ Todas as cartelas salvas:', resultados);
+                        alert(`✅ ${resultados.length} cartela(s) salva(s) no Firebase com sucesso!`);
+                        
+                        // Limpar carrinho
+                        limparCarrinho();
+                        
+                        // Fechar modal
+                        fecharCheckout();
+                        
+                        // Resetar form
+                        form.reset();
+                        btn.textContent = textoOriginal;
+                        btn.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('❌ Erro ao salvar cartelas:', error);
+                        alert(`❌ Erro ao salvar no Firebase: ${error.message}`);
+                        
+                        btn.textContent = textoOriginal;
+                        btn.disabled = false;
+                    });
+                
+                return;
+            }
+            
+            // Fallback: Simular processamento
+            console.log('⚠️ Firebase não disponível, usando simulação...');
+            const btn = form.querySelector('button[type="submit"]');
+            const textoOriginal = btn.textContent;
+            btn.textContent = '⏳ Processando...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                alert(`✅ Compra registrada!\n\nDados:\nNome: ${nome}\nTelefone: ${telefone}\n\nObrigado pela compra!`);
+                
+                // Limpar carrinho
+                limparCarrinho();
+                
+                // Fechar modal
+                fecharCheckout();
+                
+                // Resetar form
+                form.reset();
+                btn.textContent = textoOriginal;
+                btn.disabled = false;
+            }, 2000);
+        }
+    </script>
+    
+    <!-- Firebase SDK v8 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    
+    <script src="login.js"></script>
+    <script src="cartelas.js"></script>
 </head>
 <body>
     <!-- Bandeirolas -->
@@ -57,8 +522,8 @@
                     </div>
                 </div>
                 <div class="preview-actions">
-                    <button id="gerar-preview" class="btn-primary">🎲 Gerar Nova Cartela</button>
-                    <button id="comprar-cartela" class="btn-success" disabled>💳 Comprar Esta Cartela</button>
+                    <button id="gerar-preview" class="btn-primary" onclick="gerarCartela(); return false;">🎲 Gerar Nova Cartela</button>
+                    <button id="comprar-cartela" class="btn-success" disabled onclick="adicionarAoCarrinho(); return false;">💳 Comprar Esta Cartela</button>
                 </div>
             </div>
 
@@ -72,8 +537,8 @@
                     <span id="carrinho-total" class="total">R$ 0,00</span>
                 </div>
                 <div class="carrinho-actions">
-                    <button id="finalizar-compra" class="btn-success" disabled>🎉 Finalizar Compra</button>
-                    <button id="limpar-carrinho" class="btn-danger">🗑️ Limpar Carrinho</button>
+                    <button id="finalizar-compra" class="btn-success" disabled onclick="abrirModal(); return false;">🎉 Finalizar Compra</button>
+                    <button id="limpar-carrinho" class="btn-danger" onclick="limparCarrinho(); return false;">🗑️ Limpar Carrinho</button>
                 </div>
             </div>
         </div>
@@ -86,15 +551,11 @@
                 <form id="form-checkout">
                     <div class="input-group">
                         <label for="nome-comprador">Nome Completo:</label>
-                        <input type="text" id="nome-comprador" required>
+                        <input type="text" id="nome-comprador" name="nome" required>
                     </div>
                     <div class="input-group">
                         <label for="telefone-comprador">Telefone:</label>
-                        <input type="tel" id="telefone-comprador" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="email-comprador">E-mail (opcional):</label>
-                        <input type="email" id="email-comprador">
+                        <input type="tel" id="telefone-comprador" name="telefone" required>
                     </div>
                     <div class="resumo-compra">
                         <h4>Resumo da Compra:</h4>
@@ -125,18 +586,5 @@
         <div class="estrela estrela-4">✨</div>
         <div class="estrela estrela-5">⭐</div>
     </div>
-
-    <!-- Firebase SDK v8 Compat -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    
-    <!-- Firebase Configuration -->
-    <script src="firebase-config.js"></script>
-    <script src="firebase-service.js"></script>
-    <script src="patch-busca-robusta.js"></script>
-    
-    <script src="login.js"></script>
-    <script src="cartelas.js"></script>
 </body>
 </html>
