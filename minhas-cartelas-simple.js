@@ -30,21 +30,19 @@ async function fazerLogin() {
     console.log('🚀 [REAL] fazerLogin() chamada!');
     
     const telefoneInput = document.getElementById('consulta-telefone');
-    const emailInput = document.getElementById('consulta-email');
     
-    if (!telefoneInput || !emailInput) {
-        console.error('❌ [REAL] Inputs não encontrados');
-        mostrarAlerta('Erro: Campos não encontrados', 'error');
+    if (!telefoneInput) {
+        console.error('❌ [REAL] Input de telefone não encontrado');
+        mostrarAlerta('Erro: Campo de telefone não encontrado', 'error');
         return;
     }
     
     const telefone = telefoneInput.value.trim();
-    const email = emailInput.value.trim();
     
-    console.log('📝 [REAL] Dados:', { telefone, email });
+    console.log('📝 [REAL] Dados:', { telefone });
     
-    if (!telefone && !email) {
-        mostrarAlerta('Informe pelo menos o telefone ou email', 'warning');
+    if (!telefone) {
+        mostrarAlerta('Informe o telefone para consultar', 'warning');
         return;
     }
     
@@ -66,28 +64,17 @@ async function fazerLogin() {
         const db = firebase.firestore();
         let cartelas = [];
         
-        // Buscar por telefone se informado
-        if (telefoneNormalizado) {
-            console.log('🔍 [REAL] Buscando por telefone:', telefoneNormalizado);
-            const queryTelefone = await db.collection('cartelas').where('telefone', '==', telefoneNormalizado).get();
-            queryTelefone.forEach(doc => {
-                cartelas.push({ id: doc.id, ...doc.data() });
-            });
-        }
-        
-        // Buscar por email se informado e não encontrou por telefone
-        if (email && cartelas.length === 0) {
-            console.log('🔍 [REAL] Buscando por email:', email);
-            const queryEmail = await db.collection('cartelas').where('email', '==', email).get();
-            queryEmail.forEach(doc => {
-                cartelas.push({ id: doc.id, ...doc.data() });
-            });
-        }
+        // Buscar por telefone
+        console.log('🔍 [REAL] Buscando por telefone:', telefoneNormalizado);
+        const queryTelefone = await db.collection('cartelas').where('telefone', '==', telefoneNormalizado).get();
+        queryTelefone.forEach(doc => {
+            cartelas.push({ id: doc.id, ...doc.data() });
+        });
         
         console.log('📦 [REAL] Cartelas encontradas:', cartelas.length);
         
         if (cartelas.length === 0) {
-            mostrarAlerta('❌ Nenhuma cartela encontrada com estes dados.', 'error');
+            mostrarAlerta('❌ Nenhuma cartela encontrada com este telefone.', 'error');
             return;
         }
         
@@ -96,7 +83,7 @@ async function fazerLogin() {
         const compradorInfo = {
             nome: primeiraCartela.nome || primeiraCartela.comprador || 'Nome não informado',
             telefone: primeiraCartela.telefone || telefoneNormalizado || 'Telefone não informado',
-            email: primeiraCartela.email || email || 'Email não informado'
+            email: primeiraCartela.email || 'Email não informado'
         };
         
         console.log('👤 [REAL] Dados do comprador:', compradorInfo);
@@ -137,18 +124,6 @@ async function fazerLogin() {
 }
 
 // Função para forçar transição (botão de emergência)
-function forcarTransicao() {
-    console.log('🚨 [SIMPLE] Forçando transição...');
-    const loginComprador = document.getElementById('login-comprador');
-    const areaCartelas = document.getElementById('area-cartelas');
-    
-    if (loginComprador && areaCartelas) {
-        loginComprador.style.display = 'none';
-        areaCartelas.style.display = 'block';
-        mostrarAlerta('🚨 Transição forçada!', 'warning');
-    }
-}
-
 // Função de logout
 function fazerLogout() {
     console.log('🚪 [SIMPLE] Fazendo logout...');
@@ -161,9 +136,7 @@ function fazerLogout() {
         
         // Limpar campos
         const telefoneInput = document.getElementById('consulta-telefone');
-        const emailInput = document.getElementById('consulta-email');
         if (telefoneInput) telefoneInput.value = '';
-        if (emailInput) emailInput.value = '';
         
         mostrarAlerta('Logout realizado', 'info');
     }
@@ -999,118 +972,6 @@ function adicionarEstilosAnimacao() {
     console.log('✅ [STYLE] Estilos de animação adicionados');
 }
 
-// Função para testar conectividade Firebase
-async function testarFirebase() {
-    console.log('🧪 [TESTE] === DIAGNÓSTICO COMPLETO DO FIREBASE ===');
-    
-    try {
-        // Teste 1: Verificar se Firebase está carregado
-        console.log('1️⃣ [TESTE] Verificando Firebase SDK...');
-        if (typeof firebase === 'undefined') {
-            console.error('❌ [TESTE] Firebase SDK não carregado');
-            return false;
-        }
-        console.log('✅ [TESTE] Firebase SDK carregado');
-        
-        // Teste 2: Verificar Firestore
-        console.log('2️⃣ [TESTE] Verificando Firestore...');
-        const db = firebase.firestore();
-        console.log('✅ [TESTE] Firestore inicializado');
-        
-        // Teste 3: Testar uma operação simples
-        console.log('3️⃣ [TESTE] Testando operação de leitura...');
-        
-        // Tentar ler qualquer coleção para verificar conectividade
-        const testSnapshot = await db.collection('test').limit(1).get();
-        console.log('✅ [TESTE] Operação de leitura bem-sucedida');
-        
-        // Teste 4: Verificar coleções conhecidas
-        console.log('4️⃣ [TESTE] Verificando coleções conhecidas...');
-        
-        const colecoesTeste = ['cartelas', 'numeros-sorteados', 'configuracoes'];
-        
-        for (const colecao of colecoesTeste) {
-            try {
-                const snapshot = await db.collection(colecao).limit(1).get();
-                console.log(`✅ [TESTE] Coleção "${colecao}": ${snapshot.size} documento(s)`);
-                
-                if (snapshot.size > 0) {
-                    snapshot.forEach(doc => {
-                        console.log(`📄 [TESTE] Exemplo de "${colecao}":`, doc.data());
-                    });
-                }
-            } catch (err) {
-                console.log(`⚠️ [TESTE] Erro ao acessar "${colecao}":`, err.message);
-            }
-        }
-        
-        return true;
-        
-    } catch (error) {
-        console.error('❌ [TESTE] Erro no diagnóstico:', error);
-        return false;
-    }
-}
-
-// Função de diagnóstico específica para números sorteados
-async function diagnosticarNumerosSorteados() {
-    console.log('🔍 [DIAGNÓSTICO] === ANÁLISE ESPECÍFICA DE NÚMEROS SORTEADOS ===');
-    
-    try {
-        const db = firebase.firestore();
-        
-        // Verificar estrutura de dados atual
-        console.log('📊 [DIAGNÓSTICO] Verificando estruturas possíveis...');
-        
-        // Estrutura 1: Coleção numeros-sorteados
-        try {
-            const snapshot1 = await db.collection('numeros-sorteados').get();
-            console.log(`📂 [DIAGNÓSTICO] numeros-sorteados: ${snapshot1.size} documentos`);
-            
-            if (snapshot1.size > 0) {
-                const amostras = [];
-                let count = 0;
-                snapshot1.forEach(doc => {
-                    if (count < 3) {
-                        amostras.push({ id: doc.id, data: doc.data() });
-                        count++;
-                    }
-                });
-                console.log('📄 [DIAGNÓSTICO] Amostras de numeros-sorteados:', amostras);
-            }
-        } catch (err) {
-            console.log('⚠️ [DIAGNÓSTICO] Erro em numeros-sorteados:', err.message);
-        }
-        
-        // Estrutura 2: Documento único com array
-        try {
-            const docSnapshot = await db.doc('sorteio/numeros').get();
-            if (docSnapshot.exists) {
-                console.log('📄 [DIAGNÓSTICO] Documento sorteio/numeros:', docSnapshot.data());
-            }
-        } catch (err) {
-            console.log('⚠️ [DIAGNÓSTICO] Documento sorteio/numeros não encontrado');
-        }
-        
-        // Estrutura 3: Dentro de configurações
-        try {
-            const configSnapshot = await db.doc('configuracoes/sorteio').get();
-            if (configSnapshot.exists) {
-                const data = configSnapshot.data();
-                console.log('📄 [DIAGNÓSTICO] Configurações de sorteio:', data);
-                if (data.numerosSorteados) {
-                    console.log('🎯 [DIAGNÓSTICO] Números em configurações:', data.numerosSorteados);
-                }
-            }
-        } catch (err) {
-            console.log('⚠️ [DIAGNÓSTICO] Configurações não encontradas');
-        }
-        
-    } catch (error) {
-        console.error('❌ [DIAGNÓSTICO] Erro geral:', error);
-    }
-}
-
 // ===== INICIALIZAÇÃO AUTOMÁTICA =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📱 [DOM] DOM carregado - inicializando...');
@@ -1136,7 +997,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const areaCartelas = document.getElementById('area-cartelas');
     const formConsulta = document.getElementById('form-consulta');
     const telefoneInput = document.getElementById('consulta-telefone');
-    const emailInput = document.getElementById('consulta-email');
     const alertMsg = document.getElementById('alert-msg');
     
     console.log('🔍 [SIMPLE] Elementos encontrados:', {
@@ -1144,7 +1004,6 @@ document.addEventListener('DOMContentLoaded', () => {
         areaCartelas: !!areaCartelas,
         formConsulta: !!formConsulta,
         telefoneInput: !!telefoneInput,
-        emailInput: !!emailInput,
         alertMsg: !!alertMsg
     });
     
@@ -1189,9 +1048,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.toggleNumero = toggleNumero;
     window.criarConfete = criarConfete;
     window.testarFirebase = testarFirebase;
-    window.diagnosticarNumerosSorteados = diagnosticarNumerosSorteados;
-    window.testarFirebase = testarFirebase;
-    window.diagnosticarNumerosSorteados = diagnosticarNumerosSorteados;
     
     // Adicionar estilos de animação
     adicionarEstilosAnimacao();

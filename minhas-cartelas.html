@@ -52,26 +52,12 @@
                         <span class="input-icon">📞</span>
                     </div>
 
-                    <div class="ou-divider">
-                        <span>OU</span>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="consulta-email">📧 E-mail:</label>
-                        <input type="email" id="consulta-email" name="email" 
-                               placeholder="seu@email.com">
-                        <span class="input-icon">✉️</span>
-                    </div>
-
                     <div class="form-actions">
                         <button type="submit" class="btn-consultar">🔍 Consultar Cartelas</button>
-                        <button type="button" onclick="forcarTransicao()" class="btn-emergencia" style="background: orange; margin-top: 10px;">🚨 Forçar Acesso (Emergência)</button>
-                        <button type="button" onclick="testarFirebase()" class="btn-emergencia" style="background: blue; margin-top: 10px;">🧪 Testar Firebase</button>
-                        <button type="button" onclick="diagnosticarNumerosSorteados()" class="btn-emergencia" style="background: purple; margin-top: 10px;">🔍 Diagnóstico Números</button>
                     </div>
 
                     <div class="info-consulta">
-                        <p>💡 <strong>Dica:</strong> Use o telefone ou e-mail que você cadastrou na compra</p>
+                        <p>💡 <strong>Dica:</strong> Use o telefone que você cadastrou na compra</p>
                         <p>📞 Problemas? Entre em contato com a organização</p>
                     </div>
                 </form>
@@ -252,7 +238,7 @@
             compradorAtual = {
                 nome: 'TESTE EMERGÊNCIA',
                 telefone: '85977777777',
-                email: 'teste@emergencia.com'
+                email: 'Não informado'
             };
             
             cartelasComprador = [{

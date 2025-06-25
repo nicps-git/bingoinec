@@ -233,31 +233,6 @@ main {
     pointer-events: none;
 }
 
-.ou-divider {
-    text-align: center;
-    margin: 20px 0;
-    position: relative;
-}
-
-.ou-divider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: #DEB887;
-}
-
-.ou-divider span {
-    background: white;
-    padding: 0 15px;
-    color: #8B4513;
-    font-weight: bold;
-    position: relative;
-    z-index: 1;
-}
-
 .form-actions {
     margin: 30px 0 20px;
 }
