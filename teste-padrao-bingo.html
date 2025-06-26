@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Padrão BINGO - Colunas Corretas</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+        }
+        .cartela-teste {
+            background: white;
+            color: black;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .grid-bingo {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 3px;
+            margin: 15px 0;
+        }
+        .celula {
+            padding: 12px;
+            text-align: center;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .header { background: #e74c3c; color: white; }
+        .numero { background: #4CAF50; color: white; }
+        .livre { background: #f39c12; color: white; font-size: 14px; }
+        .vazia { background: #ccc; color: #666; }
+        .resultado {
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 16px;
+        }
+        button:hover { background: #2980b9; }
+        .stats {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .erro { color: #e74c3c; font-weight: bold; }
+        .ok { color: #2ecc71; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Teste do Padrão BINGO</h1>
+        <p>Verificação da distribuição correta dos números por colunas</p>
+        
+        <div style="text-align: center;">
+            <button onclick="testarGeracao()">🎲 Gerar Cartela de Teste</button>
+            <button onclick="testarMultiplas()">🔄 Gerar 5 Cartelas</button>
+            <button onclick="verificarPadrao()">🔍 Verificar Padrão</button>
+            <button onclick="limpar()">🗑️ Limpar</button>
+        </div>
+        
+        <div class="stats">
+            <h3>📊 Padrão Esperado:</h3>
+            <p><strong>B:</strong> 1-15 (5 números) | <strong>I:</strong> 16-30 (5 números) | <strong>N:</strong> 31-45 (4 números + LIVRE) | <strong>G:</strong> 46-60 (5 números) | <strong>O:</strong> 61-75 (5 números)</p>
+            <p><strong>Total:</strong> 24 números + 1 espaço livre = 25 posições</p>
+        </div>
+        
+        <div id="resultado" class="resultado">Clique em "Gerar Cartela de Teste" para começar...</div>
+        
+        <div id="cartelas-container"></div>
+    </div>
+
+    <!-- Scripts do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    <script src="cartelas.js"></script>
+
+    <script>
+        let log = (msg) => {
+            console.log(msg);
+            document.getElementById('resultado').innerHTML += msg + '\n';
+            document.getElementById('resultado').scrollTop = document.getElementById('resultado').scrollHeight;
+        };
+        
+        let limparLog = () => document.getElementById('resultado').innerHTML = '';
+        
+        function limpar() {
+            limparLog();
+            document.getElementById('cartelas-container').innerHTML = '';
+            log('🗑️ Tela limpa.');
+        }
+        
+        async function testarGeracao() {
+            limparLog();
+            log('🎲 === TESTE DE GERAÇÃO PADRÃO BINGO ===\n');
+            
+            try {
+                if (typeof gerarCartelaCorrigida !== 'function') {
+                    throw new Error('Função gerarCartelaCorrigida não disponível');
+                }
+                
+                log('⏳ Gerando cartela...');
+                const cartela = await gerarCartelaCorrigida();
+                
+                if (!cartela) {
+                    throw new Error('Cartela não foi gerada');
+                }
+                
+                log(`✅ Cartela gerada: ${cartela.id}`);
+                log(`📋 Números: [${cartela.numeros.join(', ')}]`);
+                log(`🔢 Total: ${cartela.numeros.length} números\n`);
+                
+                // Verificar distribuição
+                const distribuicao = verificarDistribuicaoCartela(cartela.numeros);
+                log('📊 DISTRIBUIÇÃO POR COLUNA:');
+                log(`   B (1-15):   ${distribuicao.B.join(', ')} (${distribuicao.B.length} números)`);
+                log(`   I (16-30):  ${distribuicao.I.join(', ')} (${distribuicao.I.length} números)`);
+                log(`   N (31-45):  ${distribuicao.N.join(', ')} (${distribuicao.N.length} números)`);
+                log(`   G (46-60):  ${distribuicao.G.join(', ')} (${distribuicao.G.length} números)`);
+                log(`   O (61-75):  ${distribuicao.O.join(', ')} (${distribuicao.O.length} números)\n`);
+                
+                // Verificar se está correto
+                const erros = [];
+                if (distribuicao.B.length !== 5) erros.push(`B deveria ter 5, tem ${distribuicao.B.length}`);
+                if (distribuicao.I.length !== 5) erros.push(`I deveria ter 5, tem ${distribuicao.I.length}`);
+                if (distribuicao.N.length !== 4) erros.push(`N deveria ter 4, tem ${distribuicao.N.length}`);
+                if (distribuicao.G.length !== 5) erros.push(`G deveria ter 5, tem ${distribuicao.G.length}`);
+                if (distribuicao.O.length !== 5) erros.push(`O deveria ter 5, tem ${distribuicao.O.length}`);
+                
+                if (erros.length === 0) {
+                    log('✅ PADRÃO CORRETO! Distribuição perfeita.');
+                } else {
+                    log('❌ ERROS ENCONTRADOS:');
+                    erros.forEach(erro => log(`   • ${erro}`));
+                }
+                
+                // Mostrar cartela visualmente
+                mostrarCartelaVisual(cartela, distribuicao);
+                
+            } catch (error) {
+                log(`❌ ERRO: ${error.message}`);
+            }
+        }
+        
+        function verificarDistribuicaoCartela(numeros) {
+            const distribuicao = { B: [], I: [], N: [], G: [], O: [] };
+            
+            numeros.forEach(num => {
+                if (num >= 1 && num <= 15) distribuicao.B.push(num);
+                else if (num >= 16 && num <= 30) distribuicao.I.push(num);
+                else if (num >= 31 && num <= 45) distribuicao.N.push(num);
+                else if (num >= 46 && num <= 60) distribuicao.G.push(num);
+                else if (num >= 61 && num <= 75) distribuicao.O.push(num);
+            });
+            
+            // Ordenar números dentro de cada coluna
+            Object.keys(distribuicao).forEach(coluna => {
+                distribuicao[coluna].sort((a, b) => a - b);
+            });
+            
+            return distribuicao;
+        }
+        
+        function mostrarCartelaVisual(cartela, distribuicao) {
+            const container = document.getElementById('cartelas-container');
+            
+            // Criar grid 5x5
+            const grid = [];
+            for (let linha = 0; linha < 5; linha++) {
+                const linhaGrid = [];
+                
+                // Coluna B
+                linhaGrid.push(linha < distribuicao.B.length ? distribuicao.B[linha] : null);
+                
+                // Coluna I
+                linhaGrid.push(linha < distribuicao.I.length ? distribuicao.I[linha] : null);
+                
+                // Coluna N (posição 2,2 é sempre LIVRE)
+                if (linha === 2) {
+                    linhaGrid.push('LIVRE');
+                } else if (linha < 2 && linha < distribuicao.N.length) {
+                    linhaGrid.push(distribuicao.N[linha]);
+                } else if (linha > 2 && (linha - 1) < distribuicao.N.length) {
+                    linhaGrid.push(distribuicao.N[linha - 1]);
+                } else {
+                    linhaGrid.push(null);
+                }
+                
+                // Coluna G
+                linhaGrid.push(linha < distribuicao.G.length ? distribuicao.G[linha] : null);
+                
+                // Coluna O
+                linhaGrid.push(linha < distribuicao.O.length ? distribuicao.O[linha] : null);
+                
+                grid.push(linhaGrid);
+            }
+            
+            const gridHTML = `
+                <div class="cartela-teste">
+                    <h3>🎫 Cartela ${cartela.id.substring(5, 15)}</h3>
+                    
+                    <!-- Header BINGO -->
+                    <div class="grid-bingo">
+                        <div class="celula header">B</div>
+                        <div class="celula header">I</div>
+                        <div class="celula header">N</div>
+                        <div class="celula header">G</div>
+                        <div class="celula header">O</div>
+                    </div>
+                    
+                    <!-- Grid de números -->
+                    <div class="grid-bingo">
+                        ${grid.map(linha => 
+                            linha.map(celula => {
+                                if (celula === 'LIVRE') {
+                                    return `<div class="celula livre">⭐<br>LIVRE</div>`;
+                                } else if (celula !== null) {
+                                    return `<div class="celula numero">${celula}</div>`;
+                                } else {
+                                    return `<div class="celula vazia">-</div>`;
+                                }
+                            }).join('')
+                        ).join('')}
+                    </div>
+                    
+                    <p><strong>Números:</strong> [${cartela.numeros.join(', ')}]</p>
+                </div>
+            `;
+            
+            container.innerHTML = gridHTML + container.innerHTML;
+        }
+        
+        async function testarMultiplas() {
+            limparLog();
+            log('🔄 === TESTE MÚLTIPLAS CARTELAS ===\n');
+            
+            for (let i = 1; i <= 5; i++) {
+                log(`🎲 Gerando cartela ${i}/5...`);
+                try {
+                    await testarGeracao();
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (error) {
+                    log(`❌ Erro na cartela ${i}: ${error.message}`);
+                }
+                log('');
+            }
+            
+            log('✅ Teste de múltiplas cartelas concluído!');
+        }
+        
+        function verificarPadrao() {
+            log('\n🔍 === VERIFICAÇÃO DO PADRÃO BINGO ===\n');
+            log('📋 PADRÃO ESPERADO:');
+            log('   • B: números 1-15   (5 números por cartela)');
+            log('   • I: números 16-30  (5 números por cartela)');
+            log('   • N: números 31-45  (4 números + espaço LIVRE)');
+            log('   • G: números 46-60  (5 números por cartela)');
+            log('   • O: números 61-75  (5 números por cartela)');
+            log('   • Total: 24 números + 1 espaço livre = 25 posições\n');
+            log('✅ Este é o padrão tradicional do BINGO americano.');
+        }
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                log('🚀 Sistema de teste carregado!');
+                log('📝 Clique nos botões acima para testar a geração de cartelas.\n');
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

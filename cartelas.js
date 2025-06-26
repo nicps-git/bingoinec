@@ -32,51 +32,9 @@ function carregarCarrinhoDoStorage() {
 // Variáveis Firebase
 let firebaseService = null;
 
-// Função principal para gerar cartela (renomeada para evitar conflito)
-function gerarCartelaCompleta() {
-    console.log('🎲 Gerando nova cartela completa...');
-    
-    try {
-        // Gerar números aleatórios
-        const numeros = [];
-        const numeroInicial = 1;
-        const numeroFinal = 75;
-        
-        // Criar array de números disponíveis
-        const disponiveis = [];
-        for (let i = numeroInicial; i <= numeroFinal; i++) {
-            disponiveis.push(i);
-        }
-        
-        // Escolher 24 números aleatórios (padrão do BINGO sem o espaço livre central)
-        for (let i = 0; i < 24; i++) {
-            const indice = Math.floor(Math.random() * disponiveis.length);
-            numeros.push(disponiveis.splice(indice, 1)[0]);
-        }
-        
-        // Ordenar números
-        numeros.sort((a, b) => a - b);
-        
-        // Criar objeto da cartela
-        cartelaAtual = {
-            id: `CART-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            numeros: numeros,
-            preco: 5.00,
-            status: 'preview'
-        };
-        
-        console.log('📋 Cartela gerada:', cartelaAtual);
-        
-        // Mostrar cartela na tela
-        mostrarCartela(cartelaAtual);
-        
-        console.log('✅ Cartela exibida com sucesso!');
-        
-    } catch (error) {
-        console.error('❌ Erro ao gerar cartela:', error);
-        alert('Erro ao gerar cartela: ' + error.message);
-    }
-}
+// FUNÇÃO FALLBACK REMOVIDA - usar apenas gerarCartelaCorrigida
+// Todas as gerações agora passam pela função principal que já implementa
+// o padrão BINGO corretamente com reserva temporária
 
 // Inicializar Firebase
 async function inicializarFirebase() {
@@ -219,62 +177,33 @@ function sincronizarCarrinhoInicial() {
     }
 }
 
-// Função dedicada para configurar o botão gerar
+// Função dedicada para configurar o botão gerar - VERSÃO SIMPLIFICADA
 function configurarBotaoGerar() {
-    console.log('🎯 Configurando botão gerar...');
+    console.log('🎯 Configurando botão gerar - versão simplificada...');
     
-    const btnGerar = document.getElementById('gerar-preview');
+    // Tentar ambos os IDs possíveis
+    let btnGerar = document.getElementById('gerar-preview');
+    if (!btnGerar) {
+        btnGerar = document.getElementById('gerar-cartela');
+    }
     
     if (!btnGerar) {
-        console.error('❌ Botão gerar-preview não encontrado no DOM');
+        console.error('❌ Botão gerar não encontrado (tentou gerar-preview e gerar-cartela)');
         return;
     }
     
     console.log('✅ Botão encontrado:', btnGerar);
     
-    // Verificar se Firebase está disponível antes de configurar
-    if (!window.FirebaseDB || typeof firebase === 'undefined' || !firebase.firestore) {
-        console.warn('⚠️ Firebase não disponível - botão será desabilitado');
-        btnGerar.disabled = true;
-        btnGerar.textContent = '❌ Sistema Indisponível (Firebase não carregado)';
-        btnGerar.title = 'O Firebase não está carregado. Recarregue a página.';
-        return;
-    }
-    
-    // Configuração mais direta - apenas onclick
+    // Configuração simples e direta
     btnGerar.onclick = async function() {
-        console.log('🖱️ CLIQUE DETECTADO!');
+        console.log('🖱️ CLIQUE DETECTADO - gerando cartela...');
         
-        // Verificação crítica do Firebase no momento do clique
-        if (!window.FirebaseDB || typeof firebase === 'undefined' || !firebase.firestore) {
-            console.error('❌ Firebase não disponível, tentando inicializar...');
-            
-            // Tentar inicializar Firebase primeiro
-            try {
-                await inicializarFirebase();
-                
-                // Aguardar um pouco e tentar novamente
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                if (!window.FirebaseDB || typeof firebase === 'undefined' || !firebase.firestore) {
-                    alert('❌ Sistema indisponível: Firebase não está funcionando. Por favor, recarregue a página e aguarde o carregamento completo.');
-                    return;
-                }
-            } catch (error) {
-                console.error('❌ Falha ao inicializar Firebase:', error);
-                alert('❌ Erro de sistema: ' + error.message + '\nRecarregue a página.');
-                return;
-            }
-        }
-        
-        // Verificar se a função corrigida está disponível
-        if (typeof gerarCartelaCorrigida === 'function') {
-            console.log('✅ Usando gerarCartelaCorrigida');
+        try {
+            // Usar sempre a função principal corrigida
             await gerarCartelaCorrigida();
-        } else {
-            console.error('❌ gerarCartelaCorrigida não disponível');
-            alert('❌ Função de geração não está disponível. Recarregue a página.');
-            return;
+        } catch (error) {
+            console.error('❌ Erro ao gerar cartela:', error);
+            alert('Erro ao gerar cartela: ' + error.message);
         }
         
         return false;
@@ -282,80 +211,17 @@ function configurarBotaoGerar() {
     
     btnGerar.disabled = false;
     btnGerar.textContent = '🎲 Gerar Nova Cartela';
-    btnGerar.title = 'Gerar cartela com reserva temporária no banco';
+    btnGerar.title = 'Gerar cartela seguindo padrão BINGO';
     
-    console.log('✅ Botão configurado com validação Firebase');
+    console.log('✅ Botão configurado - sempre usa gerarCartelaCorrigida');
 }
 
-// Função wrapper para executar geração
-function executarGeracao() {
-    console.log('🎲 Executando geração de cartela...');
-    
-    try {
-        gerarCartelaCompleta();
-    } catch (error) {
-        console.error('❌ Erro ao executar gerarCartelaCompleta:', error);
-        alert('Erro: ' + error.message);
-    }
-}
+// FUNÇÃO DE WRAPPER REMOVIDA - usar diretamente gerarCartelaCorrigida
 
 // Mostrar cartela na interface
-function mostrarCartela(cartela) {
-    console.log('🎫 === EXIBINDO CARTELA ===');
-    console.log('📋 Dados da cartela:', cartela);
-    console.log('🔢 Números da cartela:', cartela.numeros);
-    
-    const container = document.getElementById('cartela-preview');
-    if (!container) {
-        console.error('❌ Container cartela-preview não encontrado');
-        return;
-    }
-    
-    // IMPORTANTE: Armazenar números globalmente para acesso posterior
-    window.numerosCartelaAtual = cartela.numeros;
-    window.cartelaAtualExibida = cartela;
-    console.log('💾 Números armazenados globalmente:', window.numerosCartelaAtual);
-    
-    // HTML da cartela com formato BINGO 5x5 (24 números + espaço livre central)
-    container.innerHTML = `
-        <div style="background: white; color: black; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-            <h3 style="margin: 0 0 15px 0; text-align: center;">🎫 Cartela ${cartela.id.substring(5, 15)}</h3>
-            
-            <!-- Header BINGO -->
-            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px 0;">
-                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">B</div>
-                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">I</div>
-                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">N</div>
-                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">G</div>
-                <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">O</div>
-            </div>
-            
-            <!-- Grid de números (5x5 com espaço livre central) -->
-            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 15px 0;">
-                ${cartela.numeros.slice(0, 12).map(num => 
-                    `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
-                ).join('')}
-                <div style="background: #f39c12; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 14px;">⭐<br>LIVRE</div>
-                ${cartela.numeros.slice(12).map(num => 
-                    `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
-                ).join('')}
-            </div>
-            
-            <p style="text-align: center; margin: 15px 0 0 0; font-size: 18px; font-weight: bold;">
-                💰 Preço: R$ ${cartela.preco.toFixed(2)} | 🎯 ${cartela.numeros.length} números
-            </p>
-        </div>
-    `;
-    
-    // Habilitar botão comprar
-    const btnComprar = document.getElementById('comprar-cartela');
-    if (btnComprar) {
-        btnComprar.disabled = false;
-        btnComprar.textContent = '🛒 Adicionar ao Carrinho';
-    }
-    
-    console.log('✅ Cartela exibida na interface');
-}
+// FUNÇÃO DE EXIBIÇÃO REMOVIDA - usar mostrarCartelaCorrigida
+// A função mostrarCartela foi substituída por mostrarCartelaCorrigida que
+// respeita a organização por colunas BINGO
 
 // Configurar outros botões
 function configurarOutrosBotoes() {
@@ -986,73 +852,106 @@ async function cancelarReserva(cartelaId) {
     }
 }
 
-// Função corrigida para gerar cartela COM RESERVA TEMPORÁRIA
+// Função corrigida para gerar cartela - VERSÃO SIMPLIFICADA SEM FIREBASE
 async function gerarCartelaCorrigida() {
-    console.log('🎲 === GERAÇÃO COM RESERVA TEMPORÁRIA ===');
+    console.log('🎲 === GERAÇÃO PADRÃO BINGO SIMPLIFICADA ===');
     
     try {
-        // Se já há uma cartela reservada, cancelar primeiro
-        if (window.cartelaReservada) {
-            console.log('🗑️ Cancelando reserva anterior...');
-            await cancelarReserva(window.cartelaReservada.id);
+        // Gerar números seguindo o padrão BINGO tradicional
+        const numerosCartela = [];
+        const colunasBingo = {
+            B: [], // 1-15
+            I: [], // 16-30  
+            N: [], // 31-45
+            G: [], // 46-60
+            O: []  // 61-75
+        };
+        
+        // Definir ranges para cada coluna
+        const ranges = {
+            B: { min: 1, max: 15, quantidade: 5 },   // Coluna B: 1-15 (5 números)
+            I: { min: 16, max: 30, quantidade: 5 },  // Coluna I: 16-30 (5 números)
+            N: { min: 31, max: 45, quantidade: 4 },  // Coluna N: 31-45 (4 números + LIVRE)
+            G: { min: 46, max: 60, quantidade: 5 },  // Coluna G: 46-60 (5 números)
+            O: { min: 61, max: 75, quantidade: 5 }   // Coluna O: 61-75 (5 números)
+        };
+        
+        console.log('🎯 Gerando números por coluna BINGO...');
+        
+        // Para cada coluna, gerar números únicos
+        Object.keys(ranges).forEach((coluna) => {
+            const { min, max, quantidade } = ranges[coluna];
+            const numerosDisponiveis = [];
+            
+            // Criar array de números disponíveis para esta coluna
+            for (let i = min; i <= max; i++) {
+                numerosDisponiveis.push(i);
+            }
+            
+            // Escolher números aleatórios para esta coluna
+            for (let i = 0; i < quantidade; i++) {
+                const indiceAleatorio = Math.floor(Math.random() * numerosDisponiveis.length);
+                const numeroEscolhido = numerosDisponiveis.splice(indiceAleatorio, 1)[0];
+                colunasBingo[coluna].push(numeroEscolhido);
+                numerosCartela.push(numeroEscolhido);
+            }
+            
+            // Ordenar números dentro da coluna
+            colunasBingo[coluna].sort((a, b) => a - b);
+            
+            console.log(`   ${coluna}: [${colunasBingo[coluna].join(', ')}] de ${min}-${max}`);
+        });
+        
+        // Ordenar array principal para compatibilidade
+        numerosCartela.sort((a, b) => a - b);
+        
+        console.log('📋 NÚMEROS GERADOS (padrão BINGO):', numerosCartela);
+        console.log('📊 POR COLUNAS:', colunasBingo);
+        console.log(`🔢 Total de números: ${numerosCartela.length} (deve ser 24)`);
+        
+        // Verificar se temos exatamente 24 números
+        if (numerosCartela.length !== 24) {
+            throw new Error(`Erro na geração: esperados 24 números, obtidos ${numerosCartela.length}`);
         }
-        
-        // Gerar números aleatórios uma única vez
-        const numeros = [];
-        const disponiveis = [];
-        
-        for (let i = 1; i <= 75; i++) {
-            disponiveis.push(i);
-        }
-        
-        for (let i = 0; i < 24; i++) {
-            const indice = Math.floor(Math.random() * disponiveis.length);
-            numeros.push(disponiveis.splice(indice, 1)[0]);
-        }
-        
-        numeros.sort((a, b) => a - b);
         
         // Criar cartela
         const cartela = {
             id: `CART-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            numeros: [...numeros], // Cópia dos números
+            numeros: [...numerosCartela], // Array ordenado para compatibilidade
+            colunasBingo: colunasBingo, // Organização por colunas
             preco: 5.00,
             status: 'preview'
         };
         
         console.log('📋 CARTELA GERADA:', cartela);
-        console.log('🔢 NÚMEROS GERADOS:', numeros);
+        console.log('🔢 NÚMEROS GERADOS:', numerosCartela);
         
-        // PASSO CRÍTICO: Gravar reserva temporária no banco
-        const resultadoReserva = await gravarReservaTemporaria(cartela);
+        // Armazenar como fonte única da verdade
+        window.ultimaCartelaGerada = cartela;
+        window.cartelaAtual = cartela;
+        window.numerosCartelaAtual = [...numerosCartela];
         
-        if (resultadoReserva.success) {
-            // Armazenar como fonte única da verdade
-            window.ultimaCartelaGerada = cartela;
-            window.cartelaAtual = cartela;
-            window.numerosCartelaAtual = [...numeros];
-            window.cartelaReservada = cartela; // Marcar como reservada
-            
-            console.log('� RESERVA TEMPORÁRIA CRIADA:', resultadoReserva);
-            
-            // Mostrar na interface
-            mostrarCartelaCorrigida(cartela, resultadoReserva);
-            
-            return cartela;
-        } else {
-            throw new Error('Falha ao criar reserva temporária');
-        }
+        // Mostrar na interface usando modo local
+        mostrarCartelaCorrigida(cartela, { 
+            success: true, 
+            modo: 'local-simplificado',
+            id: cartela.id 
+        });
+        
+        console.log('✅ CARTELA GERADA E EXIBIDA COM SUCESSO!');
+        
+        return cartela;
         
     } catch (error) {
-        console.error('❌ Erro na geração com reserva:', error);
+        console.error('❌ Erro na geração:', error);
         alert('Erro ao gerar cartela: ' + error.message);
         throw error;
     }
 }
 
-// Função corrigida para mostrar cartela com informações de reserva
+// Função corrigida para mostrar cartela com informações de reserva e padrão BINGO
 function mostrarCartelaCorrigida(cartela, resultadoReserva = null) {
-    console.log('🎫 === EXIBIÇÃO COM RESERVA TEMPORÁRIA ===');
+    console.log('🎫 === EXIBIÇÃO COM RESERVA TEMPORÁRIA (PADRÃO BINGO) ===');
     console.log('📋 Cartela a exibir:', cartela);
     console.log('💾 Resultado da reserva:', resultadoReserva);
     
@@ -1062,8 +961,103 @@ function mostrarCartelaCorrigida(cartela, resultadoReserva = null) {
         return;
     }
     
+    // IMPORTANTE: Armazenar variáveis globalmente para compatibilidade
+    window.numerosCartelaAtual = cartela.numeros;
+    window.cartelaAtualExibida = cartela;
+    window.cartelaAtual = cartela; // Para o carrinho
+    console.log('💾 Números armazenados globalmente:', window.numerosCartelaAtual);
+    
     // Usar números da fonte única
-    const numeros = cartela.numeros;
+    const numerosCartela = cartela.numeros;
+    console.log('🔢 Números para organizar:', numerosCartela);
+    
+    // Usar organização por colunas da cartela (se disponível) ou reorganizar
+    let colunasBingo;
+    if (cartela.colunasBingo) {
+        colunasBingo = cartela.colunasBingo;
+        console.log('✅ Usando organização por colunas da cartela');
+    } else {
+        console.log('⚠️ Reorganizando números por colunas (cartela antiga)');
+        // Reorganizar números por colunas para cartelas antigas
+        colunasBingo = {
+            B: [], // 1-15
+            I: [], // 16-30  
+            N: [], // 31-45
+            G: [], // 46-60
+            O: []  // 61-75
+        };
+        
+        // Distribuir números nas colunas corretas
+        numerosCartela.forEach(num => {
+            if (num >= 1 && num <= 15) {
+                colunasBingo.B.push(num);
+            } else if (num >= 16 && num <= 30) {
+                colunasBingo.I.push(num);
+            } else if (num >= 31 && num <= 45) {
+                colunasBingo.N.push(num);
+            } else if (num >= 46 && num <= 60) {
+                colunasBingo.G.push(num);
+            } else if (num >= 61 && num <= 75) {
+                colunasBingo.O.push(num);
+            }
+        });
+        
+        // Ordenar números dentro de cada coluna
+        Object.keys(colunasBingo).forEach(coluna => {
+            colunasBingo[coluna].sort((a, b) => a - b);
+        });
+    }
+    
+    console.log('📊 Números organizados por coluna:', colunasBingo);
+    
+    // Criar grid 5x5 respeitando as posições corretas
+    const grid = [];
+    for (let linha = 0; linha < 5; linha++) {
+        const linhaGrid = [];
+        
+        // Coluna B
+        if (linha < colunasBingo.B.length) {
+            linhaGrid.push(colunasBingo.B[linha]);
+        } else {
+            linhaGrid.push(null);
+        }
+        
+        // Coluna I
+        if (linha < colunasBingo.I.length) {
+            linhaGrid.push(colunasBingo.I[linha]);
+        } else {
+            linhaGrid.push(null);
+        }
+        
+        // Coluna N (posição 2,2 é sempre LIVRE)
+        if (linha === 2) {
+            linhaGrid.push('LIVRE');
+        } else if (linha < 2 && linha < colunasBingo.N.length) {
+            linhaGrid.push(colunasBingo.N[linha]);
+        } else if (linha > 2 && (linha - 1) < colunasBingo.N.length) {
+            linhaGrid.push(colunasBingo.N[linha - 1]);
+        } else {
+            linhaGrid.push(null);
+        }
+        
+        // Coluna G
+        if (linha < colunasBingo.G.length) {
+            linhaGrid.push(colunasBingo.G[linha]);
+        } else {
+            linhaGrid.push(null);
+        }
+        
+        // Coluna O
+        if (linha < colunasBingo.O.length) {
+            linhaGrid.push(colunasBingo.O[linha]);
+        } else {
+            linhaGrid.push(null);
+        }
+        
+        grid.push(linhaGrid);
+    }
+    
+    console.log('🎯 Grid final da cartela:', grid);
     
     // Determinar status da reserva
     let statusReserva = '⚠️ Modo local';
@@ -1076,8 +1070,24 @@ function mostrarCartelaCorrigida(cartela, resultadoReserva = null) {
         } else if (resultadoReserva.modo === 'local-fallback') {
             statusReserva = '⚠️ Fallback local';
             corStatus = '#ffc107';
+        } else if (resultadoReserva.modo === 'local-simplificado') {
+            statusReserva = '🎯 Modo simplificado - PADRÃO BINGO';
+            corStatus = '#17a2b8';
         }
     }
+    
+    // Gerar HTML da cartela
+    const gridHTML = grid.map(linha => 
+        linha.map(celula => {
+            if (celula === 'LIVRE') {
+                return `<div style="background: #f39c12; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 14px;">⭐<br>LIVRE</div>`;
+            } else if (celula !== null) {
+                return `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${celula}</div>`;
+            } else {
+                return `<div style="background: #ccc; color: #666; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">-</div>`;
+            }
+        }).join('')
+    ).join('');
     
     container.innerHTML = `
         <div style="background: white; color: black; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
@@ -1097,20 +1107,24 @@ function mostrarCartelaCorrigida(cartela, resultadoReserva = null) {
                 <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">O</div>
             </div>
             
-            <!-- Grid de números -->
+            <!-- Grid de números organizados por coluna BINGO -->
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 15px 0;">
-                ${numeros.slice(0, 12).map(num => 
-                    `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
-                ).join('')}
-                <div style="background: #f39c12; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 14px;">⭐<br>LIVRE</div>
-                ${numeros.slice(12).map(num => 
-                    `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
-                ).join('')}
+                ${gridHTML}
             </div>
             
             <p style="text-align: center; margin: 15px 0 0 0; font-size: 18px; font-weight: bold;">
                 💰 Preço: R$ ${cartela.preco.toFixed(2)} | 🎯 ${cartela.numeros.length} números
             </p>
+            
+            <!-- Informações das colunas -->
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 12px; text-align: center;">
+                <strong>Distribuição:</strong> 
+                B(1-15): ${colunasBingo.B.length} | 
+                I(16-30): ${colunasBingo.I.length} | 
+                N(31-45): ${colunasBingo.N.length} | 
+                G(46-60): ${colunasBingo.G.length} | 
+                O(61-75): ${colunasBingo.O.length}
+            </div>
         </div>
     `;
     

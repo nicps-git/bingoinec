@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Padrão BINGO - Validação Final</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .cartela-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 3px;
+            margin: 15px 0;
+            max-width: 300px;
+        }
+        .cartela-cell {
+            padding: 8px;
+            text-align: center;
+            border-radius: 3px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+        .header { background: #e74c3c; color: white; }
+        .numero { background: #4CAF50; color: white; }
+        .livre { background: #f39c12; color: white; }
+        .vazio { background: #ccc; color: #666; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Teste Final - Padrão BINGO</h1>
+        <p>Este teste valida se as cartelas seguem rigorosamente o padrão BINGO tradicional.</p>
+        
+        <button onclick="testarPadrao()">🎲 Gerar e Testar Cartela</button>
+        <button onclick="testarMultiplas()">🔄 Testar 10 Cartelas</button>
+        <button onclick="limparResultados()">🗑️ Limpar</button>
+        
+        <div id="resultados"></div>
+        <div id="cartela-exemplo"></div>
+    </div>
+
+    <script>
+        function gerarCartelaBingo() {
+            const numerosCartela = [];
+            const colunasBingo = {
+                B: [], // 1-15
+                I: [], // 16-30  
+                N: [], // 31-45
+                G: [], // 46-60
+                O: []  // 61-75
+            };
+            
+            // Definir ranges para cada coluna
+            const ranges = {
+                B: { min: 1, max: 15, quantidade: 5 },
+                I: { min: 16, max: 30, quantidade: 5 },
+                N: { min: 31, max: 45, quantidade: 4 }, // 4 números + LIVRE
+                G: { min: 46, max: 60, quantidade: 5 },
+                O: { min: 61, max: 75, quantidade: 5 }
+            };
+            
+            // Para cada coluna, gerar números únicos
+            Object.keys(ranges).forEach((coluna) => {
+                const { min, max, quantidade } = ranges[coluna];
+                const numerosDisponiveis = [];
+                
+                // Criar array de números disponíveis para esta coluna
+                for (let i = min; i <= max; i++) {
+                    numerosDisponiveis.push(i);
+                }
+                
+                // Escolher números aleatórios para esta coluna
+                for (let i = 0; i < quantidade; i++) {
+                    const indiceAleatorio = Math.floor(Math.random() * numerosDisponiveis.length);
+                    const numeroEscolhido = numerosDisponiveis.splice(indiceAleatorio, 1)[0];
+                    colunasBingo[coluna].push(numeroEscolhido);
+                    numerosCartela.push(numeroEscolhido);
+                }
+                
+                // Ordenar números dentro da coluna
+                colunasBingo[coluna].sort((a, b) => a - b);
+            });
+            
+            return {
+                id: `TESTE-${Date.now()}`,
+                numeros: numerosCartela.sort((a, b) => a - b),
+                colunasBingo: colunasBingo
+            };
+        }
+        
+        function validarCartela(cartela) {
+            const resultados = [];
+            const colunas = cartela.colunasBingo;
+            
+            // Teste 1: Total de números
+            if (cartela.numeros.length === 24) {
+                resultados.push({ tipo: 'success', msg: '✅ Total de 24 números correto' });
+            } else {
+                resultados.push({ tipo: 'error', msg: `❌ Total incorreto: ${cartela.numeros.length} (esperado: 24)` });
+            }
+            
+            // Teste 2: Validar cada coluna
+            const testesColuna = [
+                { coluna: 'B', min: 1, max: 15, esperado: 5 },
+                { coluna: 'I', min: 16, max: 30, esperado: 5 },
+                { coluna: 'N', min: 31, max: 45, esperado: 4 },
+                { coluna: 'G', min: 46, max: 60, esperado: 5 },
+                { coluna: 'O', min: 61, max: 75, esperado: 5 }
+            ];
+            
+            testesColuna.forEach(teste => {
+                const nums = colunas[teste.coluna];
+                
+                // Quantidade
+                if (nums.length === teste.esperado) {
+                    resultados.push({ tipo: 'success', msg: `✅ Coluna ${teste.coluna}: ${nums.length} números` });
+                } else {
+                    resultados.push({ tipo: 'error', msg: `❌ Coluna ${teste.coluna}: ${nums.length} números (esperado: ${teste.esperado})` });
+                }
+                
+                // Range
+                const dentroDoRange = nums.every(n => n >= teste.min && n <= teste.max);
+                if (dentroDoRange) {
+                    resultados.push({ tipo: 'success', msg: `✅ Coluna ${teste.coluna}: todos números entre ${teste.min}-${teste.max}` });
+                } else {
+                    const foraRange = nums.filter(n => n < teste.min || n > teste.max);
+                    resultados.push({ tipo: 'error', msg: `❌ Coluna ${teste.coluna}: números fora do range: [${foraRange.join(', ')}]` });
+                }
+                
+                // Números únicos
+                const unicos = new Set(nums);
+                if (unicos.size === nums.length) {
+                    resultados.push({ tipo: 'success', msg: `✅ Coluna ${teste.coluna}: números únicos` });
+                } else {
+                    resultados.push({ tipo: 'error', msg: `❌ Coluna ${teste.coluna}: números duplicados detectados` });
+                }
+            });
+            
+            return resultados;
+        }
+        
+        function exibirCartela(cartela) {
+            const colunas = cartela.colunasBingo;
+            
+            // Criar grid 5x5
+            const grid = [];
+            for (let linha = 0; linha < 5; linha++) {
+                const linhaGrid = [];
+                
+                // Coluna B
+                linhaGrid.push(linha < colunas.B.length ? colunas.B[linha] : null);
+                
+                // Coluna I
+                linhaGrid.push(linha < colunas.I.length ? colunas.I[linha] : null);
+                
+                // Coluna N (posição 2,2 é LIVRE)
+                if (linha === 2) {
+                    linhaGrid.push('LIVRE');
+                } else if (linha < 2 && linha < colunas.N.length) {
+                    linhaGrid.push(colunas.N[linha]);
+                } else if (linha > 2 && (linha - 1) < colunas.N.length) {
+                    linhaGrid.push(colunas.N[linha - 1]);
+                } else {
+                    linhaGrid.push(null);
+                }
+                
+                // Coluna G
+                linhaGrid.push(linha < colunas.G.length ? colunas.G[linha] : null);
+                
+                // Coluna O
+                linhaGrid.push(linha < colunas.O.length ? colunas.O[linha] : null);
+                
+                grid.push(linhaGrid);
+            }
+            
+            // Headers
+            let html = '<div class="cartela-grid">';
+            html += '<div class="cartela-cell header">B</div>';
+            html += '<div class="cartela-cell header">I</div>';
+            html += '<div class="cartela-cell header">N</div>';
+            html += '<div class="cartela-cell header">G</div>';
+            html += '<div class="cartela-cell header">O</div>';
+            
+            // Grid
+            grid.forEach(linha => {
+                linha.forEach(celula => {
+                    if (celula === 'LIVRE') {
+                        html += '<div class="cartela-cell livre">⭐<br>LIVRE</div>';
+                    } else if (celula !== null) {
+                        html += `<div class="cartela-cell numero">${celula}</div>`;
+                    } else {
+                        html += '<div class="cartela-cell vazio">-</div>';
+                    }
+                });
+            });
+            
+            html += '</div>';
+            
+            return html;
+        }
+        
+        function testarPadrao() {
+            const cartela = gerarCartelaBingo();
+            const resultados = validarCartela(cartela);
+            
+            let html = `<h3>🎫 Cartela ${cartela.id}</h3>`;
+            html += exibirCartela(cartela);
+            
+            html += '<h4>📊 Resultados da Validação:</h4>';
+            resultados.forEach(resultado => {
+                html += `<div class="test-result ${resultado.tipo}">${resultado.msg}</div>`;
+            });
+            
+            // Mostrar distribuição
+            html += '<h4>📋 Distribuição por Coluna:</h4>';
+            Object.keys(cartela.colunasBingo).forEach(coluna => {
+                const nums = cartela.colunasBingo[coluna];
+                html += `<div class="test-result"><strong>${coluna}:</strong> [${nums.join(', ')}]</div>`;
+            });
+            
+            document.getElementById('cartela-exemplo').innerHTML = html;
+            
+            // Scroll para mostrar resultado
+            document.getElementById('cartela-exemplo').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function testarMultiplas() {
+            let html = '<h3>🔄 Teste de 10 Cartelas</h3>';
+            let totalErros = 0;
+            
+            for (let i = 1; i <= 10; i++) {
+                const cartela = gerarCartelaBingo();
+                const resultados = validarCartela(cartela);
+                const erros = resultados.filter(r => r.tipo === 'error');
+                
+                if (erros.length === 0) {
+                    html += `<div class="test-result success">✅ Cartela ${i}: PERFEITA (24 números, padrão BINGO correto)</div>`;
+                } else {
+                    html += `<div class="test-result error">❌ Cartela ${i}: ${erros.length} erros encontrados</div>`;
+                    totalErros += erros.length;
+                }
+            }
+            
+            if (totalErros === 0) {
+                html += '<div class="test-result success"><strong>🎉 TODAS AS 10 CARTELAS ESTÃO PERFEITAS!</strong></div>';
+            } else {
+                html += `<div class="test-result error"><strong>❌ Total de erros encontrados: ${totalErros}</strong></div>`;
+            }
+            
+            document.getElementById('resultados').innerHTML = html;
+        }
+        
+        function limparResultados() {
+            document.getElementById('resultados').innerHTML = '';
+            document.getElementById('cartela-exemplo').innerHTML = '';
+        }
+        
+        // Teste automático ao carregar
+        window.onload = function() {
+            testarPadrao();
+        };
+    </script>
+</body>
+</html>
