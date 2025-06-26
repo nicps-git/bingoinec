@@ -83,8 +83,6 @@
                     <h3>🎲 Status do Sorteio</h3>
                     <div class="botoes-teste">
                         <button onclick="forcarAtualizacaoNumeros()" class="btn-atualizar">🔄 Atualizar</button>
-                        <button onclick="testarBuscaNumeros()" class="btn-teste" style="background: #17a2b8; color: white; margin-left: 5px;">🧪 Testar Busca</button>
-                        <button onclick="forcarDadosSimulados()" class="btn-teste" style="background: #28a745; color: white; margin-left: 5px;">🎮 Usar Simulados</button>
                     </div>
                 </div>
                 <div class="status-info">
@@ -180,6 +178,92 @@
         
         // Debug para verificar se as funções estão disponíveis
         console.log('=== DEBUG MINHAS CARTELAS ===');
+        
+        // REMOVER BOTÕES DE TESTE SE EXISTIREM (LIMPEZA FORÇADA)
+        setTimeout(() => {
+            console.log('🧹 Executando limpeza forçada de botões de teste...');
+            
+            // Procurar e remover botões específicos
+            const botoesTestar = document.querySelectorAll('button[onclick*="testarBuscaNumeros"]');
+            const botoesSimulados = document.querySelectorAll('button[onclick*="forcarDadosSimulados"]');
+            
+            botoesTestar.forEach(btn => {
+                console.log('🗑️ Removendo botão "Testar Busca"');
+                btn.remove();
+            });
+            
+            botoesSimulados.forEach(btn => {
+                console.log('🗑️ Removendo botão "Usar Simulados"');
+                btn.remove();
+            });
+            
+            // Procurar por texto específico nos botões
+            const todosBotoes = document.querySelectorAll('button');
+            todosBotoes.forEach(btn => {
+                if (btn.textContent.includes('Testar Busca') || btn.textContent.includes('Usar Simulados')) {
+                    console.log('🗑️ Removendo botão por conteúdo:', btn.textContent);
+                    btn.remove();
+                }
+            });
+            
+            console.log('✅ Limpeza forçada concluída');
+        }, 500);
+        
+        // LIMPEZA AGRESSIVA DE BOTÕES DE TESTE
+        const limpezaAgressiva = () => {
+            console.log('🧹 === LIMPEZA AGRESSIVA DE BOTÕES ===');
+            
+            // Estratégia 1: Por atributo onclick
+            document.querySelectorAll('button[onclick*="testarBuscaNumeros"]').forEach(btn => {
+                console.log('🗑️ Removido: Testar Busca (onclick)');
+                btn.remove();
+            });
+            
+            document.querySelectorAll('button[onclick*="forcarDadosSimulados"]').forEach(btn => {
+                console.log('🗑️ Removido: Usar Simulados (onclick)');
+                btn.remove();
+            });
+            
+            // Estratégia 2: Por conteúdo de texto
+            document.querySelectorAll('button').forEach(btn => {
+                const texto = btn.textContent.trim();
+                if (texto.includes('Testar Busca') || 
+                    texto.includes('Usar Simulados') ||
+                    texto.includes('🧪 Testar') ||
+                    texto.includes('🎮 Usar')) {
+                    console.log('🗑️ Removido por texto:', texto);
+                    btn.remove();
+                }
+            });
+            
+            // Estratégia 3: Por classe CSS
+            document.querySelectorAll('.btn-teste').forEach(btn => {
+                if (!btn.textContent.includes('Atualizar')) {
+                    console.log('🗑️ Removido por classe:', btn.textContent);
+                    btn.remove();
+                }
+            });
+            
+            // Estratégia 4: Procurar em containers específicos
+            const botoesTeste = document.querySelector('.botoes-teste');
+            if (botoesTeste) {
+                const filhos = Array.from(botoesTeste.children);
+                filhos.forEach(filho => {
+                    if (filho.tagName === 'BUTTON' && !filho.textContent.includes('Atualizar')) {
+                        console.log('🗑️ Removido do container:', filho.textContent);
+                        filho.remove();
+                    }
+                });
+            }
+            
+            console.log('✅ Limpeza agressiva concluída');
+        };
+        
+        // Executar limpeza múltiplas vezes
+        setTimeout(limpezaAgressiva, 100);
+        setTimeout(limpezaAgressiva, 500);
+        setTimeout(limpezaAgressiva, 1000);
+        setTimeout(limpezaAgressiva, 2000);
         
         setTimeout(() => {
             console.log('Verificando funções após carregamento...');

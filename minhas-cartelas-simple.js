@@ -652,32 +652,89 @@ function toggleNumero(elemento, numero) {
 }
 
 // Função para marcar todos os números sorteados
-function marcarTodosNumeros() {
-    console.log('✅ [AÇÃO] Marcando todos os números sorteados...');
+async function marcarTodosNumeros() {
+    console.log('✅ [AÇÃO] === MARCAR TODOS OS NÚMEROS SORTEADOS ===');
     
-    const cartelas = document.querySelectorAll('.cartela-comprador');
-    let totalMarcados = 0;
-    
-    cartelas.forEach(cartela => {
-        const numeroCells = cartela.querySelectorAll('.numero-cell[data-numero]');
-        numeroCells.forEach(cell => {
-            const numero = parseInt(cell.dataset.numero);
-            if (!isNaN(numero)) {
-                // Simular que todos os números estão sorteados (para demonstração)
-                // Em implementação real, verificaria contra números sorteados do Firebase
-                cell.classList.add('marcado');
-                cell.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
-                cell.style.color = 'white';
-                cell.style.animation = 'pulse-marcado 0.5s ease-out';
-                totalMarcados++;
+    try {
+        // Buscar números sorteados reais do Firebase
+        const numerosSorteados = await buscarNumerosSorteadosComFallback();
+        console.log('🎲 [MARCAR] Números sorteados obtidos:', numerosSorteados);
+        
+        if (!numerosSorteados || numerosSorteados.length === 0) {
+            mostrarAlerta('⚠️ Nenhum número foi sorteado ainda!', 'warning');
+            console.log('⚠️ [MARCAR] Lista de números sorteados está vazia');
+            return;
+        }
+        
+        // Procurar cartelas usando múltiplos seletores
+        const cartelas = document.querySelectorAll('.cartela-comprador, .cartela');
+        console.log(`🎫 [MARCAR] Encontradas ${cartelas.length} cartelas`);
+        
+        if (cartelas.length === 0) {
+            mostrarAlerta('❌ Nenhuma cartela encontrada para marcar!', 'error');
+            return;
+        }
+        
+        let totalMarcados = 0;
+        
+        cartelas.forEach((cartela, indexCartela) => {
+            console.log(`🎫 [MARCAR] Processando cartela ${indexCartela + 1}`);
+            
+            // Procurar células usando múltiplos seletores
+            const numeroCells = cartela.querySelectorAll('.numero-cell[data-numero], .cell');
+            console.log(`📊 [MARCAR] Cartela ${indexCartela + 1} tem ${numeroCells.length} células`);
+            
+            numeroCells.forEach(cell => {
+                let numero;
+                
+                // Tentar obter número do data-numero primeiro
+                if (cell.dataset && cell.dataset.numero) {
+                    numero = parseInt(cell.dataset.numero);
+                } else {
+                    // Se não tiver data-numero, usar textContent
+                    const texto = cell.textContent.trim();
+                    if (texto && texto !== 'LIVRE' && texto !== '⭐' && !isNaN(parseInt(texto))) {
+                        numero = parseInt(texto);
+                    }
+                }
+                
+                // Marcar se o número foi sorteado
+                if (numero && numerosSorteados.includes(numero)) {
+                    if (!cell.classList.contains('marcado')) {
+                        console.log(`✅ [MARCAR] Marcando número ${numero} na cartela ${indexCartela + 1}`);
+                        
+                        cell.classList.add('marcado');
+                        cell.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                        cell.style.color = 'white';
+                        cell.style.fontWeight = 'bold';
+                        cell.style.animation = 'pulse-marcado 0.5s ease-out';
+                        cell.style.border = '2px solid #1e7e34';
+                        cell.style.boxShadow = '0 0 10px rgba(40, 167, 69, 0.5)';
+                        
+                        totalMarcados++;
+                    }
+                }
+            });
+            
+            // Atualizar estatísticas da cartela se a função existir
+            if (typeof atualizarEstatisticasCartela === 'function') {
+                atualizarEstatisticasCartela(cartela);
             }
         });
         
-        atualizarEstatisticasCartela(cartela);
-    });
-    
-    mostrarAlerta(`✅ ${totalMarcados} números marcados automaticamente!`, 'success');
-    console.log(`✅ [AÇÃO] ${totalMarcados} números marcados`);
+        // Mostrar resultado
+        if (totalMarcados > 0) {
+            mostrarAlerta(`✅ ${totalMarcados} números sorteados marcados automaticamente!`, 'success');
+            console.log(`✅ [MARCAR] Sucesso: ${totalMarcados} números marcados de ${numerosSorteados.length} sorteados`);
+        } else {
+            mostrarAlerta('ℹ️ Todos os números sorteados já estavam marcados!', 'info');
+            console.log('ℹ️ [MARCAR] Nenhum número novo foi marcado - todos já estavam marcados');
+        }
+        
+    } catch (error) {
+        console.error('❌ [MARCAR] Erro ao marcar números:', error);
+        mostrarAlerta('❌ Erro ao marcar números sorteados', 'error');
+    }
 }
 
 // Função para limpar todas as marcações
@@ -1062,30 +1119,6 @@ document.addEventListener('DOMContentLoaded', () => {
 console.log('📝 [SIMPLE] Script minhas-cartelas-simple.js finalizado');
 
 // FUNÇÃO PARA TESTAR BUSCA DE NÚMEROS DIRETAMENTE NA INTERFACE
-async function testarBuscaNumeros() {
-    console.log('🧪 [TESTE] === TESTANDO BUSCA DE NÚMEROS NA INTERFACE ===');
-    
-    try {
-        const numeros = await buscarNumerosSorteadosSimples();
-        console.log('🎯 [TESTE] Resultado da busca:', numeros);
-        
-        // Mostrar resultado na interface
-        mostrarAlerta(`🎲 Teste: ${numeros.length} números encontrados: ${numeros.join(', ')}`, 'info');
-        
-        // Atualizar interface com os números encontrados
-        if (numeros.length > 0) {
-            atualizarStatusSorteio(numeros);
-        }
-        
-        return numeros;
-        
-    } catch (error) {
-        console.error('❌ [TESTE] Erro no teste:', error);
-        mostrarAlerta('❌ Erro no teste de busca de números', 'error');
-        return [];
-    }
-}
-
 // FUNÇÃO PARA FORÇAR ATUALIZAÇÃO DOS NÚMEROS
 async function forcarAtualizacaoNumeros() {
     console.log('🔄 [ATUALIZAR] Forçando atualização dos números...');
@@ -1182,18 +1215,4 @@ async function buscarNumerosSorteadosComFallback() {
 }
 
 // FUNÇÃO PARA USAR DADOS SIMULADOS DIRETAMENTE
-function forcarDadosSimulados() {
-    console.log('🎮 [DEMO] Forçando uso de dados simulados...');
-    
-    const numerosDemo = [1, 8, 15, 22, 29, 36, 43, 50, 57, 64, 71];
-    
-    console.log('🎯 [DEMO] Números de demonstração:', numerosDemo);
-    
-    // Atualizar interface
-    atualizarStatusSorteio(numerosDemo);
-    marcarNumerosNasCartelas(numerosDemo);
-    
-    mostrarAlerta(`🎮 Demonstração: ${numerosDemo.length} números simulados aplicados!`, 'success');
-    
-    return numerosDemo;
-}
+

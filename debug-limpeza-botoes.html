@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧹 Limpeza de Botões - Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .remove-btn { background: #dc3545; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🧹 Debug: Limpeza de Botões de Teste</h1>
+    
+    <div class="debug-info">
+        <h3>🔍 Procurando botões de teste...</h3>
+        <div id="status">Verificando...</div>
+    </div>
+    
+    <button class="remove-btn" onclick="limparBotoesForça()">🗑️ Limpar Botões Força Bruta</button>
+    <button onclick="verificarIndex()" style="background: #007bff; color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer;">📄 Abrir Index.html</button>
+    
+    <script>
+        function atualizarStatus(mensagem) {
+            document.getElementById('status').innerHTML += '<br>' + mensagem;
+        }
+        
+        function limparBotoesForça() {
+            atualizarStatus('🧹 Iniciando limpeza forçada...');
+            
+            // Abrir o index.html em uma nova janela para limpar
+            const popup = window.open('index.html', 'limpeza', 'width=800,height=600');
+            
+            setTimeout(() => {
+                if (popup) {
+                    try {
+                        // Executar limpeza na nova janela
+                        popup.eval(`
+                            console.log('🧹 Executando limpeza na janela...');
+                            
+                            // Remover por onclick
+                            const botoesTestar = document.querySelectorAll('button[onclick*="testarBuscaNumeros"]');
+                            const botoesSimulados = document.querySelectorAll('button[onclick*="forcarDadosSimulados"]');
+                            
+                            botoesTestar.forEach(btn => {
+                                console.log('🗑️ Removido: Testar Busca');
+                                btn.remove();
+                            });
+                            
+                            botoesSimulados.forEach(btn => {
+                                console.log('🗑️ Removido: Usar Simulados');
+                                btn.remove();
+                            });
+                            
+                            // Remover por texto
+                            const todosBotoes = document.querySelectorAll('button');
+                            let removidos = 0;
+                            todosBotoes.forEach(btn => {
+                                if (btn.textContent.includes('Testar Busca') || 
+                                    btn.textContent.includes('Usar Simulados') ||
+                                    btn.textContent.includes('🧪') ||
+                                    btn.textContent.includes('🎮')) {
+                                    console.log('🗑️ Removido por texto:', btn.textContent);
+                                    btn.remove();
+                                    removidos++;
+                                }
+                            });
+                            
+                            alert('✅ Limpeza concluída! ' + removidos + ' botões removidos.');
+                        `);
+                        
+                        atualizarStatus('✅ Limpeza executada na nova janela!');
+                    } catch (e) {
+                        atualizarStatus('❌ Erro: ' + e.message);
+                    }
+                }
+            }, 1000);
+        }
+        
+        function verificarIndex() {
+            window.open('index.html', '_blank');
+        }
+        
+        // Verificação inicial
+        setTimeout(() => {
+            atualizarStatus('🔍 Verificação inicial concluída');
+            atualizarStatus('💡 Use o botão para limpar botões de teste');
+        }, 500);
+    </script>
+</body>
+</html>
