@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎪 Bingo Arraiá INEC 🎪</title>
-    <link rel="stylesheet" href="style.css">
+    <title>� Bingo Arraiá INEC - Minhas Cartelas</title>
+    <link rel="stylesheet" href="minhas-cartelas.css">
 </head>
 <body>
-    <!-- Decorações de Festa Junina -->
+    <!-- Bandeirolas -->
     <div class="bandeirolas">
         <div class="bandeirola bandeirola-1"></div>
         <div class="bandeirola bandeirola-2"></div>
@@ -20,75 +20,131 @@
         <div class="bandeirola bandeirola-9"></div>
         <div class="bandeirola bandeirola-10"></div>
     </div>
-    
-    <div class="fogueira">
-        <div class="fogo"></div>
-        <div class="lenha"></div>
-    </div>
 
     <header>
         <div class="logo-empresa">
             <img src="inec.png" alt="Logo INEC" class="logo-inec">
         </div>
-        <div class="admin-link">
-            <a href="#" onclick="verificarAcessoAdmin()" class="btn-admin">⚙️ Admin</a>
+        <div class="nav-links">
+            <a href="cartelas.html" class="btn-nav">🎫 Comprar</a>
+            <a href="#" onclick="verificarAcessoAdmin()" class="btn-nav">⚙️ Admin</a>
         </div>
-        <div class="cartelas-link">
-            <a href="cartelas.html" class="btn-cartelas">🎫 Comprar</a>
-            <a href="minhas-cartelas.html" class="btn-cartelas">👀 Minhas Cartelas</a>
-        </div>
-        
-        <div class="header-content">
-            <div class="chapeu-palha">👒</div>
-            <h1>🌽 Bingo Arraiá INEC 🌽</h1>
-            <p>🎊 Festa Junina com Diversão Garantida! 🎊</p>
-            <div class="elementos-decorativos">
-                <span class="elemento">🌽</span>
-                <span class="elemento">🔥</span>
-                <span class="elemento">🎪</span>
-                <span class="elemento">🪗</span>
-                <span class="elemento">🌽</span>
-            </div>
-        </div>
+        <div class="chapeu-palha">👒</div>
+        <h1>🌽 Bingo Arraiá INEC 🌽</h1>
+        <p>🎊 Acompanhe suas cartelas na Festa Junina! 🎊</p>
     </header>
-    
+
     <main>
-        <div class="bingo-card">
-            <div class="milho-decorativo milho-esquerda">🌽</div>
-            <div class="milho-decorativo milho-direita">🌽</div>
-            <h2>🎯 Número Sorteado</h2>
-            <div id="numero-sorteado" class="numero-destaque texto-inicial">Clique em Sortear</div>
-            <button id="sortear-btn">🎲 Sortear</button>
-            <div class="baloes">
-                <div class="balao balao-1">🎈</div>
-                <div class="balao balao-2">🎈</div>
-                <div class="balao balao-3">🎈</div>
+        <!-- Tela de Login do Comprador -->
+        <div id="login-comprador" class="login-section">
+            <div class="login-card">
+                <div class="login-header">
+                    <h2>🔍 Consultar Minhas Cartelas</h2>
+                    <p>Digite seus dados para ver suas cartelas compradas</p>
+                </div>
+
+                <form id="form-consulta" class="consulta-form">
+                    <div class="input-group">
+                        <label for="consulta-telefone">📱 Telefone:</label>
+                        <input type="tel" id="consulta-telefone" name="telefone" required 
+                               placeholder="(11) 99999-9999" maxlength="15">
+                        <span class="input-icon">📞</span>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-consultar">🔍 Consultar Cartelas</button>
+                    </div>
+
+                    <div class="info-consulta">
+                        <p>💡 <strong>Dica:</strong> Use o telefone que você cadastrou na compra</p>
+                        <p>📞 Problemas? Entre em contato com a organização</p>
+                    </div>
+                </form>
             </div>
         </div>
-        
-        <div class="barraca-bingo">
-            <div class="teto-barraca"></div>
-            <div class="numeros-sorteados">
-                <div class="quadrilha-caipiras">
-                    <span class="caipira">👨‍🌾</span>
-                    <span class="caipira">👩‍🌾</span>
+
+        <!-- Tela de Cartelas do Comprador -->
+        <div id="area-cartelas" class="cartelas-section" style="display: none;">
+            <div class="comprador-info">
+                <div class="info-header">
+                    <h2>👤 <span id="nome-comprador-logado">Carregando...</span></h2>
+                    <button onclick="fazerLogout()" class="btn-logout-comprador">🚪 Sair</button>
                 </div>
-                <h2>📋 Números Anteriores</h2>
-                <div class="contador">
-                    <span id="contador-numeros">0</span> números sorteados
-                </div>
-                <ul id="numeros-anteriores"></ul>
-                <div class="comidas-juninas">
-                    <span class="comida">🍭</span>
-                    <span class="comida">🌽</span>
-                    <span class="comida">🥧</span>
-                    <span class="comida">🧁</span>
+                <div class="info-detalhes">
+                    <span id="telefone-comprador-logado">📱 Carregando...</span>
+                    <span id="email-comprador-logado">📧 Carregando...</span>
+                    <span id="total-cartelas-comprador">🎫 Carregando...</span>
                 </div>
             </div>
+
+            <!-- Status do Sorteio -->
+            <div class="sorteio-status">
+                <div class="status-header">
+                    <h3>🎲 Status do Sorteio</h3>
+                    <div class="botoes-teste">
+                        <button onclick="forcarAtualizacaoNumeros()" class="btn-atualizar">🔄 Atualizar</button>
+                        <button onclick="testarBuscaNumeros()" class="btn-teste" style="background: #17a2b8; color: white; margin-left: 5px;">🧪 Testar Busca</button>
+                        <button onclick="forcarDadosSimulados()" class="btn-teste" style="background: #28a745; color: white; margin-left: 5px;">🎮 Usar Simulados</button>
+                    </div>
+                </div>
+                <div class="status-info">
+                    <div class="status-item">
+                        <span class="label">Último número sorteado:</span>
+                        <span id="ultimo-numero" class="numero-destaque">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Total de números sorteados:</span>
+                        <span id="total-sorteados">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Números sorteados:</span>
+                        <div id="numeros-sorteados-lista" class="numeros-lista">Nenhum número sorteado ainda</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Cartelas -->
+            <div class="cartelas-container">
+                <h3>🎫 Suas Cartelas</h3>
+                <div id="lista-cartelas-comprador" class="cartelas-grid">
+                    <!-- Cartelas serão inseridas aqui via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="acoes-container">
+                <button onclick="console.log('Botão Marcar clicado'); marcarTodosNumeros()" class="btn-acao">✅ Marcar Todos os Sorteados</button>
+                <button onclick="console.log('Botão Limpar clicado'); limparMarcacoes()" class="btn-acao">🗑️ Limpar Marcações</button>
+                <button onclick="console.log('Botão Bingo clicado'); verificarBingo()" class="btn-acao btn-bingo">🎉 Verificar BINGO!</button>
+            </div>
+        </div>
+
+        <!-- Modal de BINGO -->
+        <div id="modal-bingo" class="modal" style="display: none;">
+            <div class="modal-content modal-bingo">
+                <h2>🎉 BINGO! 🎉</h2>
+                <p>Parabéns! Você fez BINGO com a cartela:</p>
+                <div id="cartela-bingo-info"></div>
+                <div class="modal-actions">
+                    <button onclick="fecharModalBingo()" class="btn-modal">🎊 Continuar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert de mensagens -->
+        <div id="alert-msg" class="alert" style="display: none;">
+            <span class="alert-icon">ℹ️</span>
+            <span class="alert-message">Mensagem</span>
+            <button class="alert-close" onclick="fecharAlert()">&times;</button>
         </div>
     </main>
-    
-    <!-- Elementos flutuantes -->
+
+    <!-- Elementos decorativos -->
+    <div class="fogueira">
+        <div class="fogo"></div>
+        <div class="lenha"></div>
+    </div>
+
     <div class="estrelas">
         <div class="estrela estrela-1">⭐</div>
         <div class="estrela estrela-2">✨</div>
@@ -96,224 +152,202 @@
         <div class="estrela estrela-4">✨</div>
         <div class="estrela estrela-5">⭐</div>
     </div>
-    
-    <div class="fogos-artificio" id="fogos"></div>
 
-    <!-- Firebase (opcional) -->
+    <!-- Firebase SDK v8 Compat -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
     <script src="firebase-config.js"></script>
     <script src="firebase-service.js"></script>
-    <script src="patch-busca-robusta.js"></script>
-    <script src="login.js"></script>
-
+    <!-- Usando versão simplificada para teste -->
+    
+    <script src="minhas-cartelas-simple.js"></script>
+    
     <script>
-        console.log('🚀 Iniciando Bingo Arraiá INEC...');
+        // Debug para verificar se as funções estão disponíveis
+        console.log('=== DEBUG MINHAS CARTELAS ===');
         
-        // Sistema de sorteio simples e robusto
-        let sistemaRobusto = {
-            botao: null,
-            numeroEl: null,
-            listaEl: null,
-            contadorEl: null,
-            numerosSorteados: [],
-            numerosDisponiveis: [],
-            inicializado: false
-        };
-        
-        // Função de sorteio que SEMPRE funciona
-        function sortearNumero() {
-            console.log('🎲 sortearNumero executada!');
+        setTimeout(() => {
+            console.log('Verificando funções após carregamento...');
+            console.log('marcarTodosNumeros:', typeof marcarTodosNumeros);
+            console.log('limparMarcacoes:', typeof limparMarcacoes);
+            console.log('verificarBingo:', typeof verificarBingo);
+            console.log('fecharModalBingo:', typeof fecharModalBingo);
+            console.log('fecharAlert:', typeof fecharAlert);
             
-            if (sistemaRobusto.numerosDisponiveis.length === 0) {
-                alert('🎉 Todos os números já foram sorteados!');
-                return;
-            }
-            
-            // Desabilitar botão temporariamente
-            sistemaRobusto.botao.disabled = true;
-            sistemaRobusto.botao.textContent = '🎲 Sorteando...';
-            
-            // Sortear número aleatório
-            const randomIndex = Math.floor(Math.random() * sistemaRobusto.numerosDisponiveis.length);
-            const numero = sistemaRobusto.numerosDisponiveis.splice(randomIndex, 1)[0];
-            
-            // Mostrar resultado após 1 segundo (efeito dramático)
-            setTimeout(() => {
-                // Atualizar display do número
-                sistemaRobusto.numeroEl.textContent = numero;
-                sistemaRobusto.numeroEl.classList.remove('texto-inicial');
-                sistemaRobusto.numerosSorteados.push(numero);
-                
-                // Adicionar à lista de números anteriores
-                const li = document.createElement('li');
-                li.textContent = numero;
-                li.style.animation = 'fadeIn 0.5s ease-in';
-                sistemaRobusto.listaEl.appendChild(li);
-                
-                // Atualizar contador
-                sistemaRobusto.contadorEl.textContent = sistemaRobusto.numerosSorteados.length;
-                
-                // Tentar salvar no Firebase (se disponível)
-                if (typeof window.firebaseService !== 'undefined') {
-                    firebaseService.salvarNumeroSorteado(numero).catch(err => {
-                        console.log('⚠️ Firebase indisponível, continuando localmente');
-                    });
-                }
-                
-                // Reabilitar botão
-                sistemaRobusto.botao.disabled = false;
-                sistemaRobusto.botao.textContent = sistemaRobusto.numerosDisponiveis.length > 0 ? 
-                                                  '🎯 Próximo Número' : '🎉 Fim do Jogo!';
-                
-                console.log(`✅ Número ${numero} sorteado! Restam ${sistemaRobusto.numerosDisponiveis.length} números`);
-                
-                // Efeito visual especial para números especiais
-                if (numero === 13 || numero === 7 || numero === 77) {
-                    criarFogosArtificio();
-                }
-                
-            }, 1000);
-        }
-        
-        // Efeito visual especial
-        function criarFogosArtificio() {
-            const fogos = document.getElementById('fogos');
-            fogos.innerHTML = '🎆🎇✨🎆🎇';
-            fogos.style.display = 'block';
-            setTimeout(() => {
-                fogos.style.display = 'none';
-            }, 3000);
-        }
-        
-        // Função para acessar admin - simplesmente redireciona
-        function verificarAcessoAdmin() {
-            console.log('🔐 Redirecionando para área administrativa...');
-            window.location.href = 'admin.html';
-        }
-        
-        // Inicialização quando página carregar
-        document.addEventListener('DOMContentLoaded', async () => {
-            console.log('📋 Página carregada, configurando sistema...');
-            
-            // Encontrar elementos da interface
-            sistemaRobusto.botao = document.getElementById('sortear-btn');
-            sistemaRobusto.numeroEl = document.getElementById('numero-sorteado');
-            sistemaRobusto.listaEl = document.getElementById('numeros-anteriores');
-            sistemaRobusto.contadorEl = document.getElementById('contador-numeros');
-            
-            if (!sistemaRobusto.botao) {
-                console.error('❌ Erro: Botão sortear não encontrado!');
-                return;
-            }
-            
-            console.log('✅ Elementos da interface encontrados');
-            
-            // Configurar números (padrão 1-75)
-            sistemaRobusto.numerosDisponiveis = Array.from({length: 75}, (_, i) => i + 1);
-            
-            // Tentar carregar dados do Firebase (se disponível)
-            let tentativas = 0;
-            const tentarFirebase = setInterval(async () => {
-                tentativas++;
-                
-                if (typeof window.firebaseService !== 'undefined') {
-                    console.log('🔥 Firebase disponível, carregando dados salvos...');
-                    try {
-                        const config = await firebaseService.carregarConfiguracoes();
-                        const numerosSalvos = await firebaseService.carregarNumerosSorteados();
-                        
-                        // Aplicar configuração e números salvos
-                        const inicio = config.numeroInicial || 1;
-                        const fim = config.numeroFinal || 75;
-                        const todosNumeros = Array.from({length: fim - inicio + 1}, (_, i) => i + inicio);
-                        sistemaRobusto.numerosDisponiveis = todosNumeros.filter(n => !numerosSalvos.includes(n));
-                        sistemaRobusto.numerosSorteados = numerosSalvos;
-                        
-                        // Restaurar interface com números já sorteados
-                        sistemaRobusto.listaEl.innerHTML = '';
-                        numerosSalvos.forEach(num => {
-                            const li = document.createElement('li');
-                            li.textContent = num;
-                            sistemaRobusto.listaEl.appendChild(li);
-                        });
-                        sistemaRobusto.contadorEl.textContent = numerosSalvos.length;
-                        
-                        console.log(`✅ Dados do Firebase carregados: ${numerosSalvos.length} já sorteados`);
-                        
-                    } catch (error) {
-                        console.log('⚠️ Erro ao carregar Firebase, usando configuração local');
-                    }
-                    
-                    clearInterval(tentarFirebase);
-                    finalizarConfiguracao();
-                    
-                } else if (tentativas >= 5) {
-                    console.log('⚠️ Firebase não disponível, usando modo local');
-                    clearInterval(tentarFirebase);
-                    finalizarConfiguracao();
-                }
-            }, 1000);
-            
-            function finalizarConfiguracao() {
-                console.log('🔧 Finalizando configuração do botão...');
-                
-                // Remover qualquer listener antigo e adicionar novo
-                const novoBotao = sistemaRobusto.botao.cloneNode(true);
-                sistemaRobusto.botao.parentNode.replaceChild(novoBotao, sistemaRobusto.botao);
-                sistemaRobusto.botao = novoBotao;
-                
-                // Adicionar event listener
-                sistemaRobusto.botao.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    console.log('🎯 BOTÃO CLICADO!');
-                    sortearNumero();
-                });
-                
-                // Habilitar botão
-                if (sistemaRobusto.numerosDisponiveis.length > 0) {
-                    sistemaRobusto.botao.disabled = false;
-                    sistemaRobusto.botao.textContent = '🎲 Sortear';
-                    console.log('✅ Sistema pronto! Botão habilitado.');
+            // Disponibilizar no console para teste
+            window.testMarcar = () => {
+                console.log('Testando marcarTodosNumeros...');
+                if (typeof marcarTodosNumeros === 'function') {
+                    marcarTodosNumeros();
                 } else {
-                    sistemaRobusto.botao.disabled = true;
-                    sistemaRobusto.botao.textContent = '🎉 Fim do Jogo!';
-                    console.log('🎉 Todos os números já foram sorteados');
+                    alert('Função marcarTodosNumeros não encontrada!');
                 }
-                
-                sistemaRobusto.inicializado = true;
-            }
+            };
+            
+            window.testLimpar = () => {
+                console.log('Testando limparMarcacoes...');
+                if (typeof limparMarcacoes === 'function') {
+                    limparMarcacoes();
+                } else {
+                    alert('Função limparMarcacoes não encontrada!');
+                }
+            };
+            
+            window.testBingo = () => {
+                console.log('Testando verificarBingo...');
+                if (typeof verificarBingo === 'function') {
+                    verificarBingo();
+                } else {
+                    alert('Função verificarBingo não encontrada!');
+                }
+            };
+            
+            console.log('Funções de teste criadas: testMarcar(), testLimpar(), testBingo()');
+        }, 1000);
+        
+        // Função de debug para testar o botão
+        function debugLogin() {
+            console.log('🔧 Debug Login - Botão clicado!');
+            alert('🔧 Botão funcionando! Verifique o console para mais detalhes.');
+        }
+        
+        // Interceptar cliques no botão para debug
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const btnConsultar = document.querySelector('.btn-consultar');
+                if (btnConsultar) {
+                    console.log('✅ Botão consultar encontrado');
+                    btnConsultar.addEventListener('click', (e) => {
+                        console.log('🎯 Click detectado no botão!');
+                    });
+                } else {
+                    console.log('❌ Botão consultar NÃO encontrado');
+                }
+            }, 1000);
         });
         
-        // CSS adicional para animações
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(-10px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
+        // ===== FUNÇÕES DE EMERGÊNCIA =====
+        function testeRapidoEmergencia() {
+            console.log('🧪 TESTE RÁPIDO DE EMERGÊNCIA INICIADO');
             
-            #fogos {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                font-size: 3em;
-                z-index: 1000;
-                display: none;
-                animation: bounce 1s infinite;
-            }
+            // Forçar login com dados de teste
+            compradorAtual = {
+                nome: 'TESTE EMERGÊNCIA',
+                telefone: '85977777777',
+                email: 'Não informado'
+            };
             
-            @keyframes bounce {
-                0%, 20%, 50%, 80%, 100% { transform: translate(-50%, -50%) translateY(0); }
-                40% { transform: translate(-50%, -50%) translateY(-30px); }
-                60% { transform: translate(-50%, -50%) translateY(-15px); }
-            }
-        `;
-        document.head.appendChild(style);
+            cartelasComprador = [{
+                id: 'EMERG001',
+                numeros: [1, 16, 31, 46, 61, 2, 17, 32, 47, 62, 3, 18, 33, 48, 63, 4, 19, 34, 49, 64, 5, 20, 35, 50, 65],
+                preco: 5.00,
+                nome: 'TESTE EMERGÊNCIA',
+                telefone: '85977777777',
+                dataCompra: new Date()
+            }];
+            
+            // Forçar transição
+            const login = document.getElementById('login-comprador');
+            const area = document.getElementById('area-cartelas');
+            
+            if (login) login.style.display = 'none';
+            if (area) area.style.display = 'block';
+            
+            // Preencher dados
+            const nomeEl = document.getElementById('nome-comprador-logado');
+            const telEl = document.getElementById('telefone-comprador-logado');
+            const emailEl = document.getElementById('email-comprador-logado');
+            const totalEl = document.getElementById('total-cartelas-comprador');
+            
+            if (nomeEl) nomeEl.textContent = compradorAtual.nome;
+            if (telEl) telEl.textContent = compradorAtual.telefone;
+            if (emailEl) emailEl.textContent = compradorAtual.email;
+            if (totalEl) totalEl.textContent = cartelasComprador.length;
+            
+            // Criar cartela de emergência
+            criarCartelaEmergencia();
+            
+            alert('🧪 Teste de emergência ativo! Cartela criada com sucesso.');
+        }
         
-        console.log('🎪 Bingo Arraiá INEC carregado com sucesso!');
+        function criarCartelaEmergencia() {
+            const container = document.getElementById('lista-cartelas-comprador');
+            if (!container) return;
+            
+            const cartela = cartelasComprador[0];
+            const cartelaDiv = document.createElement('div');
+            cartelaDiv.className = 'cartela-comprador';
+            cartelaDiv.style.cssText = `
+                background: white;
+                border-radius: 10px;
+                padding: 20px;
+                margin: 20px auto;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                max-width: 400px;
+                border: 3px solid #dc3545;
+            `;
+            
+            // Header BINGO
+            const headerHtml = `
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px auto; max-width: 350px;">
+                    <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.3em; font-weight: bold; padding: 8px; border-radius: 6px;">B</div>
+                    <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.3em; font-weight: bold; padding: 8px; border-radius: 6px;">I</div>
+                    <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.3em; font-weight: bold; padding: 8px; border-radius: 6px;">N</div>
+                    <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.3em; font-weight: bold; padding: 8px; border-radius: 6px;">G</div>
+                    <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.3em; font-weight: bold; padding: 8px; border-radius: 6px;">O</div>
+                </div>
+            `;
+            
+            // Grid de números
+            const gridHtml = `
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px auto; max-width: 350px;">
+                    ${cartela.numeros.slice(0, 12).map(n => 
+                        `<div onclick="marcarNumeroEmergencia(this, ${n})" style="background: #ecf0f1; color: #2c3e50; text-align: center; font-size: 1.1em; font-weight: bold; padding: 10px 5px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; min-height: 40px; display: flex; align-items: center; justify-content: center;">${n}</div>`
+                    ).join('')}
+                    <div style="background: #f39c12; color: white; text-align: center; font-size: 1.5em; font-weight: bold; padding: 10px 5px; border-radius: 6px; min-height: 40px; display: flex; align-items: center; justify-content: center;">⭐</div>
+                    ${cartela.numeros.slice(12).map(n => 
+                        `<div onclick="marcarNumeroEmergencia(this, ${n})" style="background: #ecf0f1; color: #2c3e50; text-align: center; font-size: 1.1em; font-weight: bold; padding: 10px 5px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; min-height: 40px; display: flex; align-items: center; justify-content: center;">${n}</div>`
+                    ).join('')}
+                </div>
+            `;
+            
+            cartelaDiv.innerHTML = `
+                <div style="border-bottom: 2px solid #dc3545; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h3 style="color: #dc3545; margin: 0;">🎫 Cartela Emergência #1</h3>
+                    <div style="color: #666; font-size: 0.9em;">Modo de teste ativo - clique nos números para marcar</div>
+                </div>
+                ${headerHtml}
+                ${gridHtml}
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 0.9em; color: #666;">
+                    <p><strong>ID:</strong> ${cartela.id}</p>
+                    <p><strong>Preço:</strong> R$ ${cartela.preco.toFixed(2)}</p>
+                    <p><strong>Status:</strong> 🧪 MODO EMERGÊNCIA</p>
+                </div>
+            `;
+            
+            container.innerHTML = '';
+            container.appendChild(cartelaDiv);
+        }
+        
+        function marcarNumeroEmergencia(elemento, numero) {
+            if (elemento.style.backgroundColor === 'rgb(52, 152, 219)') {
+                // Desmarcar
+                elemento.style.backgroundColor = '#ecf0f1';
+                elemento.style.color = '#2c3e50';
+            } else {
+                // Marcar
+                elemento.style.backgroundColor = '#3498db';
+                elemento.style.color = 'white';
+            }
+            
+            // Contar marcados
+            const marcados = document.querySelectorAll('[onclick*="marcarNumeroEmergencia"]')
+                .length - document.querySelectorAll('[style*="rgb(52, 152, 219)"]').length;
+            console.log(`🎯 Números marcados: ${document.querySelectorAll('[style*="rgb(52, 152, 219)"]').length}`);
+        }
     </script>
 </body>
 </html>
