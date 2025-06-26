@@ -73,37 +73,22 @@ function validateCredentials(email, password) {
     return email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password;
 }
 
-// Solicitar login se não estiver autenticado
+// Solicitar login se não estiver autenticado (para uso apenas em scripts de admin)
 function requireAuthentication() {
     if (isUserAuthenticated()) {
         console.log('✅ Usuário já autenticado');
         return true;
     }
     
-    console.log('🔐 Autenticação necessária');
+    console.log('🔐 Autenticação necessária, redirecionando para login...');
     
-    // Mostrar dialog de login
-    const email = prompt('📧 Digite seu email de administrador:');
-    if (!email) {
-        console.log('❌ Login cancelado');
+    // Se estamos em uma página admin, redirecionar para login
+    if (window.location.pathname.includes('admin.html')) {
+        window.location.href = 'login.html';
         return false;
     }
     
-    const password = prompt('🔒 Digite sua senha:');
-    if (!password) {
-        console.log('❌ Login cancelado');
-        return false;
-    }
-    
-    if (validateCredentials(email, password)) {
-        createSession(email);
-        console.log('✅ Login bem-sucedido');
-        return true;
-    } else {
-        alert('❌ Credenciais inválidas!');
-        console.log('❌ Credenciais inválidas');
-        return false;
-    }
+    return false;
 }
 
 // Obter informações do usuário logado
@@ -127,6 +112,58 @@ function getSessionTimeString() {
         return `Logado desde ${loginTime.toLocaleTimeString()}`;
     }
     return 'Não logado';
+}
+
+// Função mostrarToast para feedback visual (compartilhada)
+if (typeof mostrarToast === 'undefined') {
+    function mostrarToast(mensagem, tipo = 'info', duracao = 3000) {
+        // Remover toast anterior se existir
+        const toastAnterior = document.getElementById('toast-notification');
+        if (toastAnterior) {
+            toastAnterior.remove();
+        }
+        
+        // Criar novo toast
+        const toast = document.createElement('div');
+        toast.id = 'toast-notification';
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${tipo === 'success' ? '#4CAF50' : tipo === 'error' ? '#f44336' : '#2196F3'};
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 10001;
+            font-weight: bold;
+            max-width: 300px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+        `;
+        
+        toast.textContent = mensagem;
+        document.body.appendChild(toast);
+        
+        // Animar entrada
+        setTimeout(() => {
+            toast.style.transform = 'translateX(0)';
+        }, 100);
+        
+        // Remover após duracao
+        setTimeout(() => {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, duracao);
+    }
+    
+    // Tornar disponível globalmente
+    window.mostrarToast = mostrarToast;
 }
 
 console.log('🔐 Sistema de autenticação admin carregado');

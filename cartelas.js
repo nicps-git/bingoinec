@@ -173,15 +173,16 @@ function sincronizarCarrinhoInicial() {
         
         // Criar cartelas fictícias para cada item da interface
         for (let i = 0; i < itensSimples.length; i++) {
+            // Gerar 24 números únicos de 1 a 75
+            const numerosUnicos = [];
+            const disponiveis = Array.from({length: 75}, (_, i) => i + 1);
+            for (let j = 0; j < 24; j++) {
+                const indice = Math.floor(Math.random() * disponiveis.length);
+                numerosUnicos.push(disponiveis.splice(indice, 1)[0]);
+            }
+            
             const cartela = {
                 id: `CART-SYNC-${Date.now()}-${i}`,
-                // Gerar 24 números únicos de 1 a 75
-                const numerosUnicos = [];
-                const disponiveis = Array.from({length: 75}, (_, i) => i + 1);
-                for (let j = 0; j < 24; j++) {
-                    const indice = Math.floor(Math.random() * disponiveis.length);
-                    numerosUnicos.push(disponiveis.splice(indice, 1)[0]);
-                }
                 numeros: numerosUnicos.sort((a, b) => a - b),
                 preco: 5.00,
                 status: 'no-carrinho'

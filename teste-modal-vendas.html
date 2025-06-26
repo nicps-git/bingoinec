@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Modal de Vendas</title>
+    <link rel="stylesheet" href="admin.css">
+    
+    <!-- Firebase SDK v9 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config-admin.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #8B4513 0%, #D2691E 20%, #CD853F 40%, #F4A460 60%, #DEB887 80%, #F5DEB3 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste Modal de Vendas</h1>
+        
+        <div id="status" class="status">
+            Carregando sistema...
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-success" onclick="abrirModalVendas()">💰 Ver Vendas</button>
+            <button class="btn" onclick="criarCartelaseTeste()">🎫 Criar Cartelas de Teste</button>
+            <button class="btn" onclick="limparCartelas()">🗑️ Limpar Cartelas</button>
+        </div>
+        
+        <div id="info">
+            <h3>Informações:</h3>
+            <p>Use os botões acima para testar o modal de vendas.</p>
+        </div>
+    </div>
+
+    <!-- Modal de Vendas (copiado do admin.html) -->
+    <div id="modal-vendas" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>💰 Relatório de Vendas</h3>
+            <div id="lista-cartelas" class="lista-cartelas">
+                Carregando...
+            </div>
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn btn-success" onclick="exportarRelatorio()">📊 Exportar Relatório</button>
+                <button class="btn" onclick="atualizarDados()">🔄 Atualizar Dados</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db;
+        
+        // Inicializar Firebase
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Verificar se Firebase está disponível
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                
+                // Inicializar Firebase se não estiver inicializado
+                if (!firebase.apps.length) {
+                    if (typeof firebaseConfig !== 'undefined') {
+                        firebase.initializeApp(firebaseConfig);
+                        console.log('✅ Firebase inicializado');
+                    } else {
+                        throw new Error('Configuração do Firebase não encontrada');
+                    }
+                }
+                
+                db = firebase.firestore();
+                document.getElementById('status').innerHTML = '✅ Sistema carregado com sucesso!';
+                
+                // Configurar modal
+                setupModal();
+                
+            } catch (error) {
+                console.error('❌ Erro ao inicializar:', error);
+                document.getElementById('status').innerHTML = `❌ Erro: ${error.message}`;
+            }
+        });
+        
+        function setupModal() {
+            const modal = document.getElementById('modal-vendas');
+            const closeBtn = modal.querySelector('.close');
+            
+            if (closeBtn) {
+                closeBtn.onclick = () => {
+                    modal.style.display = 'none';
+                };
+            }
+            
+            // Fechar modal clicando fora
+            window.onclick = (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            };
+        }
+        
+        async function abrirModalVendas() {
+            try {
+                const modal = document.getElementById('modal-vendas');
+                const listaDiv = document.getElementById('lista-cartelas');
+                
+                if (!modal || !listaDiv) {
+                    alert('Modal não encontrado!');
+                    return;
+                }
+                
+                // Mostrar loading
+                listaDiv.innerHTML = '<div style="text-align: center; padding: 20px;">📊 Carregando vendas...</div>';
+                modal.style.display = 'block';
+                
+                if (!db) {
+                    listaDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: red;">❌ Banco de dados não conectado</div>';
+                    return;
+                }
+                
+                // Carregar cartelas
+                const snapshot = await db.collection('cartelas').orderBy('dataGeracao', 'desc').get();
+                
+                if (snapshot.empty) {
+                    listaDiv.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #666;">
+                            <h4>📝 Nenhuma cartela encontrada</h4>
+                            <p>Clique em "Criar Cartelas de Teste" para adicionar algumas cartelas.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const cartelas = [];
+                snapshot.forEach(doc => {
+                    cartelas.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                console.log('Cartelas encontradas:', cartelas.length);
+                
+                // Separar vendidas e não vendidas
+                const vendidas = cartelas.filter(c => c.vendida);
+                const naoVendidas = cartelas.filter(c => !c.vendida);
+                const precoCartela = 5.00;
+                const totalArrecadado = vendidas.length * precoCartela;
+                
+                listaDiv.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #e8f5e8, #c8e6c9); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #4CAF50;">
+                        <h4 style="margin: 0 0 15px 0; color: #2e7d32;">📊 Resumo das Vendas</h4>
+                        <div style="display: grid; gap: 10px;">
+                            <div><strong>🎫 Total de Cartelas:</strong> ${cartelas.length}</div>
+                            <div><strong>✅ Cartelas Vendidas:</strong> ${vendidas.length}</div>
+                            <div><strong>⏳ Cartelas Disponíveis:</strong> ${naoVendidas.length}</div>
+                            <div><strong>💰 Total Arrecadado:</strong> R$ ${totalArrecadado.toFixed(2).replace('.', ',')}</div>
+                        </div>
+                    </div>
+                    
+                    ${renderizarCartelas(vendidas, 'Vendidas', '#4CAF50', '✅')}
+                    ${renderizarCartelas(naoVendidas, 'Disponíveis', '#ff9800', '⏳')}
+                `;
+                
+                console.log('✅ Modal de vendas carregado');
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar vendas:', error);
+                document.getElementById('lista-cartelas').innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: red;">
+                        ❌ Erro ao carregar vendas: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function renderizarCartelas(cartelas, titulo, cor, icone) {
+            if (cartelas.length === 0) return '';
+            
+            return `
+                <div style="margin-bottom: 20px;">
+                    <h5 style="color: ${cor};">${icone} Cartelas ${titulo} (${cartelas.length})</h5>
+                    <div style="max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa;">
+                                    <th style="padding: 8px; border: 1px solid #ddd;">ID</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">Números</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">Preço</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">Status</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${cartelas.slice(0, 20).map(cartela => `
+                                    <tr>
+                                        <td style="padding: 8px; border: 1px solid #ddd; font-family: monospace;">${cartela.id.substring(0, 8)}...</td>
+                                        <td style="padding: 8px; border: 1px solid #ddd;">${cartela.numeros ? cartela.numeros.length : 'N/A'} números</td>
+                                        <td style="padding: 8px; border: 1px solid #ddd;">R$ 5,00</td>
+                                        <td style="padding: 8px; border: 1px solid #ddd;">
+                                            ${cartela.vendida ? '✅ Vendida' : '⏳ Disponível'}
+                                        </td>
+                                        <td style="padding: 8px; border: 1px solid #ddd;">
+                                            <button onclick="verCartela('${cartela.id}')" style="background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">👁️ Ver</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        ${cartelas.length > 20 ? `<div style="text-align: center; color: #666; font-style: italic; margin-top: 10px;">... e mais ${cartelas.length - 20} cartelas</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function criarCartelaseTeste() {
+            if (!db) {
+                alert('Banco de dados não conectado!');
+                return;
+            }
+            
+            try {
+                const batch = db.batch();
+                
+                // Criar 5 cartelas de teste
+                for (let i = 0; i < 5; i++) {
+                    const cartelaRef = db.collection('cartelas').doc();
+                    const numeros = gerarNumerosCartela();
+                    
+                    batch.set(cartelaRef, {
+                        numeros: numeros,
+                        dataGeracao: firebase.firestore.FieldValue.serverTimestamp(),
+                        vendida: Math.random() > 0.5, // 50% chance de estar vendida
+                        nomeComprador: Math.random() > 0.5 ? `Cliente ${i + 1}` : null,
+                        telefone: Math.random() > 0.5 ? `(11) 99999-${String(i).padStart(4, '0')}` : null
+                    });
+                }
+                
+                await batch.commit();
+                alert('✅ 5 cartelas de teste criadas com sucesso!');
+                
+            } catch (error) {
+                console.error('❌ Erro ao criar cartelas:', error);
+                alert('❌ Erro ao criar cartelas: ' + error.message);
+            }
+        }
+        
+        function gerarNumerosCartela() {
+            const numeros = [];
+            
+            // Coluna B (1-15)
+            const colunaB = gerarNumerosUnicos(1, 15, 5);
+            // Coluna I (16-30)
+            const colunaI = gerarNumerosUnicos(16, 30, 5);
+            // Coluna N (31-45) - centro livre
+            const colunaN = gerarNumerosUnicos(31, 45, 4);
+            colunaN.splice(2, 0, 'FREE'); // Adicionar FREE no centro
+            // Coluna G (46-60)
+            const colunaG = gerarNumerosUnicos(46, 60, 5);
+            // Coluna O (61-75)
+            const colunaO = gerarNumerosUnicos(61, 75, 5);
+            
+            // Combinar todas as colunas
+            for (let linha = 0; linha < 5; linha++) {
+                numeros.push([
+                    colunaB[linha],
+                    colunaI[linha],
+                    colunaN[linha],
+                    colunaG[linha],
+                    colunaO[linha]
+                ]);
+            }
+            
+            return numeros;
+        }
+        
+        function gerarNumerosUnicos(min, max, quantidade) {
+            const numeros = [];
+            while (numeros.length < quantidade) {
+                const num = Math.floor(Math.random() * (max - min + 1)) + min;
+                if (!numeros.includes(num)) {
+                    numeros.push(num);
+                }
+            }
+            return numeros.sort((a, b) => a - b);
+        }
+        
+        async function limparCartelas() {
+            if (!db) {
+                alert('Banco de dados não conectado!');
+                return;
+            }
+            
+            if (!confirm('Deseja realmente limpar todas as cartelas?')) {
+                return;
+            }
+            
+            try {
+                const snapshot = await db.collection('cartelas').get();
+                const batch = db.batch();
+                
+                snapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                alert('✅ Todas as cartelas foram removidas!');
+                
+            } catch (error) {
+                console.error('❌ Erro ao limpar cartelas:', error);
+                alert('❌ Erro ao limpar cartelas: ' + error.message);
+            }
+        }
+        
+        function verCartela(id) {
+            alert(`Ver cartela: ${id}`);
+        }
+        
+        function exportarRelatorio() {
+            alert('Funcionalidade de exportação será implementada em breve!');
+        }
+        
+        function atualizarDados() {
+            abrirModalVendas();
+        }
+    </script>
+</body>
+</html>

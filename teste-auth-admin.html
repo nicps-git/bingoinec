@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Autenticação Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.logout {
+            background: #dc3545;
+        }
+        button.logout:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Teste de Autenticação Admin</h1>
+        
+        <div id="status-container">
+            <div class="status info">
+                <strong>Carregando sistema de autenticação...</strong>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button onclick="checkAuth()">🔍 Verificar Autenticação</button>
+            <button onclick="goToLogin()">🔑 Ir para Login</button>
+            <button onclick="goToAdmin()">⚙️ Ir para Admin</button>
+            <button onclick="clearSession()" class="logout">🚪 Limpar Sessão</button>
+        </div>
+        
+        <div class="actions">
+            <button onclick="testLogin()">🧪 Testar Login com Credenciais</button>
+        </div>
+        
+        <div id="info-container">
+            <h3>Informações da Sessão:</h3>
+            <pre id="session-info">Carregando...</pre>
+        </div>
+        
+        <div id="logs-container">
+            <h3>Logs de Acesso (últimos 10):</h3>
+            <pre id="access-logs">Carregando...</pre>
+        </div>
+    </div>
+
+    <!-- Carregar scripts de autenticação -->
+    <script src="auth-admin.js"></script>
+    <script src="login.js"></script>
+    
+    <script>
+        const SESSION_KEY = 'bingoAdminSession';
+        
+        function updateStatus(message, type = 'info') {
+            const container = document.getElementById('status-container');
+            container.innerHTML = `<div class="status ${type}"><strong>${message}</strong></div>`;
+        }
+        
+        function checkAuth() {
+            try {
+                const isAuth = isUserAuthenticated();
+                const sessionData = getSessionData();
+                
+                if (isAuth) {
+                    updateStatus('✅ Usuário AUTENTICADO', 'success');
+                    updateSessionInfo(sessionData);
+                } else {
+                    updateStatus('❌ Usuário NÃO AUTENTICADO', 'error');
+                    updateSessionInfo(null);
+                }
+                
+                updateAccessLogs();
+            } catch (error) {
+                updateStatus(`❌ Erro ao verificar autenticação: ${error.message}`, 'error');
+            }
+        }
+        
+        function updateSessionInfo(sessionData) {
+            const infoElement = document.getElementById('session-info');
+            if (sessionData) {
+                infoElement.textContent = JSON.stringify(sessionData, null, 2);
+            } else {
+                infoElement.textContent = 'Nenhuma sessão ativa';
+            }
+        }
+        
+        function updateAccessLogs() {
+            const logsElement = document.getElementById('access-logs');
+            try {
+                const logs = getAccessLogs();
+                const recentLogs = logs.slice(-10);
+                if (recentLogs.length > 0) {
+                    logsElement.textContent = JSON.stringify(recentLogs, null, 2);
+                } else {
+                    logsElement.textContent = 'Nenhum log encontrado';
+                }
+            } catch (error) {
+                logsElement.textContent = `Erro ao carregar logs: ${error.message}`;
+            }
+        }
+        
+        function goToLogin() {
+            window.open('login.html', '_blank');
+        }
+        
+        function goToAdmin() {
+            window.open('admin.html', '_blank');
+        }
+        
+        function clearSession() {
+            if (confirm('Deseja limpar a sessão atual?')) {
+                localStorage.removeItem(SESSION_KEY);
+                updateStatus('🚪 Sessão removida com sucesso', 'info');
+                checkAuth();
+            }
+        }
+        
+        function testLogin() {
+            // Simular login com credenciais corretas
+            const email = 'admin@bingoinec.org.br';
+            const password = 'wooFestadeComida';
+            
+            if (confirm(`Deseja fazer login de teste com:\nEmail: ${email}\nSenha: ${password}?`)) {
+                // Criar sessão manualmente
+                const sessionData = {
+                    email: email,
+                    loginTime: new Date().toISOString(),
+                    expiryTime: new Date(Date.now() + (8 * 60 * 60 * 1000)).toISOString(),
+                    isAdmin: true
+                };
+                
+                localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+                updateStatus('✅ Login de teste realizado com sucesso!', 'success');
+                checkAuth();
+            }
+        }
+        
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                checkAuth();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

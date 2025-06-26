@@ -603,9 +603,142 @@ header p {
     text-decoration: none;
 }
 
-/* Lista de cartelas */
+/* Modal de Vendas Melhorado */
+.modal-header {
+    margin-bottom: 20px;
+}
+
+.resumo-vendas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid #ffc107;
+}
+
+.resumo-item {
+    text-align: center;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+}
+
+.resumo-item:hover {
+    transform: translateY(-2px);
+}
+
+.resumo-item .numero {
+    display: block;
+    font-size: 24px;
+    font-weight: bold;
+    color: #2e7d32;
+    margin-bottom: 5px;
+}
+
+.resumo-item .label {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.modal-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
 .lista-cartelas {
-    margin-top: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    background: #fafafa;
+}
+
+.cartela-item {
+    background: white;
+    margin: 8px 0;
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 4px solid #4CAF50;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cartela-item.disponivel {
+    border-left-color: #ff9800;
+}
+
+.cartela-info {
+    flex-grow: 1;
+}
+
+.cartela-id {
+    font-family: monospace;
+    font-weight: bold;
+    color: #333;
+}
+
+.cartela-status {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.cartela-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.cartela-actions button {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+@media (max-width: 600px) {
+    .resumo-vendas {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .modal-content {
+        margin: 2% auto;
+        width: 95%;
+        padding: 20px;
+    }
+    
+    .cartela-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .cartela-actions {
+        align-self: stretch;
+        justify-content: space-around;
+    }
 }
 
 /* Error connection styling */

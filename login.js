@@ -290,6 +290,53 @@ function extendSession() {
     return false;
 }
 
+// Função mostrarToast para feedback visual
+function mostrarToast(mensagem, tipo = 'info', duracao = 3000) {
+    // Remover toast anterior se existir
+    const toastAnterior = document.getElementById('toast-notification');
+    if (toastAnterior) {
+        toastAnterior.remove();
+    }
+    
+    // Criar novo toast
+    const toast = document.createElement('div');
+    toast.id = 'toast-notification';
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${tipo === 'success' ? '#4CAF50' : tipo === 'error' ? '#f44336' : '#2196F3'};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        z-index: 10001;
+        font-weight: bold;
+        max-width: 300px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        font-family: 'Comic Sans MS', cursive, sans-serif;
+    `;
+    
+    toast.textContent = mensagem;
+    document.body.appendChild(toast);
+    
+    // Animar entrada
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Remover após duracao
+    setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, duracao);
+}
+
 // Exportar funções para uso em outras páginas
 window.bingoAuth = {
     isAuthenticated: isUserAuthenticated,

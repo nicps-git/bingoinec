@@ -112,7 +112,7 @@
     </div>
 
     <script>
-        // ===== LOGIN AUTHENTICATION SYSTEM - SEM DEPENDÊNCIAS EXTERNAS =====
+        // ===== LOGIN SIMPLIFICADO SEM CONFLITOS =====
         
         // Credenciais do administrador
         const ADMIN_CREDENTIALS = {
@@ -120,21 +120,21 @@
             password: 'wooFestadeComida'
         };
         
-        // Chave para armazenar sessão no localStorage
+        // Chave para armazenar sessão
         const SESSION_KEY = 'bingoAdminSession';
-        const SESSION_EXPIRY_HOURS = 8; // Sessão expira em 8 horas
+        const SESSION_EXPIRY_HOURS = 8;
         
         // Elementos do DOM
         let emailInput, senhaInput, loginForm, alertErro, alertSucesso;
         
-        // Inicialização quando a página carrega
+        // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔑 Iniciando sistema de login...');
             initializeLoginPage();
         });
         
         function initializeLoginPage() {
-            // Buscar elementos do DOM
+            // Buscar elementos
             emailInput = document.getElementById('email');
             senhaInput = document.getElementById('senha');
             loginForm = document.getElementById('login-form');
@@ -150,50 +150,43 @@
                 return;
             }
             
-            // Adicionar event listeners
+            // Configurar eventos
             setupEventListeners();
+            emailInput.focus();
             
-            // Focar no campo de email
-            if (emailInput) emailInput.focus();
-            
-            console.log('✅ Login page initialized');
+            console.log('✅ Sistema de login carregado');
         }
         
         function setupEventListeners() {
             // Submit do formulário
-            if (loginForm) {
-                loginForm.addEventListener('submit', handleLogin);
-            }
+            loginForm.addEventListener('submit', handleLogin);
             
-            // Enter nos campos de input
-            if (emailInput) {
-                emailInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter' && senhaInput) {
-                        senhaInput.focus();
-                    }
-                });
-            }
+            // Enter nos campos
+            emailInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    senhaInput.focus();
+                }
+            });
             
-            if (senhaInput) {
-                senhaInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        handleLogin(e);
-                    }
-                });
-            }
+            senhaInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleLogin(e);
+                }
+            });
             
-            // Limpar alerts quando começar a digitar
-            if (emailInput) emailInput.addEventListener('input', clearAlerts);
-            if (senhaInput) senhaInput.addEventListener('input', clearAlerts);
+            // Limpar alerts ao digitar
+            emailInput.addEventListener('input', clearAlerts);
+            senhaInput.addEventListener('input', clearAlerts);
         }
         
         function handleLogin(event) {
             event.preventDefault();
+            console.log('🔑 Tentativa de login...');
             
-            const email = emailInput ? emailInput.value.trim() : '';
-            const senha = senhaInput ? senhaInput.value : '';
+            const email = emailInput.value.trim();
+            const senha = senhaInput.value;
             
-            // Validações básicas
+            // Validações
             if (!email || !senha) {
                 showErrorAlert('Por favor, preencha todos os campos.');
                 return;
@@ -201,7 +194,7 @@
             
             if (!isValidEmail(email)) {
                 showErrorAlert('Por favor, digite um e-mail válido.');
-                if (emailInput) emailInput.focus();
+                emailInput.focus();
                 return;
             }
             
@@ -219,6 +212,8 @@
         }
         
         function handleSuccessfulLogin() {
+            console.log('✅ Login bem-sucedido');
+            
             // Criar sessão
             const sessionData = {
                 email: ADMIN_CREDENTIALS.email,
@@ -229,35 +224,29 @@
             
             localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
             
-            // Log de acesso
-            console.log('✅ Login successful for:', ADMIN_CREDENTIALS.email);
-            
             // Mostrar sucesso
             showSuccessAlert('Login realizado com sucesso! Redirecionando...');
             
-            // Redirecionar para admin
+            // Redirecionar
             setTimeout(() => {
                 window.location.href = 'admin.html';
             }, 2000);
         }
         
         function handleFailedLogin() {
-            console.log('❌ Login failed');
+            console.log('❌ Login falhado');
             
-            // Mostrar erro
             showErrorAlert('Credenciais inválidas! Verifique e-mail e senha.');
             
-            // Limpar campos
-            if (senhaInput) senhaInput.value = '';
-            if (emailInput) emailInput.focus();
+            // Limpar senha
+            senhaInput.value = '';
+            emailInput.focus();
             
-            // Adicionar delay de segurança (previne ataques de força bruta)
-            if (loginForm) {
-                loginForm.style.pointerEvents = 'none';
-                setTimeout(() => {
-                    loginForm.style.pointerEvents = 'auto';
-                }, 2000);
-            }
+            // Delay de segurança
+            loginForm.style.pointerEvents = 'none';
+            setTimeout(() => {
+                loginForm.style.pointerEvents = 'auto';
+            }, 2000);
         }
         
         function isUserAuthenticated() {
@@ -266,86 +255,73 @@
                 if (!sessionData) return false;
                 
                 const data = JSON.parse(sessionData);
-                
-                // Verificar se a sessão não expirou
                 const now = new Date();
                 const expiry = new Date(data.expiryTime);
                 
                 if (now >= expiry) {
-                    // Sessão expirada, remover
                     localStorage.removeItem(SESSION_KEY);
                     return false;
                 }
                 
                 return true;
             } catch (error) {
-                console.error('Erro ao ler dados da sessão:', error);
+                console.error('Erro ao verificar sessão:', error);
                 localStorage.removeItem(SESSION_KEY);
                 return false;
             }
         }
         
-        // Utilitários para validação
         function isValidEmail(email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return emailRegex.test(email);
         }
         
-        // Funções para mostrar/esconder senha
         function togglePassword() {
             const senhaInput = document.getElementById('senha');
             const toggleButton = document.querySelector('.toggle-password');
             
-            if (senhaInput && toggleButton) {
-                if (senhaInput.type === 'password') {
-                    senhaInput.type = 'text';
-                    toggleButton.textContent = '🙈';
-                } else {
-                    senhaInput.type = 'password';
-                    toggleButton.textContent = '👁️';
-                }
+            if (senhaInput.type === 'password') {
+                senhaInput.type = 'text';
+                toggleButton.textContent = '🙈';
+            } else {
+                senhaInput.type = 'password';
+                toggleButton.textContent = '👁️';
             }
         }
         
-        // Funções para alerts
         function showErrorAlert(message) {
             clearAlerts();
             
-            if (alertErro) {
-                const alertMessage = alertErro.querySelector('.alert-message');
-                if (alertMessage) alertMessage.textContent = message;
-                alertErro.style.display = 'flex';
-                
-                // Remover automaticamente após 5 segundos
-                setTimeout(() => {
-                    clearAlerts();
-                }, 5000);
-            }
+            const alertMessage = alertErro.querySelector('.alert-message');
+            alertMessage.textContent = message;
+            alertErro.style.display = 'flex';
+            
+            setTimeout(() => {
+                clearAlerts();
+            }, 5000);
         }
         
         function showSuccessAlert(message) {
             clearAlerts();
             
-            if (alertSucesso) {
-                const alertMessage = alertSucesso.querySelector('.alert-message');
-                if (alertMessage) alertMessage.textContent = message;
-                alertSucesso.style.display = 'flex';
-            }
+            const alertMessage = alertSucesso.querySelector('.alert-message');
+            alertMessage.textContent = message;
+            alertSucesso.style.display = 'flex';
         }
         
         function clearAlerts() {
-            if (alertErro) alertErro.style.display = 'none';
-            if (alertSucesso) alertSucesso.style.display = 'none';
+            alertErro.style.display = 'none';
+            alertSucesso.style.display = 'none';
         }
         
         function fecharAlert() {
             clearAlerts();
         }
         
-        // Tornar isUserAuthenticated disponível globalmente para outras páginas
+        // Exportar funções para uso em outras páginas
         window.isUserAuthenticated = isUserAuthenticated;
         
-        console.log('🔑 Login authentication system loaded - standalone version');
+        console.log('🔑 Sistema de login carregado sem dependências');
     </script>
 </body>
 </html>

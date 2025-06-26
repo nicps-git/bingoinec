@@ -15,6 +15,71 @@
  */
 console.log('🚀 [ADMIN] Carregando sistema administrativo consolidado...');
 
+// ===== FUNÇÃO MOSTRARTOAST - FALLBACK GARANTIDO =====
+// Garantir que a função mostrarToast sempre existe no contexto admin
+if (typeof mostrarToast === 'undefined' || !window.mostrarToast) {
+    console.log('🔧 [ADMIN] Criando função mostrarToast como fallback...');
+    
+    function mostrarToast(mensagem, tipo = 'info', duracao = 3000) {
+        console.log(`🍞 [TOAST] ${tipo.toUpperCase()}: ${mensagem}`);
+        
+        // Remover toast anterior se existir
+        const toastAnterior = document.getElementById('toast-notification');
+        if (toastAnterior) {
+            toastAnterior.remove();
+        }
+        
+        // Criar novo toast
+        const toast = document.createElement('div');
+        toast.id = 'toast-notification';
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${tipo === 'success' ? '#4CAF50' : tipo === 'error' ? '#f44336' : '#2196F3'};
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 10001;
+            font-weight: bold;
+            max-width: 350px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            word-wrap: break-word;
+        `;
+        
+        toast.textContent = mensagem;
+        document.body.appendChild(toast);
+        
+        // Animar entrada
+        setTimeout(() => {
+            toast.style.transform = 'translateX(0)';
+        }, 100);
+        
+        // Remover após duração
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }
+        }, duracao);
+    }
+    
+    // Tornar disponível globalmente
+    window.mostrarToast = mostrarToast;
+    console.log('✅ [ADMIN] Função mostrarToast criada e disponível globalmente');
+} else {
+    console.log('✅ [ADMIN] Função mostrarToast já disponível');
+}
+
+// ===== INICIALIZAÇÃO DO SISTEMA =====
+
 // Aguardar que a página carregue completamente
 window.addEventListener('load', () => {
     console.log('📄 [ADMIN] Página totalmente carregada, iniciando...');
@@ -351,29 +416,47 @@ function configurarBotoesSimples() {
     // Ver Vendas
     const btnVerVendas = document.getElementById('ver-vendas');
     if (btnVerVendas) {
-        btnVerVendas.onclick = async () => {
-            console.log('💰 Carregando vendas...');
-            await mostrarModalVendas();
+        btnVerVendas.onclick = async (e) => {
+            e.preventDefault();
+            console.log('💰 [ADMIN] Botão Ver Vendas clicado');
+            try {
+                await mostrarModalVendas();
+            } catch (error) {
+                console.error('❌ Erro ao abrir modal:', error);
+                if (typeof mostrarToast === 'function') {
+                    mostrarToast('❌ Erro ao carregar vendas: ' + error.message, 'error');
+                } else {
+                    alert('❌ Erro ao carregar vendas: ' + error.message);
+                }
+            }
         };
         console.log('✅ Botão ver vendas configurado');
+    } else {
+        console.warn('⚠️ Botão ver-vendas não encontrado');
     }
     
     // Configurar modal de vendas
     const modal = document.getElementById('modal-vendas');
-    const closeBtn = modal?.querySelector('.close');
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            modal.style.display = 'none';
-        };
-    }
-    
-    // Fechar modal clicando fora
     if (modal) {
-        window.onclick = (event) => {
+        const closeBtn = modal.querySelector('.close');
+        if (closeBtn) {
+            closeBtn.onclick = () => {
+                console.log('❌ Fechando modal de vendas');
+                fecharModalVendas();
+            };
+        }
+        
+        // Fechar modal clicando fora
+        modal.onclick = (event) => {
             if (event.target === modal) {
-                modal.style.display = 'none';
+                console.log('❌ Fechando modal (clique fora)');
+                fecharModalVendas();
             }
         };
+        
+        console.log('✅ Modal de vendas configurado');
+    } else {
+        console.warn('⚠️ Modal modal-vendas não encontrado');
     }
     
     // Configurar eventos de input para recalcular
@@ -769,23 +852,40 @@ async function carregarHistoricoNumeros() {
 
 // Mostrar modal de vendas
 async function mostrarModalVendas() {
+    console.log('💰 [ADMIN] Abrindo modal de vendas...');
+    
     try {
         const modal = document.getElementById('modal-vendas');
         const listaDiv = document.getElementById('lista-cartelas');
         
-        if (!modal || !listaDiv) return;
+        console.log('🔍 Verificando elementos:', {
+            modal: !!modal,
+            listaDiv: !!listaDiv,
+            db: !!window.db
+        });
         
-        // Mostrar loading
-        listaDiv.innerHTML = '<div style="text-align: center; padding: 20px;">📊 Carregando vendas...</div>';
-        modal.style.display = 'block';
-        
-        // Carregar cartelas
-        const snapshot = await window.db.collection('cartelas').orderBy('dataGeracao', 'desc').get();
-        
-        if (snapshot.empty) {
-            listaDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Nenhuma cartela encontrada</div>';
+        if (!modal || !listaDiv) {
+            const erro = 'Modal ou lista não encontrados';
+            console.error('❌', erro);
+            mostrarToast('❌ Erro: ' + erro, 'error');
             return;
         }
+        
+        // Mostrar modal e loading
+        console.log('📋 Abrindo modal...');
+        modal.style.display = 'block';
+        listaDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><div style="font-size: 24px; margin-bottom: 10px;">📊</div><p>Carregando dados das vendas...</p></div>';
+        
+        // Verificar conexão com Firebase
+        if (!window.db) {
+            throw new Error('Banco de dados não conectado');
+        }
+        
+        // Carregar cartelas do Firebase
+        console.log('📡 Buscando cartelas no Firebase...');
+        const snapshot = await window.db.collection('cartelas')
+            .orderBy('dataGeracao', 'desc')
+            .get();
         
         const cartelas = [];
         snapshot.forEach(doc => {
@@ -795,63 +895,222 @@ async function mostrarModalVendas() {
             });
         });
         
-        // Separar vendidas e não vendidas
-        const vendidas = cartelas.filter(c => c.vendida);
-        const naoVendidas = cartelas.filter(c => !c.vendida);
+        console.log(`📊 ${cartelas.length} cartelas encontradas`);
         
+        // Calcular estatísticas
+        const vendidas = cartelas.filter(c => c.vendida === true);
+        const disponiveis = cartelas.filter(c => !c.vendida);
         const precoCartela = parseFloat(document.getElementById('preco-cartela')?.value) || 5.00;
         const totalArrecadado = vendidas.length * precoCartela;
         
-        listaDiv.innerHTML = `
-            <div style="background: linear-gradient(135deg, #e8f5e8, #c8e6c9); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #4CAF50;">
-                <h4 style="margin: 0 0 15px 0; color: #2e7d32;">📊 Resumo das Vendas</h4>
-                <div style="display: grid; gap: 10px;">
-                    <div><strong>Total de Cartelas:</strong> ${cartelas.length}</div>
-                    <div><strong>Cartelas Vendidas:</strong> ${vendidas.length}</div>
-                    <div><strong>Cartelas Disponíveis:</strong> ${naoVendidas.length}</div>
-                    <div><strong>Total Arrecadado:</strong> R$ ${totalArrecadado.toFixed(2).replace('.', ',')}</div>
-                </div>
-            </div>
-            
-            ${vendidas.length > 0 ? `
-                <div style="margin-bottom: 20px;">
-                    <h5 style="color: #4CAF50;">✅ Cartelas Vendidas (${vendidas.length})</h5>
-                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
-                        ${vendidas.map(cartela => `
-                            <div style="background: #f8f9fa; margin: 5px 0; padding: 10px; border-radius: 8px; border-left: 4px solid #4CAF50;">
-                                <strong>ID:</strong> ${cartela.id}<br>
-                                <strong>Cliente:</strong> ${cartela.nomeComprador || 'Não informado'}<br>
-                                <strong>Valor:</strong> R$ ${precoCartela.toFixed(2).replace('.', ',')}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
-            
-            ${naoVendidas.length > 0 ? `
-                <div>
-                    <h5 style="color: #ff9800;">⏳ Cartelas Disponíveis (${naoVendidas.length})</h5>
-                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
-                        ${naoVendidas.slice(0, 10).map(cartela => `
-                            <div style="background: #fff3e0; margin: 5px 0; padding: 10px; border-radius: 8px; border-left: 4px solid #ff9800;">
-                                <strong>ID:</strong> ${cartela.id}<br>
-                                <strong>Status:</strong> Disponível para venda
-                            </div>
-                        `).join('')}
-                        ${naoVendidas.length > 10 ? `<div style="text-align: center; color: #666; font-style: italic;">... e mais ${naoVendidas.length - 10} cartelas</div>` : ''}
-                    </div>
-                </div>
-            ` : ''}
-        `;
+        console.log('📈 Estatísticas:', {
+            total: cartelas.length,
+            vendidas: vendidas.length,
+            disponiveis: disponiveis.length,
+            arrecadado: totalArrecadado
+        });
         
-        console.log('✅ Modal de vendas carregado');
+        // Atualizar resumo no modal
+        atualizarResumoModal(cartelas.length, vendidas.length, disponiveis.length, totalArrecadado);
+        
+        // Renderizar lista de cartelas
+        if (cartelas.length === 0) {
+            listaDiv.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
+                    <h4>Nenhuma cartela encontrada</h4>
+                    <p>Ainda não foram geradas cartelas para este bingo.</p>
+                    <button onclick="gerarCartelaTeste()" class="btn-primary" style="margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        🎫 Gerar Cartela de Teste
+                    </button>
+                </div>
+            `;
+        } else {
+            renderizarListaCartelasModal(cartelas, precoCartela);
+        }
+        
+        console.log('✅ Modal de vendas carregado com sucesso');
+        mostrarToast('📊 Dados de vendas atualizados!', 'success');
         
     } catch (error) {
         console.error('❌ Erro ao carregar vendas:', error);
+        
         const listaDiv = document.getElementById('lista-cartelas');
         if (listaDiv) {
-            listaDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #f44336;">❌ Erro ao carregar vendas</div>';
+            listaDiv.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #d32f2f;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">❌</div>
+                    <h4>Erro ao carregar vendas</h4>
+                    <p>${error.message}</p>
+                    <button onclick="mostrarModalVendas()" class="btn-primary" style="margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        🔄 Tentar Novamente
+                    </button>
+                </div>
+            `;
         }
+        
+        mostrarToast(`❌ Erro ao carregar vendas: ${error.message}`, 'error');
+    }
+}
+
+function atualizarResumoModal(total, vendidas, disponiveis, arrecadado) {
+    const elementos = {
+        'total-cartelas': total,
+        'cartelas-vendidas-modal': vendidas,
+        'cartelas-disponiveis': disponiveis,
+        'total-arrecadado-modal': `R$ ${arrecadado.toFixed(2).replace('.', ',')}`
+    };
+    
+    Object.entries(elementos).forEach(([id, valor]) => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.textContent = valor;
+        }
+    });
+}
+
+function renderizarListaCartelasModal(cartelas, precoCartela) {
+    const listaDiv = document.getElementById('lista-cartelas');
+    const vendidas = cartelas.filter(c => c.vendida);
+    const disponiveis = cartelas.filter(c => !c.vendida);
+    
+    let html = '';
+    
+    // Seção de cartelas vendidas
+    if (vendidas.length > 0) {
+        html += `
+            <div class="secao-cartelas">
+                <h4 style="color: #4CAF50; margin-bottom: 15px;">✅ Cartelas Vendidas (${vendidas.length})</h4>
+                ${vendidas.slice(0, 10).map(cartela => renderizarCartelaItem(cartela, precoCartela, true)).join('')}
+                ${vendidas.length > 10 ? `<div style="text-align: center; color: #666; font-style: italic; margin: 10px 0;">... e mais ${vendidas.length - 10} cartelas vendidas</div>` : ''}
+            </div>
+        `;
+    }
+    
+    // Seção de cartelas disponíveis
+    if (disponiveis.length > 0) {
+        html += `
+            <div class="secao-cartelas" style="margin-top: 20px;">
+                <h4 style="color: #ff9800; margin-bottom: 15px;">⏳ Cartelas Disponíveis (${disponiveis.length})</h4>
+                ${disponiveis.slice(0, 10).map(cartela => renderizarCartelaItem(cartela, precoCartela, false)).join('')}
+                ${disponiveis.length > 10 ? `<div style="text-align: center; color: #666; font-style: italic; margin: 10px 0;">... e mais ${disponiveis.length - 10} cartelas disponíveis</div>` : ''}
+            </div>
+        `;
+    }
+    
+    listaDiv.innerHTML = html;
+}
+
+function renderizarCartelaItem(cartela, preco, vendida) {
+    const dataFormatada = cartela.dataGeracao ? 
+        new Date(cartela.dataGeracao.toDate()).toLocaleDateString('pt-BR') : 
+        'Data não disponível';
+    
+    return `
+        <div class="cartela-item ${vendida ? 'vendida' : 'disponivel'}">
+            <div class="cartela-info">
+                <div class="cartela-id">ID: ${cartela.id.substring(0, 12)}...</div>
+                <div class="cartela-status">
+                    ${vendida ? 
+                        `✅ Vendida - ${cartela.nomeComprador || 'Cliente não informado'}` : 
+                        '⏳ Disponível para venda'
+                    }
+                </div>
+                <div style="font-size: 12px; color: #999; margin-top: 4px;">
+                    Gerada em: ${dataFormatada} | Preço: R$ ${preco.toFixed(2).replace('.', ',')}
+                </div>
+            </div>
+            <div class="cartela-actions">
+                <button onclick="visualizarCartela('${cartela.id}')" class="btn-info" style="background: #2196F3; color: white;">
+                    👁️ Ver
+                </button>
+                ${!vendida ? `
+                    <button onclick="marcarComoVendida('${cartela.id}')" class="btn-success" style="background: #4CAF50; color: white;">
+                        💰 Vender
+                    </button>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function fecharModalVendas() {
+    const modal = document.getElementById('modal-vendas');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function exportarRelatorio() {
+    mostrarToast('📊 Funcionalidade de exportação será implementada em breve!', 'info');
+}
+
+function atualizarDados() {
+    mostrarModalVendas();
+}
+
+async function marcarComoVendida(cartelaId) {
+    const nomeComprador = prompt('Nome do comprador:');
+    if (!nomeComprador) return;
+    
+    try {
+        await window.db.collection('cartelas').doc(cartelaId).update({
+            vendida: true,
+            nomeComprador: nomeComprador,
+            dataVenda: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        mostrarToast('✅ Cartela marcada como vendida!', 'success');
+        mostrarModalVendas(); // Atualizar modal
+        
+    } catch (error) {
+        console.error('❌ Erro ao marcar cartela como vendida:', error);
+        mostrarToast('❌ Erro ao marcar cartela como vendida', 'error');
+    }
+}
+
+function visualizarCartela(cartelaId) {
+    // Implementar visualização da cartela
+    window.open(`cartela-preview.html?id=${cartelaId}`, '_blank');
+}
+
+// Função para gerar cartela de teste
+async function gerarCartelaTeste() {
+    console.log('🎫 Gerando cartela de teste...');
+    
+    try {
+        if (!window.db) {
+            throw new Error('Banco de dados não conectado');
+        }
+        
+        // Gerar números aleatórios para a cartela
+        const cartela = {
+            numeros: [
+                [1, 16, 31, 46, 61],
+                [2, 17, 32, 47, 62],
+                [3, 18, 'FREE', 48, 63],
+                [4, 19, 34, 49, 64],
+                [5, 20, 35, 50, 65]
+            ],
+            dataGeracao: firebase.firestore.FieldValue.serverTimestamp(),
+            vendida: Math.random() > 0.5, // 50% chance de estar vendida
+            nomeComprador: Math.random() > 0.5 ? 'Cliente Teste' : null,
+            telefone: Math.random() > 0.5 ? '(11) 99999-0000' : null
+        };
+        
+        await window.db.collection('cartelas').add(cartela);
+        
+        mostrarToast('✅ Cartela de teste criada com sucesso!', 'success');
+        console.log('✅ Cartela de teste criada');
+        
+        // Recarregar modal
+        setTimeout(() => {
+            mostrarModalVendas();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar cartela de teste:', error);
+        mostrarToast('❌ Erro ao gerar cartela: ' + error.message, 'error');
     }
 }
 
@@ -886,59 +1145,52 @@ function mostrarFeedback(elemento, tipo = 'success') {
 function definirStatusConexao(conectado = true) {
     const adminPanel = document.querySelector('.admin-panel');
     if (adminPanel) {
-        adminPanel.classList.remove('status-connected', 'status-disconnected', 'status-loading');
-        if (conectado === null) {
-            adminPanel.classList.add('status-loading');
-        } else if (conectado) {
-            adminPanel.classList.add('status-connected');
+        if (conectado) {
+            adminPanel.style.opacity = '1';
+            adminPanel.style.filter = 'none';
         } else {
-            adminPanel.classList.add('status-disconnected');
+            adminPanel.style.opacity = '0.5';
+            adminPanel.style.filter = 'grayscale(100%)';
         }
     }
 }
 
-// Sistema de toast notifications
-function mostrarToast(mensagem, tipo = 'info', duracao = 3000) {
-    // Remover toast anterior se existir
-    const toastAnterior = document.getElementById('toast-notification');
-    if (toastAnterior) {
-        toastAnterior.remove();
-    }
+// Função para gerar cartela de teste
+async function gerarCartelaTeste() {
+    console.log('🎫 Gerando cartela de teste...');
     
-    // Criar novo toast
-    const toast = document.createElement('div');
-    toast.id = 'toast-notification';
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${tipo === 'success' ? '#4CAF50' : tipo === 'error' ? '#f44336' : '#2196F3'};
-        color: white;
-        padding: 15px 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        z-index: 10001;
-        font-weight: bold;
-        max-width: 300px;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-    `;
-    
-    toast.textContent = mensagem;
-    document.body.appendChild(toast);
-    
-    // Animar entrada
-    setTimeout(() => {
-        toast.style.transform = 'translateX(0)';
-    }, 100);
-    
-    // Remover após duração
-    setTimeout(() => {
-        toast.style.transform = 'translateX(100%)';
+    try {
+        if (!window.db) {
+            throw new Error('Banco de dados não conectado');
+        }
+        
+        // Gerar números aleatórios para a cartela
+        const cartela = {
+            numeros: [
+                [1, 16, 31, 46, 61],
+                [2, 17, 32, 47, 62],
+                [3, 18, 'FREE', 48, 63],
+                [4, 19, 34, 49, 64],
+                [5, 20, 35, 50, 65]
+            ],
+            dataGeracao: firebase.firestore.FieldValue.serverTimestamp(),
+            vendida: Math.random() > 0.5, // 50% chance de estar vendida
+            nomeComprador: Math.random() > 0.5 ? 'Cliente Teste' : null,
+            telefone: Math.random() > 0.5 ? '(11) 99999-0000' : null
+        };
+        
+        await window.db.collection('cartelas').add(cartela);
+        
+        mostrarToast('✅ Cartela de teste criada com sucesso!', 'success');
+        console.log('✅ Cartela de teste criada');
+        
+        // Recarregar modal
         setTimeout(() => {
-            if (toast.parentNode) {
-                toast.remove();
-            }
-        }, 300);
-    }, duracao);
+            mostrarModalVendas();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar cartela de teste:', error);
+        mostrarToast('❌ Erro ao gerar cartela: ' + error.message, 'error');
+    }
 }

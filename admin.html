@@ -14,7 +14,7 @@
     <!-- Firebase Configuration -->
     <script src="firebase-config-admin.js"></script>
     
-    <!-- Sistema de Autenticação Admin -->
+    <!-- Sistema de Autenticação Admin (deve vir antes do admin.js) -->
     <script src="auth-admin.js"></script>
     
     <!-- Admin Logic -->
@@ -23,9 +23,26 @@
 <body>
     <script>
         // Verificar autenticação ao carregar a página
-        if (!requireAuthentication()) {
-            window.location.href = 'index.html';
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar se as funções estão disponíveis
+            if (typeof isUserAuthenticated === 'undefined') {
+                console.warn('⚠️ Função isUserAuthenticated não encontrada, redirecionando...');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                if (!isUserAuthenticated()) {
+                    console.log('🔐 Usuário não autenticado, redirecionando para login...');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                console.log('✅ Usuário autenticado, carregando painel admin...');
+            } catch (error) {
+                console.error('❌ Erro na verificação de autenticação:', error);
+                window.location.href = 'login.html';
+            }
+        });
     </script>
     <!-- Bandeirolas -->
     <div class="bandeirolas">
@@ -150,9 +167,39 @@
 
                 <div id="modal-vendas" class="modal">
                     <div class="modal-content">
-                        <span class="close">&times;</span>
-                        <h3>💰 Controle de Vendas</h3>
-                        <div id="lista-cartelas" class="lista-cartelas"></div>
+                        <span class="close" onclick="fecharModalVendas()">&times;</span>
+                        <h3>� Relatório de Vendas</h3>
+                        <div class="modal-header">
+                            <div class="resumo-vendas">
+                                <div class="resumo-item">
+                                    <span class="numero" id="total-cartelas">0</span>
+                                    <span class="label">Cartelas Geradas</span>
+                                </div>
+                                <div class="resumo-item">
+                                    <span class="numero" id="cartelas-vendidas-modal">0</span>
+                                    <span class="label">Cartelas Vendidas</span>
+                                </div>
+                                <div class="resumo-item">
+                                    <span class="numero" id="cartelas-disponiveis">0</span>
+                                    <span class="label">Disponíveis</span>
+                                </div>
+                                <div class="resumo-item">
+                                    <span class="numero" id="total-arrecadado-modal">R$ 0,00</span>
+                                    <span class="label">Total Arrecadado</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-actions">
+                            <button onclick="exportarRelatorio()" class="btn-success">📊 Exportar Relatório</button>
+                            <button onclick="atualizarDados()" class="btn-secondary">🔄 Atualizar Dados</button>
+                        </div>
+                        
+                        <div id="lista-cartelas" class="lista-cartelas">
+                            <div style="text-align: center; padding: 20px;">
+                                📊 Carregando dados das vendas...
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
