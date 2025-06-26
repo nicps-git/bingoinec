@@ -7,9 +7,6 @@
     <link rel="stylesheet" href="cartelas.css">
     <link rel="stylesheet" href="auth-styles.css">
     
-    <!-- Sistema de Autenticação -->
-    <script src="auth.js"></script>
-    
     <!-- Script inline para função crítica -->
     <script>
         console.log('🎯 Definindo gerarCartela inline...');
@@ -833,6 +830,37 @@
     
     <script src="login.js"></script>
     <script src="cartelas.js"></script>
+    
+    <!-- Sistema de Autenticação - carregado por último -->
+    <script src="auth.js"></script>
+
+    <script>
+        // Verificação adicional de autenticação
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 Verificação adicional de autenticação para cartelas.html');
+            
+            // Aguardar o auth.js carregar completamente
+            setTimeout(() => {
+                if (window.authManager) {
+                    console.log('✅ AuthManager encontrado - verificando acesso');
+                    const isAuthenticated = window.authManager.isAuthenticated();
+                    
+                    if (!isAuthenticated) {
+                        console.log('❌ Usuário não autenticado - mostrando modal');
+                        window.authManager.showLoginModal();
+                    } else {
+                        console.log('✅ Usuário autenticado - acesso liberado');
+                    }
+                } else {
+                    console.log('⚠️ AuthManager não encontrado - carregando novamente');
+                    // Fallback: recarregar auth.js se não carregou
+                    const script = document.createElement('script');
+                    script.src = 'auth.js';
+                    document.head.appendChild(script);
+                }
+            }, 1000);
+        });
+    </script>
 </head>
 <body>
     <!-- Bandeirolas -->

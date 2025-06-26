@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Modal Login</title>
+    <link rel="stylesheet" href="auth-styles.css">
+</head>
+<body>
+    <h1>🎫 Teste Modal de Login</h1>
+    <p>Clique no botão para testar o modal de login:</p>
+    
+    <button onclick="testarModal()">Mostrar Modal de Login</button>
+    
+    <script src="auth.js"></script>
+    
+    <script>
+        function testarModal() {
+            console.log('🧪 Testando modal de login...');
+            if (window.authManager) {
+                console.log('✅ AuthManager encontrado');
+                window.authManager.showLoginModal();
+            } else {
+                console.log('❌ AuthManager não encontrado');
+                alert('Sistema de autenticação não carregado!');
+            }
+        }
+        
+        // Teste automático após 2 segundos
+        setTimeout(() => {
+            console.log('🔍 Verificação automática...');
+            console.log('AuthManager disponível?', typeof window.authManager !== 'undefined');
+            
+            if (window.authManager) {
+                console.log('✅ Sistema funcionando - mostrando modal');
+                window.authManager.showLoginModal();
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

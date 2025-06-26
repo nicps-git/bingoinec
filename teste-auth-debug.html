@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Autenticação</title>
+    <link rel="stylesheet" href="auth-styles.css">
+</head>
+<body>
+    <h1>Teste de Autenticação</h1>
+    <p>Esta página deveria solicitar login automaticamente.</p>
+    
+    <script>
+        console.log('=== TESTE DE AUTENTICAÇÃO ===');
+        console.log('Página:', window.location.pathname);
+        console.log('Auth.js carregado?', typeof AuthManager !== 'undefined');
+    </script>
+    
+    <!-- Sistema de Autenticação -->
+    <script src="auth.js"></script>
+    
+    <script>
+        setTimeout(() => {
+            console.log('Após 1 segundo...');
+            console.log('AuthManager disponível?', typeof AuthManager !== 'undefined');
+            console.log('authManager global?', typeof window.authManager !== 'undefined');
+        }, 1000);
+    </script>
+</body>
+</html>

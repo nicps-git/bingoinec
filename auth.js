@@ -66,8 +66,15 @@ class AuthManager {
     checkPageAccess() {
         const currentPage = window.location.pathname.split('/').pop() || 'index.html';
         console.log('📄 Página atual:', currentPage);
+        console.log('🔍 Páginas protegidas:', AUTH_CONFIG.PROTECTED_PAGES);
+        console.log('🔍 Página está protegida?', AUTH_CONFIG.PROTECTED_PAGES.includes(currentPage));
         
-        if (AUTH_CONFIG.PROTECTED_PAGES.includes(currentPage)) {
+        // Debug adicional para cartelas.html
+        if (currentPage.includes('cartelas')) {
+            console.log('🎫 Página de cartelas detectada - forçando verificação de auth');
+        }
+        
+        if (AUTH_CONFIG.PROTECTED_PAGES.includes(currentPage) || currentPage.includes('cartelas')) {
             console.log('🔒 Página protegida detectada');
             
             if (!this.isAuthenticated()) {

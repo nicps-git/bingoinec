@@ -26,7 +26,7 @@
             <img src="inec.png" alt="Logo INEC" class="logo-inec">
         </div>
         <div class="nav-links">
-            <a href="cartelas.html" class="btn-nav">🎫 Comprar</a>
+            <a href="#" onclick="verificarAcessoCompra()" class="btn-nav">🎫 Comprar</a>
             <a href="#" onclick="verificarAcessoAdmin()" class="btn-nav">⚙️ Admin</a>
         </div>
         <div class="chapeu-palha">👒</div>
@@ -166,6 +166,18 @@
     <script src="minhas-cartelas-simple.js"></script>
     
     <script>
+        // Função para verificar acesso admin com autenticação
+        function verificarAcessoAdmin() {
+            console.log('🔐 Redirecionando para área administrativa...');
+            window.location.href = 'admin.html';
+        }
+        
+        // Função para verificar acesso à compra de cartelas com autenticação
+        function verificarAcessoCompra() {
+            console.log('🎫 Redirecionando para compra de cartelas...');
+            window.location.href = 'cartelas.html';
+        }
+        
         // Debug para verificar se as funções estão disponíveis
         console.log('=== DEBUG MINHAS CARTELAS ===');
         

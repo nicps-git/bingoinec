@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Cartelas</title>
+    <link rel="stylesheet" href="cartelas.css">
+    <link rel="stylesheet" href="auth-styles.css">
+</head>
+<body>
+    <h1>🎫 Teste de Acesso à Página Cartelas</h1>
+    <p>Esta página deveria solicitar login automaticamente.</p>
+    
+    <div id="debug-info">
+        <h3>Debug Info:</h3>
+        <div id="debug-output"></div>
+    </div>
+    
+    <script>
+        const debugOutput = document.getElementById('debug-output');
+        
+        function addDebug(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            debugOutput.appendChild(p);
+            console.log(message);
+        }
+        
+        addDebug('=== TESTE DE AUTENTICAÇÃO CARTELAS ===');
+        addDebug('Página atual: ' + window.location.pathname);
+        addDebug('Nome do arquivo: ' + window.location.pathname.split('/').pop());
+        
+        // Verificar se auth.js será carregado
+        addDebug('Carregando auth.js...');
+    </script>
+    
+    <!-- Sistema de Autenticação -->
+    <script src="auth.js"></script>
+    
+    <script>
+        setTimeout(() => {
+            addDebug('=== APÓS CARREGAMENTO ===');
+            addDebug('AuthManager definido? ' + (typeof AuthManager !== 'undefined'));
+            addDebug('authManager global? ' + (typeof window.authManager !== 'undefined'));
+            
+            if (window.authManager) {
+                addDebug('Sistema de auth inicializado');
+                addDebug('Usuário autenticado? ' + window.authManager.isAuthenticated());
+            } else {
+                addDebug('ERRO: Sistema de auth não inicializado');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
