@@ -1,5 +1,22 @@
 /* ===== ESTILOS PARA SISTEMA DE AUTENTICAÇÃO ===== */
 
+/* Garantir visibilidade do texto em inputs - regra prioritária */
+.auth-modal-overlay input[type="text"],
+.auth-modal-overlay input[type="password"],
+.auth-modal-content input[type="text"],
+.auth-modal-content input[type="password"] {
+    color: #333 !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+}
+
+.auth-modal-overlay input[type="text"]:focus,
+.auth-modal-overlay input[type="password"]:focus,
+.auth-modal-content input[type="text"]:focus,
+.auth-modal-content input[type="password"]:focus {
+    color: #333 !important;
+    background: white !important;
+}
+
 /* Modal de Login */
 .auth-modal-overlay {
     position: fixed;
@@ -77,6 +94,7 @@
     font-size: 16px;
     transition: all 0.3s ease;
     background: rgba(255, 255, 255, 0.9);
+    color: #333 !important;
 }
 
 .auth-field input:focus {
@@ -84,6 +102,7 @@
     border-color: #007bff;
     box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15);
     background: white;
+    color: #333 !important;
     transform: translateY(-1px);
 }
 
@@ -311,6 +330,7 @@
     
     .auth-field input {
         padding: 10px;
+        color: #333 !important;
     }
     
     .auth-btn {
