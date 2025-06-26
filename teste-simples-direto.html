@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎫 Teste Direto - Geração Simples</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+        .container { background: white; padding: 30px; border-radius: 10px; max-width: 600px; margin: 0 auto; }
+        button { padding: 15px 30px; font-size: 18px; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .cartela { background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; }
+        .numeros { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin: 15px 0; }
+        .numero { background: #28a745; color: white; padding: 10px; text-align: center; border-radius: 5px; font-weight: bold; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+    
+    <!-- Firebase SDK v8 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🎫 Teste Direto - Geração de Cartela</h1>
+        
+        <div id="status" class="status">⏳ Aguardando...</div>
+        
+        <button class="btn-primary" onclick="gerarCartelaSimplesDireto()">🎲 Gerar Cartela (Método Simples)</button>
+        <button class="btn-success" onclick="testarFirebase()">🔥 Testar Firebase</button>
+        
+        <div id="cartela-resultado"></div>
+        
+        <h3>📜 Log</h3>
+        <div id="log" style="background: #000; color: #00ff00; padding: 15px; font-family: monospace; height: 200px; overflow-y: auto;"></div>
+    </div>
+    
+    <script>
+        let logDiv = document.getElementById('log');
+        let cartelaAtual = null;
+        
+        // Capturar console.log
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            logDiv.innerHTML += '[LOG] ' + args.join(' ') + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            logDiv.innerHTML += '[ERROR] ' + args.join(' ') + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        };
+        
+        function atualizarStatus(mensagem, tipo = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = mensagem;
+            statusDiv.className = `status ${tipo}`;
+        }
+        
+        async function testarFirebase() {
+            console.log('🔥 Testando Firebase...');
+            atualizarStatus('🔥 Testando Firebase...', 'info');
+            
+            try {
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                
+                console.log('✅ Firebase SDK carregado');
+                
+                if (!firebase.firestore) {
+                    throw new Error('Firestore não disponível');
+                }
+                
+                console.log('✅ Firestore disponível');
+                
+                // Teste de conexão
+                const db = firebase.firestore();
+                await db.collection('test').limit(1).get();
+                
+                console.log('✅ Conexão com Firestore OK');
+                atualizarStatus('✅ Firebase funcionando perfeitamente!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Erro no Firebase:', error.message);
+                atualizarStatus(`❌ Erro no Firebase: ${error.message}`, 'error');
+            }
+        }
+        
+        async function gerarCartelaSimplesDireto() {
+            console.log('🎲 Gerando cartela pelo método simples...');
+            atualizarStatus('🎲 Gerando cartela...', 'info');
+            
+            try {
+                // 1. Gerar números
+                const numeros = [];
+                const disponiveis = [];
+                
+                for (let i = 1; i <= 75; i++) {
+                    disponiveis.push(i);
+                }
+                
+                for (let i = 0; i < 24; i++) {
+                    const indice = Math.floor(Math.random() * disponiveis.length);
+                    numeros.push(disponiveis.splice(indice, 1)[0]);
+                }
+                
+                numeros.sort((a, b) => a - b);
+                console.log('📋 Números gerados:', numeros);
+                
+                // 2. Criar objeto cartela
+                cartelaAtual = {
+                    id: `TEST-${Date.now()}`,
+                    numeros: numeros,
+                    preco: 5.00,
+                    dataGeracao: new Date().toISOString(),
+                    status: 'gerada'
+                };
+                
+                console.log('✅ Cartela criada:', cartelaAtual);
+                
+                // 3. Tentar salvar no Firebase
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    console.log('💾 Tentando salvar no Firebase...');
+                    
+                    const db = firebase.firestore();
+                    const docRef = db.collection('cartelas').doc(cartelaAtual.id);
+                    
+                    await docRef.set({
+                        ...cartelaAtual,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        status: 'reservada-temporariamente',
+                        expiracaoReserva: new Date(Date.now() + 30 * 60 * 1000)
+                    });
+                    
+                    console.log('✅ Cartela salva no Firebase!');
+                    
+                    // Verificar se foi salva
+                    const doc = await docRef.get();
+                    if (doc.exists) {
+                        const dadosSalvos = doc.data();
+                        console.log('✅ Dados verificados no Firebase:', dadosSalvos);
+                        
+                        // Verificar consistência
+                        const numerosIguais = JSON.stringify(numeros.sort()) === JSON.stringify(dadosSalvos.numeros.sort());
+                        console.log(`🔍 Consistência: ${numerosIguais ? '✅ OK' : '❌ FALHA'}`);
+                        
+                        atualizarStatus('✅ Cartela gerada e salva no Firebase!', 'success');
+                    } else {
+                        throw new Error('Documento não foi salvo');
+                    }
+                } else {
+                    console.warn('⚠️ Firebase não disponível - apenas geração local');
+                    atualizarStatus('⚠️ Cartela gerada (sem Firebase)', 'info');
+                }
+                
+                // 4. Mostrar na interface
+                mostrarCartela(cartelaAtual);
+                
+            } catch (error) {
+                console.error('❌ Erro ao gerar cartela:', error);
+                atualizarStatus(`❌ Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        function mostrarCartela(cartela) {
+            const container = document.getElementById('cartela-resultado');
+            
+            container.innerHTML = `
+                <div class="cartela">
+                    <h3>🎫 Cartela ${cartela.id}</h3>
+                    <p><strong>Status:</strong> ${cartela.status}</p>
+                    <p><strong>Preço:</strong> R$ ${cartela.preco.toFixed(2)}</p>
+                    <p><strong>Quantidade:</strong> ${cartela.numeros.length} números</p>
+                    
+                    <h4>🔢 Números:</h4>
+                    <div class="numeros">
+                        ${cartela.numeros.map(num => `<div class="numero">${num}</div>`).join('')}
+                    </div>
+                    
+                    <p style="font-size: 12px; color: #666;">
+                        <strong>Números ordenados:</strong> [${cartela.numeros.join(', ')}]
+                    </p>
+                </div>
+            `;
+            
+            console.log('✅ Cartela exibida na interface');
+        }
+        
+        // Verificar Firebase automaticamente
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 Página carregada');
+            
+            setTimeout(() => {
+                testarFirebase();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Debug - Consistência de Cartelas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .debug-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.ok { background: #d4edda; color: #155724; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .numeros-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            gap: 5px;
+            margin: 10px 0;
+        }
+        .numero {
+            background: #007bff;
+            color: white;
+            padding: 5px;
+            text-align: center;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .divergencia {
+            background: #dc3545 !important;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        .test-btn {
+            background: #17a2b8;
+        }
+        .test-btn:hover {
+            background: #138496;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug - Consistência de Números das Cartelas</h1>
+    
+    <div class="debug-container">
+        <h2>🎯 Controles de Teste</h2>
+        <button onclick="abrirPaginaCartelas()">📱 Abrir Página de Cartelas</button>
+        <button onclick="verificarConsistencia()" class="test-btn">🔍 Verificar Consistência</button>
+        <button onclick="extrairNumerosInterface()" class="test-btn">📋 Extrair Números da Interface</button>
+        <button onclick="simularFluxoCompleto()" class="test-btn">🎪 Simular Fluxo Completo</button>
+        <button onclick="limparDados()">🧹 Limpar Dados</button>
+    </div>
+
+    <div class="debug-container">
+        <h2>📊 Status da Verificação</h2>
+        <div id="status-container">
+            <div class="status warning">⚠️ Aguardando verificação...</div>
+        </div>
+    </div>
+
+    <div class="debug-container">
+        <h2>🎫 Números da Cartela Atual</h2>
+        <div id="cartela-interface">
+            <p>Nenhuma cartela detectada na interface</p>
+        </div>
+    </div>
+
+    <div class="debug-container">
+        <h2>🛒 Carrinho Global</h2>
+        <div id="carrinho-debug">
+            <p>Carrinho vazio ou não disponível</p>
+        </div>
+    </div>
+
+    <div class="debug-container">
+        <h2>💾 Variáveis Globais</h2>
+        <div id="variaveis-globais">
+            <p>Nenhuma variável detectada</p>
+        </div>
+    </div>
+
+    <div class="debug-container">
+        <h2>📝 Log de Ações</h2>
+        <div id="log-acoes">
+            <pre id="log-content">Aguardando ações...</pre>
+        </div>
+        <button onclick="limparLog()">🧹 Limpar Log</button>
+    </div>
+
+    <script>
+        let logContent = [];
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            logContent.push(logMessage);
+            console.log(logMessage);
+            
+            const logElement = document.getElementById('log-content');
+            if (logElement) {
+                logElement.textContent = logContent.slice(-20).join('\n'); // Últimas 20 linhas
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+        }
+        
+        function limparLog() {
+            logContent = [];
+            document.getElementById('log-content').textContent = 'Log limpo.';
+        }
+        
+        function abrirPaginaCartelas() {
+            log('🚀 Abrindo página de cartelas...');
+            window.open('cartelas.html', 'cartelas', 'width=1200,height=800');
+        }
+        
+        function verificarConsistencia() {
+            log('🔍 === VERIFICAÇÃO DE CONSISTÊNCIA ===');
+            
+            // Verificar se há acesso à página de cartelas
+            let paginaCartelas = null;
+            
+            try {
+                // Tentar acessar variáveis globais da página de cartelas
+                if (window.opener && window.opener.window) {
+                    paginaCartelas = window.opener.window;
+                } else {
+                    // Verificar janelas abertas
+                    const janelas = Array.from(window).filter(w => w.location && w.location.href.includes('cartelas.html'));
+                    if (janelas.length > 0) {
+                        paginaCartelas = janelas[0];
+                    }
+                }
+                
+                if (!paginaCartelas) {
+                    log('⚠️ Página de cartelas não encontrada. Abrindo nova janela...');
+                    abrirPaginaCartelas();
+                    return;
+                }
+                
+                // Verificar variáveis globais
+                verificarVariaveisGlobais(paginaCartelas);
+                
+                // Verificar interface
+                verificarInterface(paginaCartelas);
+                
+                // Verificar carrinho
+                verificarCarrinho(paginaCartelas);
+                
+                // Comparar consistência
+                compararConsistencia(paginaCartelas);
+                
+            } catch (error) {
+                log(`❌ Erro na verificação: ${error.message}`);
+                updateStatus('error', `Erro: ${error.message}`);
+            }
+        }
+        
+        function verificarVariaveisGlobais(pagina) {
+            log('📊 Verificando variáveis globais...');
+            
+            const variaveis = {
+                cartelaAtual: pagina.cartelaAtual || null,
+                numerosCartelaAtual: pagina.numerosCartelaAtual || null,
+                cartelaAtualExibida: pagina.cartelaAtualExibida || null,
+                carrinho: pagina.carrinho || null
+            };
+            
+            let html = '<h3>Variáveis Encontradas:</h3>';
+            
+            Object.entries(variaveis).forEach(([nome, valor]) => {
+                if (valor) {
+                    html += `<p><strong>${nome}:</strong> `;
+                    if (nome === 'carrinho') {
+                        html += `Array com ${valor.length} item(s)`;
+                    } else if (valor.numeros) {
+                        html += `ID: ${valor.id}, Números: [${valor.numeros.join(', ')}]`;
+                    } else if (Array.isArray(valor)) {
+                        html += `[${valor.join(', ')}]`;
+                    } else {
+                        html += JSON.stringify(valor);
+                    }
+                    html += '</p>';
+                    log(`✅ ${nome}: ${JSON.stringify(valor)}`);
+                } else {
+                    html += `<p><strong>${nome}:</strong> <span style="color: #dc3545;">não definida</span></p>`;
+                    log(`⚠️ ${nome}: não definida`);
+                }
+            });
+            
+            document.getElementById('variaveis-globais').innerHTML = html;
+        }
+        
+        function verificarInterface(pagina) {
+            log('🖥️ Verificando interface...');
+            
+            try {
+                const container = pagina.document.getElementById('cartela-preview');
+                if (!container) {
+                    log('❌ Container cartela-preview não encontrado');
+                    document.getElementById('cartela-interface').innerHTML = '<p style="color: #dc3545;">Container não encontrado</p>';
+                    return;
+                }
+                
+                // Extrair números da interface
+                const elementosNumeros = container.querySelectorAll('[style*="background: #4CAF50"]');
+                const numerosInterface = [];
+                
+                elementosNumeros.forEach(elemento => {
+                    const numero = parseInt(elemento.textContent.trim());
+                    if (!isNaN(numero) && numero >= 1 && numero <= 75) {
+                        numerosInterface.push(numero);
+                    }
+                });
+                
+                numerosInterface.sort((a, b) => a - b);
+                
+                if (numerosInterface.length > 0) {
+                    let html = `<h3>Números na Interface (${numerosInterface.length}):</h3>`;
+                    html += '<div class="numeros-grid">';
+                    numerosInterface.forEach(num => {
+                        html += `<div class="numero">${num}</div>`;
+                    });
+                    html += '</div>';
+                    
+                    document.getElementById('cartela-interface').innerHTML = html;
+                    log(`✅ Interface: ${numerosInterface.length} números encontrados: [${numerosInterface.join(', ')}]`);
+                } else {
+                    document.getElementById('cartela-interface').innerHTML = '<p style="color: #856404;">Nenhuma cartela exibida na interface</p>';
+                    log('⚠️ Interface: Nenhuma cartela encontrada');
+                }
+                
+                // Armazenar para comparação
+                window.numerosInterface = numerosInterface;
+                
+            } catch (error) {
+                log(`❌ Erro ao verificar interface: ${error.message}`);
+                document.getElementById('cartela-interface').innerHTML = `<p style="color: #dc3545;">Erro: ${error.message}</p>`;
+            }
+        }
+        
+        function verificarCarrinho(pagina) {
+            log('🛒 Verificando carrinho...');
+            
+            try {
+                const carrinho = pagina.carrinho || pagina.window.carrinho || [];
+                
+                if (carrinho.length === 0) {
+                    document.getElementById('carrinho-debug').innerHTML = '<p style="color: #856404;">Carrinho vazio</p>';
+                    log('⚠️ Carrinho: vazio');
+                    return;
+                }
+                
+                let html = `<h3>Cartelas no Carrinho (${carrinho.length}):</h3>`;
+                
+                carrinho.forEach((cartela, index) => {
+                    html += `<div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 5px;">`;
+                    html += `<h4>Cartela ${index + 1} - ID: ${cartela.id}</h4>`;
+                    
+                    if (cartela.numeros && cartela.numeros.length > 0) {
+                        html += `<p><strong>Números (${cartela.numeros.length}):</strong></p>`;
+                        html += '<div class="numeros-grid">';
+                        cartela.numeros.forEach(num => {
+                            html += `<div class="numero">${num}</div>`;
+                        });
+                        html += '</div>';
+                        log(`✅ Carrinho cartela ${index + 1}: [${cartela.numeros.join(', ')}]`);
+                    } else {
+                        html += '<p style="color: #dc3545;"><strong>❌ Números não encontrados!</strong></p>';
+                        log(`❌ Carrinho cartela ${index + 1}: números não encontrados`);
+                    }
+                    
+                    html += `<p><strong>Preço:</strong> R$ ${(cartela.preco || 0).toFixed(2)}</p>`;
+                    html += '</div>';
+                });
+                
+                document.getElementById('carrinho-debug').innerHTML = html;
+                
+                // Armazenar para comparação
+                window.carrinhoCartelas = carrinho;
+                
+            } catch (error) {
+                log(`❌ Erro ao verificar carrinho: ${error.message}`);
+                document.getElementById('carrinho-debug').innerHTML = `<p style="color: #dc3545;">Erro: ${error.message}</p>`;
+            }
+        }
+        
+        function compararConsistencia(pagina) {
+            log('🔄 Comparando consistência...');
+            
+            const numerosInterface = window.numerosInterface || [];
+            const carrinho = window.carrinhoCartelas || [];
+            const numerosGlobais = pagina.numerosCartelaAtual || [];
+            
+            let status = 'ok';
+            let mensagem = '✅ Todos os números estão consistentes!';
+            
+            // Verificar se há cartela na interface
+            if (numerosInterface.length === 0) {
+                status = 'warning';
+                mensagem = '⚠️ Nenhuma cartela detectada na interface';
+            }
+            // Verificar se há cartela no carrinho
+            else if (carrinho.length === 0) {
+                status = 'warning';
+                mensagem = '⚠️ Carrinho vazio - gere e adicione uma cartela para testar';
+            }
+            // Comparar números
+            else {
+                const numerosCarrinho = carrinho[carrinho.length - 1].numeros || [];
+                
+                // Comparar interface com carrinho
+                if (JSON.stringify(numerosInterface.sort()) !== JSON.stringify(numerosCarrinho.sort())) {
+                    status = 'error';
+                    mensagem = '❌ DIVERGÊNCIA DETECTADA! Números da interface diferem do carrinho';
+                    log('❌ DIVERGÊNCIA: Interface vs Carrinho');
+                    log(`   Interface: [${numerosInterface.join(', ')}]`);
+                    log(`   Carrinho: [${numerosCarrinho.join(', ')}]`);
+                }
+                // Comparar interface com variáveis globais
+                else if (numerosGlobais.length > 0 && JSON.stringify(numerosInterface.sort()) !== JSON.stringify(numerosGlobais.sort())) {
+                    status = 'error';
+                    mensagem = '❌ DIVERGÊNCIA DETECTADA! Números da interface diferem das variáveis globais';
+                    log('❌ DIVERGÊNCIA: Interface vs Variáveis Globais');
+                    log(`   Interface: [${numerosInterface.join(', ')}]`);
+                    log(`   Globais: [${numerosGlobais.join(', ')}]`);
+                }
+                else {
+                    log('✅ CONSISTÊNCIA VERIFICADA: Todos os números coincidem');
+                }
+            }
+            
+            updateStatus(status, mensagem);
+        }
+        
+        function updateStatus(type, message) {
+            const container = document.getElementById('status-container');
+            container.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function extrairNumerosInterface() {
+            log('📋 Extraindo números da interface...');
+            verificarConsistencia();
+        }
+        
+        function simularFluxoCompleto() {
+            log('🎪 === SIMULAÇÃO DE FLUXO COMPLETO ===');
+            
+            // Passo 1: Verificar se há página de cartelas aberta
+            log('1️⃣ Verificando página de cartelas...');
+            
+            // Passo 2: Aguardar e verificar geração
+            setTimeout(() => {
+                log('2️⃣ Aguardando geração de cartela...');
+                verificarConsistencia();
+            }, 1000);
+            
+            // Passo 3: Simular cliques automáticos (se possível)
+            setTimeout(() => {
+                log('3️⃣ Tentando simular ações automáticas...');
+                // Aqui poderia adicionar simulação de cliques se necessário
+            }, 2000);
+        }
+        
+        function limparDados() {
+            log('🧹 Limpando dados de debug...');
+            
+            document.getElementById('cartela-interface').innerHTML = '<p>Dados limpos</p>';
+            document.getElementById('carrinho-debug').innerHTML = '<p>Dados limpos</p>';
+            document.getElementById('variaveis-globais').innerHTML = '<p>Dados limpos</p>';
+            updateStatus('warning', '🧹 Dados limpos - execute nova verificação');
+            
+            // Limpar variáveis temporárias
+            delete window.numerosInterface;
+            delete window.carrinhoCartelas;
+        }
+        
+        // Inicialização
+        log('🚀 Debug de Consistência inicializado');
+        log('💡 Dica: Abra a página de cartelas e execute as verificações');
+        
+        // Auto-refresh a cada 5 segundos se houver página de cartelas aberta
+        setInterval(() => {
+            if (document.hasFocus()) {
+                // Verificação silenciosa automática apenas se não estivermos em debug ativo
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

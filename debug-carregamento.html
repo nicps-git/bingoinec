@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Teste Rápido - Debug Carregamento</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .log { background: #000; color: #00ff00; padding: 15px; font-family: monospace; height: 300px; overflow-y: auto; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+    </style>
+    
+    <!-- Firebase SDK v8 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    <script src="cartelas.js"></script>
+</head>
+<body>
+    <h1>🧪 Teste Rápido - Debug de Carregamento</h1>
+    
+    <div id="status-firebase" class="status"></div>
+    <div id="status-funcoes" class="status"></div>
+    
+    <button class="btn-primary" onclick="verificarTudo()">🔍 Verificar Tudo</button>
+    <button class="btn-success" onclick="testarGeracao()" id="btn-teste">⏳ Aguardando...</button>
+    
+    <h3>📜 Log de Console</h3>
+    <div id="log" class="log"></div>
+    
+    <script>
+        let logDiv = document.getElementById('log');
+        
+        // Capturar console.log
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            logDiv.innerHTML += args.join(' ') + '\n';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        };
+        
+        function verificarTudo() {
+            console.log('=== VERIFICAÇÃO COMPLETA ===');
+            
+            // Firebase
+            const firebaseStatus = document.getElementById('status-firebase');
+            if (typeof firebase !== 'undefined' && window.FirebaseDB) {
+                firebaseStatus.className = 'status success';
+                firebaseStatus.textContent = '✅ Firebase: OK';
+                console.log('✅ Firebase completamente carregado');
+            } else if (typeof firebase !== 'undefined') {
+                firebaseStatus.className = 'status warning';
+                firebaseStatus.textContent = '⚠️ Firebase: Parcial';
+                console.log('⚠️ Firebase SDK carregado, FirebaseDB não disponível');
+            } else {
+                firebaseStatus.className = 'status error';
+                firebaseStatus.textContent = '❌ Firebase: Não carregado';
+                console.log('❌ Firebase não carregado');
+            }
+            
+            // Funções
+            const funcoesStatus = document.getElementById('status-funcoes');
+            const funcoes = [
+                'gerarCartelaCorrigida',
+                'adicionarAoCarrinhoCorrigida',
+                'processarCompraCompleta'
+            ];
+            
+            let funcionesOk = 0;
+            funcoes.forEach(f => {
+                const disponivel = typeof window[f] === 'function';
+                console.log(`${disponivel ? '✅' : '❌'} ${f}: ${disponivel}`);
+                if (disponivel) funcionesOk++;
+            });
+            
+            if (funcionesOk === funcoes.length) {
+                funcoesStatus.className = 'status success';
+                funcoesStatus.textContent = `✅ Funções: ${funcionesOk}/${funcoes.length}`;
+                
+                // Habilitar teste
+                const btnTeste = document.getElementById('btn-teste');
+                btnTeste.textContent = '🎲 Testar Geração';
+                btnTeste.disabled = false;
+            } else {
+                funcoesStatus.className = 'status error';
+                funcoesStatus.textContent = `❌ Funções: ${funcionesOk}/${funcoes.length}`;
+            }
+            
+            console.log('=== FIM DA VERIFICAÇÃO ===');
+        }
+        
+        function testarGeracao() {
+            console.log('🎲 Testando geração de cartela...');
+            
+            if (typeof window.gerarCartelaCorrigida === 'function') {
+                console.log('✅ Função encontrada - executando...');
+                try {
+                    window.gerarCartelaCorrigida();
+                    console.log('✅ Função executada sem erro');
+                } catch (error) {
+                    console.error('❌ Erro ao executar função:', error);
+                }
+            } else {
+                console.error('❌ Função gerarCartelaCorrigida não encontrada');
+            }
+        }
+        
+        // Verificar automaticamente
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 DOM carregado - iniciando testes...');
+            
+            setTimeout(() => {
+                verificarTudo();
+                
+                // Verificar periodicamente
+                let tentativas = 0;
+                const intervalo = setInterval(() => {
+                    tentativas++;
+                    console.log(`🔄 Verificação automática ${tentativas}`);
+                    verificarTudo();
+                    
+                    if (tentativas >= 10 || (typeof window.gerarCartelaCorrigida === 'function' && window.FirebaseDB)) {
+                        clearInterval(intervalo);
+                        console.log('🛑 Parando verificações automáticas');
+                    }
+                }, 2000);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

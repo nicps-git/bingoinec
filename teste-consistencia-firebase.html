@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Teste de Consistência Firebase - Bingo INEC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        .success { border-left: 5px solid #28a745; }
+        .error { border-left: 5px solid #dc3545; }
+        .warning { border-left: 5px solid #ffc107; }
+        .info { border-left: 5px solid #17a2b8; }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #218838; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .log-area {
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .cartela-display {
+            background: white;
+            color: black;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        .numeros-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 3px;
+            margin: 10px 0;
+        }
+        .numero {
+            background: #4CAF50;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+    </style>
+    
+    <!-- Firebase SDK v8 Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste de Consistência com Firebase</h1>
+        <p>Este teste valida se o sistema de reserva temporária no Firebase está funcionando corretamente.</p>
+        
+        <!-- Status do Firebase -->
+        <div id="firebase-status" class="test-section info">
+            <h3>🔥 Status do Firebase</h3>
+            <p><strong>SDK Carregado:</strong> <span id="sdk-status">⏳ Verificando...</span></p>
+            <p><strong>Conectado:</strong> <span id="connection-status">⏳ Verificando...</span></p>
+            <p><strong>Firestore:</strong> <span id="firestore-status">⏳ Verificando...</span></p>
+            <button onclick="verificarFirebase()">🔍 Verificar Firebase</button>
+        </div>
+        
+        <!-- Teste de Geração -->
+        <div id="teste-geracao" class="test-section">
+            <h3>🎲 Teste 1: Geração com Reserva Temporária</h3>
+            <p>Gera uma cartela e grava reserva temporária no Firestore</p>
+            <button id="btn-gerar" onclick="testarGeracao()" disabled>⏳ Aguardando Firebase...</button>
+            <div id="resultado-geracao"></div>
+        </div>
+        
+        <!-- Teste de Consistência -->
+        <div id="teste-consistencia" class="test-section">
+            <h3>🔍 Teste 2: Verificação de Consistência</h3>
+            <p>Verifica se os números exibidos são idênticos aos salvos no banco</p>
+            <button id="btn-consistencia" onclick="testarConsistencia()" disabled>▶️ Executar Teste</button>
+            <div id="resultado-consistencia"></div>
+        </div>
+        
+        <!-- Teste de Confirmação -->
+        <div id="teste-confirmacao" class="test-section">
+            <h3>✅ Teste 3: Confirmação de Reserva</h3>
+            <p>Simula finalização da compra confirmando a reserva temporária</p>
+            <button id="btn-confirmar" onclick="testarConfirmacao()" disabled>▶️ Executar Teste</button>
+            <div id="resultado-confirmacao"></div>
+        </div>
+        
+        <!-- Log de Atividades -->
+        <div class="test-section">
+            <h3>📜 Log de Atividades</h3>
+            <div id="log-area" class="log-area"></div>
+            <button onclick="limparLog()">🧹 Limpar Log</button>
+        </div>
+    </div>
+
+    <!-- Firebase Config e Scripts -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-service.js"></script>
+    
+    <script>
+        let ultimaCartelaTestada = null;
+        let firebaseDisponivel = false;
+        
+        // Função de log
+        function log(mensagem) {
+            const logArea = document.getElementById('log-area');
+            const timestamp = new Date().toLocaleTimeString();
+            logArea.innerHTML += `[${timestamp}] ${mensagem}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(mensagem);
+        }
+        
+        function limparLog() {
+            document.getElementById('log-area').innerHTML = '';
+        }
+        
+        // Verificar Firebase
+        async function verificarFirebase() {
+            log('🔍 Verificando status do Firebase...');
+            
+            const sdkStatus = document.getElementById('sdk-status');
+            const connectionStatus = document.getElementById('connection-status');
+            const firestoreStatus = document.getElementById('firestore-status');
+            
+            // Verificar SDK
+            if (typeof firebase === 'undefined') {
+                sdkStatus.textContent = '❌ SDK não carregado';
+                sdkStatus.style.color = '#dc3545';
+                log('❌ Firebase SDK não encontrado');
+                return false;
+            } else {
+                sdkStatus.textContent = '✅ SDK carregado';
+                sdkStatus.style.color = '#28a745';
+                log('✅ Firebase SDK carregado');
+            }
+            
+            try {
+                // Aguardar inicialização
+                let tentativas = 0;
+                while (!window.FirebaseDB && tentativas < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    tentativas++;
+                }
+                
+                if (window.FirebaseDB) {
+                    connectionStatus.textContent = '✅ Conectado via FirebaseDB';
+                    connectionStatus.style.color = '#28a745';
+                    log('✅ FirebaseDB disponível');
+                } else {
+                    // Tentar inicializar diretamente
+                    if (!firebase.apps.length) {
+                        await initializeFirebaseUnified();
+                    }
+                    
+                    connectionStatus.textContent = '⚠️ Conectado direto';
+                    connectionStatus.style.color = '#ffc107';
+                    log('⚠️ Conectado diretamente ao Firebase');
+                }
+                
+                // Testar Firestore
+                const db = firebase.firestore();
+                await db.collection('test').limit(1).get();
+                
+                firestoreStatus.textContent = '✅ Firestore operacional';
+                firestoreStatus.style.color = '#28a745';
+                log('✅ Firestore testado com sucesso');
+                
+                firebaseDisponivel = true;
+                habilitarBotoes();
+                
+                return true;
+                
+            } catch (error) {
+                connectionStatus.textContent = '❌ Erro de conexão';
+                connectionStatus.style.color = '#dc3545';
+                firestoreStatus.textContent = '❌ Firestore com problema';
+                firestoreStatus.style.color = '#dc3545';
+                
+                log(`❌ Erro ao verificar Firebase: ${error.message}`);
+                return false;
+            }
+        }
+        
+        function habilitarBotoes() {
+            if (firebaseDisponivel) {
+                document.getElementById('btn-gerar').disabled = false;
+                document.getElementById('btn-gerar').textContent = '🎲 Gerar Cartela com Reserva';
+                document.getElementById('btn-consistencia').disabled = false;
+                document.getElementById('btn-confirmar').disabled = false;
+                log('✅ Botões de teste habilitados');
+            }
+        }
+        
+        // Teste 1: Geração com reserva temporária
+        async function testarGeracao() {
+            log('🎲 === INICIANDO TESTE DE GERAÇÃO ===');
+            
+            if (!firebaseDisponivel) {
+                log('❌ Firebase não disponível');
+                return;
+            }
+            
+            const resultadoDiv = document.getElementById('resultado-geracao');
+            resultadoDiv.innerHTML = '<p>⏳ Gerando cartela...</p>';
+            
+            try {
+                // Gerar números
+                const numeros = [];
+                const disponiveis = [];
+                for (let i = 1; i <= 75; i++) {
+                    disponiveis.push(i);
+                }
+                for (let i = 0; i < 24; i++) {
+                    const indice = Math.floor(Math.random() * disponiveis.length);
+                    numeros.push(disponiveis.splice(indice, 1)[0]);
+                }
+                numeros.sort((a, b) => a - b);
+                
+                const cartela = {
+                    id: `TEST-${Date.now()}`,
+                    numeros: numeros,
+                    preco: 5.00,
+                    status: 'preview'
+                };
+                
+                log(`📋 Cartela gerada: ${cartela.id}`);
+                log(`🔢 Números: [${numeros.join(', ')}]`);
+                
+                // Gravar reserva temporária
+                const db = firebase.firestore();
+                const reservaTemporaria = {
+                    id: cartela.id,
+                    numeros: cartela.numeros,
+                    preco: cartela.preco,
+                    status: 'reservada-temporariamente',
+                    dataReserva: firebase.firestore.FieldValue.serverTimestamp(),
+                    expiracaoReserva: new Date(Date.now() + 30 * 60 * 1000),
+                    sessao: `teste-${Date.now()}`,
+                    teste: true
+                };
+                
+                await db.collection('cartelas').doc(cartela.id).set(reservaTemporaria);
+                log(`✅ Reserva temporária gravada: ${cartela.id}`);
+                
+                // Verificar se foi salvo corretamente
+                const doc = await db.collection('cartelas').doc(cartela.id).get();
+                if (doc.exists) {
+                    const dadosSalvos = doc.data();
+                    log(`✅ Dados verificados no banco`);
+                    log(`🔢 Números salvos: [${dadosSalvos.numeros.join(', ')}]`);
+                    
+                    // Verificar consistência
+                    const numerosIguais = JSON.stringify(numeros.sort()) === JSON.stringify(dadosSalvos.numeros.sort());
+                    
+                    if (numerosIguais) {
+                        log('✅ CONSISTÊNCIA CONFIRMADA: Números idênticos!');
+                        resultadoDiv.innerHTML = `
+                            <div class="success">
+                                <h4>✅ Sucesso!</h4>
+                                <p><strong>ID:</strong> ${cartela.id}</p>
+                                <p><strong>Status:</strong> Reserva temporária criada</p>
+                                <div class="cartela-display">
+                                    <h5>📋 Números da Cartela (${numeros.length})</h5>
+                                    <div class="numeros-grid">
+                                        ${numeros.map(n => `<div class="numero">${n}</div>`).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        ultimaCartelaTestada = cartela;
+                        
+                    } else {
+                        log('❌ INCONSISTÊNCIA DETECTADA: Números diferentes!');
+                        resultadoDiv.innerHTML = `<div class="error"><h4>❌ Erro de Consistência</h4><p>Os números salvos são diferentes dos gerados.</p></div>`;
+                    }
+                } else {
+                    log('❌ Documento não encontrado no banco');
+                    resultadoDiv.innerHTML = `<div class="error"><h4>❌ Erro</h4><p>Reserva não foi salva no banco.</p></div>`;
+                }
+                
+            } catch (error) {
+                log(`❌ Erro no teste de geração: ${error.message}`);
+                resultadoDiv.innerHTML = `<div class="error"><h4>❌ Erro</h4><p>${error.message}</p></div>`;
+            }
+        }
+        
+        // Teste 2: Verificação de consistência
+        async function testarConsistencia() {
+            log('🔍 === INICIANDO TESTE DE CONSISTÊNCIA ===');
+            
+            if (!ultimaCartelaTestada) {
+                log('❌ Nenhuma cartela testada ainda');
+                document.getElementById('resultado-consistencia').innerHTML = 
+                    `<div class="warning"><h4>⚠️ Aviso</h4><p>Execute primeiro o teste de geração.</p></div>`;
+                return;
+            }
+            
+            const resultadoDiv = document.getElementById('resultado-consistencia');
+            resultadoDiv.innerHTML = '<p>⏳ Verificando consistência...</p>';
+            
+            try {
+                const db = firebase.firestore();
+                const doc = await db.collection('cartelas').doc(ultimaCartelaTestada.id).get();
+                
+                if (!doc.exists) {
+                    log('❌ Cartela não encontrada no banco');
+                    resultadoDiv.innerHTML = `<div class="error"><h4>❌ Erro</h4><p>Cartela não encontrada no banco.</p></div>`;
+                    return;
+                }
+                
+                const dadosBanco = doc.data();
+                const numerosLocal = ultimaCartelaTestada.numeros.sort((a, b) => a - b);
+                const numerosBanco = dadosBanco.numeros.sort((a, b) => a - b);
+                
+                log(`🔢 Números local: [${numerosLocal.join(', ')}]`);
+                log(`🔢 Números banco: [${numerosBanco.join(', ')}]`);
+                
+                const consistente = JSON.stringify(numerosLocal) === JSON.stringify(numerosBanco);
+                
+                if (consistente) {
+                    log('✅ CONSISTÊNCIA CONFIRMADA!');
+                    resultadoDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Consistência Confirmada</h4>
+                            <p>Os números locais e do banco são idênticos.</p>
+                            <p><strong>Quantidade:</strong> ${numerosLocal.length} números</p>
+                            <p><strong>Identificação:</strong> ${JSON.stringify(numerosLocal) === JSON.stringify(numerosBanco) ? 'IGUAIS' : 'DIFERENTES'}</p>
+                        </div>
+                    `;
+                } else {
+                    log('❌ INCONSISTÊNCIA DETECTADA!');
+                    resultadoDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Inconsistência Detectada</h4>
+                            <p><strong>Local:</strong> [${numerosLocal.join(', ')}]</p>
+                            <p><strong>Banco:</strong> [${numerosBanco.join(', ')}]</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                log(`❌ Erro no teste de consistência: ${error.message}`);
+                resultadoDiv.innerHTML = `<div class="error"><h4>❌ Erro</h4><p>${error.message}</p></div>`;
+            }
+        }
+        
+        // Teste 3: Confirmação de reserva
+        async function testarConfirmacao() {
+            log('✅ === INICIANDO TESTE DE CONFIRMAÇÃO ===');
+            
+            if (!ultimaCartelaTestada) {
+                log('❌ Nenhuma cartela testada ainda');
+                document.getElementById('resultado-confirmacao').innerHTML = 
+                    `<div class="warning"><h4>⚠️ Aviso</h4><p>Execute primeiro o teste de geração.</p></div>`;
+                return;
+            }
+            
+            const resultadoDiv = document.getElementById('resultado-confirmacao');
+            resultadoDiv.innerHTML = '<p>⏳ Confirmando reserva...</p>';
+            
+            try {
+                const db = firebase.firestore();
+                const cartelaId = ultimaCartelaTestada.id;
+                
+                // Buscar reserva
+                const doc = await db.collection('cartelas').doc(cartelaId).get();
+                if (!doc.exists) {
+                    throw new Error('Reserva não encontrada');
+                }
+                
+                const reservaData = doc.data();
+                log(`📋 Reserva encontrada: ${cartelaId}`);
+                
+                // Confirmar venda
+                const cartelaVendida = {
+                    ...reservaData,
+                    status: 'vendida',
+                    comprador: {
+                        nome: 'Teste Automático',
+                        telefone: '(11) 99999-9999'
+                    },
+                    nome: 'Teste Automático',
+                    telefone: '(11) 99999-9999',
+                    dataVenda: firebase.firestore.FieldValue.serverTimestamp(),
+                    dataCompra: new Date(),
+                    timestamp: Date.now(),
+                    numerosOriginais: reservaData.numeros,
+                    numerosConfirmados: reservaData.numeros
+                };
+                
+                await db.collection('cartelas').doc(cartelaId).set(cartelaVendida);
+                log(`✅ Reserva confirmada como venda: ${cartelaId}`);
+                
+                // Verificar consistência final
+                const docFinal = await db.collection('cartelas').doc(cartelaId).get();
+                const dadosFinais = docFinal.data();
+                
+                const numerosOriginais = ultimaCartelaTestada.numeros.sort((a, b) => a - b);
+                const numerosFinais = dadosFinais.numerosConfirmados.sort((a, b) => a - b);
+                
+                const consistenciaFinal = JSON.stringify(numerosOriginais) === JSON.stringify(numerosFinais);
+                
+                if (consistenciaFinal) {
+                    log('✅ CONSISTÊNCIA FINAL CONFIRMADA!');
+                    resultadoDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Reserva Confirmada com Sucesso</h4>
+                            <p><strong>Status:</strong> ${dadosFinais.status}</p>
+                            <p><strong>Comprador:</strong> ${dadosFinais.nome}</p>
+                            <p><strong>Consistência:</strong> ✅ Números preservados</p>
+                            <p><strong>ID Final:</strong> ${cartelaId}</p>
+                        </div>
+                    `;
+                } else {
+                    log('❌ CONSISTÊNCIA FINAL FALHADA!');
+                    resultadoDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Erro na Confirmação</h4>
+                            <p>Os números não foram preservados durante a confirmação.</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                log(`❌ Erro no teste de confirmação: ${error.message}`);
+                resultadoDiv.innerHTML = `<div class="error"><h4>❌ Erro</h4><p>${error.message}</p></div>`;
+            }
+        }
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', async function() {
+            log('🚀 Iniciando testes de consistência Firebase...');
+            
+            // Aguardar Firebase carregar
+            let tentativas = 0;
+            while (typeof firebase === 'undefined' && tentativas < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                tentativas++;
+            }
+            
+            if (typeof firebase !== 'undefined') {
+                log('✅ Firebase SDK detectado');
+                setTimeout(verificarFirebase, 1000);
+            } else {
+                log('❌ Firebase SDK não carregou');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Teste - Sistema de Reserva Temporária</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 10px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .step { border-left: 4px solid #007bff; padding-left: 15px; margin: 15px 0; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; }
+        .info { border-left-color: #17a2b8; background: #d1ecf1; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .test-btn { background: #28a745; }
+        .test-btn:hover { background: #218838; }
+        .danger-btn { background: #dc3545; }
+        .danger-btn:hover { background: #c82333; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+        .numeros { font-family: monospace; background: #e9ecef; padding: 5px; border-radius: 3px; }
+        .firebase-status { padding: 10px; border-radius: 5px; margin: 10px 0; text-align: center; font-weight: bold; }
+        .firebase-ok { background: #d4edda; color: #155724; }
+        .firebase-error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste - Sistema de Reserva Temporária</h1>
+    
+    <div class="container">
+        <h2>🔥 Status do Firebase</h2>
+        <div id="firebase-status" class="firebase-status">⏳ Verificando...</div>
+        <button onclick="verificarFirebase()">🔍 Verificar Firebase</button>
+        <button onclick="limparReservasManual()" class="danger-btn">🧹 Limpar Reservas Expiradas</button>
+    </div>
+
+    <div class="container">
+        <h2>🎯 Teste Completo do Sistema</h2>
+        <button onclick="executarTesteReserva()" class="test-btn">🚀 Executar Teste de Reserva</button>
+        <button onclick="abrirPaginaCartelas()">📱 Abrir Página de Cartelas</button>
+        <button onclick="verificarReservasAtivas()">📊 Verificar Reservas Ativas</button>
+        <button onclick="limparTeste()">🧹 Limpar Teste</button>
+    </div>
+
+    <div id="resultados-teste">
+        <!-- Resultados aparecerão aqui -->
+    </div>
+
+    <script>
+        let paginaCartelas = null;
+        let testeEmAndamento = false;
+
+        function log(tipo, titulo, conteudo) {
+            const container = document.getElementById('resultados-teste');
+            const div = document.createElement('div');
+            div.className = `container step ${tipo}`;
+            div.innerHTML = `<h3>${titulo}</h3><div>${conteudo}</div>`;
+            container.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function verificarFirebase() {
+            const statusDiv = document.getElementById('firebase-status');
+            
+            try {
+                statusDiv.textContent = '⏳ Verificando Firebase...';
+                statusDiv.className = 'firebase-status';
+                
+                // Verificar se Firebase está disponível
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                
+                if (!firebase.apps.length) {
+                    throw new Error('Firebase não inicializado');
+                }
+                
+                const db = firebase.firestore();
+                
+                // Testar conexão básica
+                await db.collection('test').limit(1).get();
+                
+                statusDiv.textContent = '✅ Firebase conectado e funcionando';
+                statusDiv.className = 'firebase-status firebase-ok';
+                
+                log('success', '✅ Firebase OK', 'Firebase está conectado e pronto para usar');
+                
+            } catch (error) {
+                statusDiv.textContent = `❌ Firebase com problema: ${error.message}`;
+                statusDiv.className = 'firebase-status firebase-error';
+                
+                log('error', '❌ Firebase com Problema', `Erro: ${error.message}`);
+            }
+        }
+
+        async function limparReservasManual() {
+            log('warning', '🧹 Limpando Reservas Expiradas', 'Executando limpeza manual...');
+            
+            try {
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase não disponível');
+                }
+                
+                const db = firebase.firestore();
+                const agora = new Date();
+                
+                const snapshot = await db.collection('cartelas')
+                    .where('status', '==', 'reservada-temporariamente')
+                    .get();
+                
+                if (snapshot.empty) {
+                    log('info', '📋 Limpeza Concluída', 'Nenhuma reserva temporária encontrada');
+                    return;
+                }
+                
+                let removidas = 0;
+                let mantidas = 0;
+                
+                for (const doc of snapshot.docs) {
+                    const data = doc.data();
+                    const expiracao = data.expiracaoReserva?.toDate() || new Date(0);
+                    
+                    if (expiracao < agora) {
+                        await doc.ref.delete();
+                        removidas++;
+                        console.log(`❌ Reserva expirada removida: ${doc.id}`);
+                    } else {
+                        mantidas++;
+                        console.log(`✅ Reserva ativa mantida: ${doc.id}`);
+                    }
+                }
+                
+                const info = `
+                    <strong>Total encontradas:</strong> ${snapshot.size}<br>
+                    <strong>Removidas (expiradas):</strong> ${removidas}<br>
+                    <strong>Mantidas (ativas):</strong> ${mantidas}
+                `;
+                
+                log('success', '✅ Limpeza Concluída', info);
+                
+            } catch (error) {
+                log('error', '❌ Erro na Limpeza', `Erro: ${error.message}`);
+            }
+        }
+
+        async function verificarReservasAtivas() {
+            log('info', '📊 Verificando Reservas Ativas', 'Buscando reservas no banco...');
+            
+            try {
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase não disponível');
+                }
+                
+                const db = firebase.firestore();
+                
+                const snapshot = await db.collection('cartelas')
+                    .where('status', '==', 'reservada-temporariamente')
+                    .get();
+                
+                if (snapshot.empty) {
+                    log('info', '📋 Reservas Ativas', 'Nenhuma reserva temporária ativa no momento');
+                    return;
+                }
+                
+                let info = `<strong>Total de reservas ativas:</strong> ${snapshot.size}<br><br>`;
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const expiracao = data.expiracaoReserva?.toDate();
+                    const agora = new Date();
+                    const tempoRestante = expiracao ? Math.max(0, Math.floor((expiracao - agora) / 1000 / 60)) : 0;
+                    
+                    info += `<div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 5px;">`;
+                    info += `<strong>ID:</strong> ${doc.id}<br>`;
+                    info += `<strong>Números:</strong> <span class="numeros">[${data.numeros ? data.numeros.join(', ') : 'N/A'}]</span><br>`;
+                    info += `<strong>Sessão:</strong> ${data.sessao || 'N/A'}<br>`;
+                    info += `<strong>Tempo restante:</strong> ${tempoRestante > 0 ? `${tempoRestante} min` : 'EXPIRADA'}<br>`;
+                    info += `</div>`;
+                });
+                
+                log('info', '📊 Reservas Encontradas', info);
+                
+            } catch (error) {
+                log('error', '❌ Erro na Verificação', `Erro: ${error.message}`);
+            }
+        }
+
+        function abrirPaginaCartelas() {
+            log('warning', '📱 Abrindo Página de Cartelas', 'Aguarde a página carregar...');
+            paginaCartelas = window.open('cartelas.html', 'teste-reserva', 'width=1200,height=800');
+            
+            setTimeout(() => {
+                if (paginaCartelas && !paginaCartelas.closed) {
+                    log('success', '✅ Página Aberta', 'Página de cartelas carregada com sucesso!');
+                } else {
+                    log('error', '❌ Erro', 'Falha ao abrir página de cartelas');
+                }
+            }, 2000);
+        }
+
+        async function executarTesteReserva() {
+            if (testeEmAndamento) {
+                alert('Teste já em andamento!');
+                return;
+            }
+
+            testeEmAndamento = true;
+            document.getElementById('resultados-teste').innerHTML = '';
+            
+            log('warning', '🚀 Iniciando Teste de Reserva', 'Testando sistema completo de reserva temporária...');
+
+            try {
+                // Verificar Firebase
+                await verificarFirebase();
+                
+                // Abrir página se necessário
+                if (!paginaCartelas || paginaCartelas.closed) {
+                    abrirPaginaCartelas();
+                    await aguardar(3000);
+                }
+
+                // Verificar funções de reserva
+                await verificarFuncoesReserva();
+
+                // Gerar cartela com reserva
+                await gerarCartelaComReserva();
+
+                // Verificar reserva no banco
+                await verificarReservaNoBanco();
+
+                // Simular adicionar ao carrinho
+                await adicionarAoCarrinhoTeste();
+
+                // Simular finalização de compra
+                await simularFinalizacaoCompra();
+
+                log('success', '🎉 Teste de Reserva Concluído', 'Sistema de reserva temporária funcionando corretamente!');
+
+            } catch (error) {
+                log('error', '❌ Erro no Teste', `Erro durante execução: ${error.message}`);
+            } finally {
+                testeEmAndamento = false;
+            }
+        }
+
+        async function verificarFuncoesReserva() {
+            log('warning', '🔧 Verificando Funções de Reserva', 'Checando se as funções estão disponíveis...');
+            
+            if (!paginaCartelas || paginaCartelas.closed) {
+                throw new Error('Página de cartelas não disponível');
+            }
+
+            const funcoes = [
+                'gerarCartelaCorrigida',
+                'gravarReservaTemporaria',
+                'confirmarReserva',
+                'cancelarReserva'
+            ];
+
+            let funcoesEncontradas = [];
+            let funcoesNaoEncontradas = [];
+
+            for (const funcao of funcoes) {
+                if (typeof paginaCartelas[funcao] === 'function') {
+                    funcoesEncontradas.push(funcao);
+                } else {
+                    funcoesNaoEncontradas.push(funcao);
+                }
+            }
+
+            let resultado = `<strong>✅ Encontradas (${funcoesEncontradas.length}):</strong><br>`;
+            resultado += funcoesEncontradas.map(f => `• ${f}`).join('<br>');
+            
+            if (funcoesNaoEncontradas.length > 0) {
+                resultado += `<br><br><strong>❌ Não encontradas (${funcoesNaoEncontradas.length}):</strong><br>`;
+                resultado += funcoesNaoEncontradas.map(f => `• ${f}`).join('<br>');
+            }
+
+            if (funcoesEncontradas.length >= 3) {
+                log('success', '✅ Funções de Reserva OK', resultado);
+            } else {
+                log('error', '⚠️ Funções Incompletas', resultado);
+                throw new Error('Funções de reserva não estão todas disponíveis');
+            }
+        }
+
+        async function gerarCartelaComReserva() {
+            log('warning', '🎲 Gerando Cartela com Reserva', 'Executando geração com reserva temporária...');
+            
+            try {
+                await paginaCartelas.gerarCartelaCorrigida();
+                await aguardar(2000); // Aguardar gravação da reserva
+                
+                const cartelaReservada = paginaCartelas.cartelaReservada;
+                if (cartelaReservada && cartelaReservada.numeros) {
+                    const info = `
+                        <strong>ID:</strong> ${cartelaReservada.id}<br>
+                        <strong>Números:</strong> <span class="numeros">[${cartelaReservada.numeros.join(', ')}]</span><br>
+                        <strong>Quantidade:</strong> ${cartelaReservada.numeros.length}<br>
+                        <strong>Status:</strong> Reservada temporariamente
+                    `;
+                    log('success', '✅ Cartela Gerada e Reservada', info);
+                    window.cartelaTestereserva = cartelaReservada;
+                } else {
+                    throw new Error('Cartela não foi reservada corretamente');
+                }
+            } catch (error) {
+                throw new Error(`Falha na geração com reserva: ${error.message}`);
+            }
+        }
+
+        async function verificarReservaNoBanco() {
+            log('warning', '💾 Verificando Reserva no Banco', 'Confirmando se reserva foi gravada...');
+            
+            try {
+                const cartela = window.cartelaTestereserva;
+                if (!cartela) {
+                    throw new Error('Cartela de teste não encontrada');
+                }
+                
+                const db = firebase.firestore();
+                const doc = await db.collection('cartelas').doc(cartela.id).get();
+                
+                if (!doc.exists) {
+                    throw new Error('Reserva não encontrada no banco');
+                }
+                
+                const data = doc.data();
+                
+                const info = `
+                    <strong>ID no banco:</strong> ${doc.id}<br>
+                    <strong>Status:</strong> ${data.status}<br>
+                    <strong>Números no banco:</strong> <span class="numeros">[${data.numeros ? data.numeros.join(', ') : 'N/A'}]</span><br>
+                    <strong>Consistência:</strong> ${JSON.stringify(data.numeros) === JSON.stringify(cartela.numeros) ? '✅ OK' : '❌ DIVERGENTE'}<br>
+                    <strong>Expiração:</strong> ${data.expiracaoReserva ? data.expiracaoReserva.toDate().toLocaleString() : 'N/A'}
+                `;
+                
+                if (data.status === 'reservada-temporariamente') {
+                    log('success', '✅ Reserva Confirmada no Banco', info);
+                } else {
+                    throw new Error(`Status incorreto: ${data.status}`);
+                }
+                
+            } catch (error) {
+                throw new Error(`Falha na verificação do banco: ${error.message}`);
+            }
+        }
+
+        async function adicionarAoCarrinhoTeste() {
+            log('warning', '🛒 Testando Adicionar ao Carrinho', 'Simulando adição ao carrinho...');
+            
+            try {
+                paginaCartelas.adicionarAoCarrinhoCorrigida();
+                await aguardar(1000);
+                
+                const carrinho = paginaCartelas.carrinho || [];
+                if (carrinho.length > 0) {
+                    const ultimaCartela = carrinho[carrinho.length - 1];
+                    const info = `
+                        <strong>Cartelas no carrinho:</strong> ${carrinho.length}<br>
+                        <strong>ID da última:</strong> ${ultimaCartela.id}<br>
+                        <strong>Números:</strong> <span class="numeros">[${ultimaCartela.numeros ? ultimaCartela.numeros.join(', ') : 'ERRO'}]</span><br>
+                        <strong>Status local:</strong> ${ultimaCartela.statusLocal || 'N/A'}
+                    `;
+                    log('success', '✅ Adicionado ao Carrinho', info);
+                } else {
+                    throw new Error('Carrinho continua vazio');
+                }
+            } catch (error) {
+                throw new Error(`Falha na adição ao carrinho: ${error.message}`);
+            }
+        }
+
+        async function simularFinalizacaoCompra() {
+            log('warning', '💳 Simulando Finalização', 'Testando confirmação de reserva...');
+            
+            try {
+                const cartela = window.cartelaTestereserva;
+                if (!cartela) {
+                    throw new Error('Cartela de teste não encontrada');
+                }
+                
+                const dadosComprador = {
+                    nome: 'Teste Reserva Sistema',
+                    telefone: '11999999999'
+                };
+                
+                const resultado = await paginaCartelas.confirmarReserva(cartela.id, dadosComprador);
+                
+                if (resultado.success) {
+                    const info = `
+                        <strong>Reserva confirmada:</strong> ${resultado.id}<br>
+                        <strong>Modo:</strong> ${resultado.modo}<br>
+                        <strong>Números finais:</strong> <span class="numeros">[${resultado.numeros ? resultado.numeros.join(', ') : 'N/A'}]</span><br>
+                        <strong>Comprador:</strong> ${dadosComprador.nome}<br>
+                        <strong>Telefone:</strong> ${dadosComprador.telefone}
+                    `;
+                    log('success', '✅ Reserva Confirmada', info);
+                } else {
+                    throw new Error(`Falha na confirmação: ${resultado.erro}`);
+                }
+                
+            } catch (error) {
+                throw new Error(`Falha na finalização: ${error.message}`);
+            }
+        }
+
+        function aguardar(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function limparTeste() {
+            document.getElementById('resultados-teste').innerHTML = '';
+            testeEmAndamento = false;
+            
+            delete window.cartelaTestereserva;
+            
+            log('warning', '🧹 Teste Limpo', 'Dados de teste removidos. Execute novo teste quando necessário.');
+        }
+
+        // Inicialização
+        setTimeout(verificarFirebase, 1000);
+        log('success', '🧪 Teste de Reserva Temporária', 'Sistema de teste carregado. Execute o teste completo para verificar o funcionamento das reservas.');
+    </script>
+</body>
+</html>
