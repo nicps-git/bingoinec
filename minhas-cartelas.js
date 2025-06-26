@@ -425,6 +425,17 @@ function criarElementoCartela(cartela) {
         numerosCartela = [];
     }
     
+    // Criar cabeçalho BINGO
+    const bingoHeader = `
+        <div class="bingo-header">
+            <div class="bingo-letter b">B</div>
+            <div class="bingo-letter i">I</div>
+            <div class="bingo-letter n">N</div>
+            <div class="bingo-letter g">G</div>
+            <div class="bingo-letter o">O</div>
+        </div>
+    `;
+    
     // Criar grid de números
     let numerosHtml = '';
     if (numerosCartela.length > 0) {
@@ -456,6 +467,7 @@ function criarElementoCartela(cartela) {
             <h3>🎫 Cartela ${cartela.id}</h3>
             <span class="status-cartela ${statusClass}">${statusText}</span>
         </div>
+        ${bingoHeader}
         <div class="cartela-grid">
             ${numerosHtml}
         </div>

@@ -2129,226 +2129,221 @@ main {
     margin: 20px 0;
 }
 
-/* ===== CORREÇÕES ESPECÍFICAS PARA CONFLITOS DE CSS ===== */
+/* ===== ESTILO CARTELAS BINGO TRADICIONAL (COMO NA IMAGEM) ===== */
 
-/* Força o layout correto para o container das cartelas */
+/* Layout das cartelas em linha horizontal */
 #lista-cartelas-comprador.cartelas-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
-    gap: 25px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 20px !important;
     padding: 20px !important;
-    max-width: 100% !important;
-    margin: 0 !important;
+    justify-content: center !important;
 }
 
-/* Garante que as cartelas individuais sejam exibidas corretamente */
+/* Cartela individual no estilo BINGO tradicional */
 #lista-cartelas-comprador .cartela-item {
-    display: block !important;
-    background: linear-gradient(135deg, #ffffff, #f8f9fa) !important;
-    border-radius: 20px !important;
-    padding: 25px !important;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
-    border: 3px solid #FF6B35 !important;
+    background: white !important;
+    border-radius: 15px !important;
+    padding: 15px !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
+    border: 2px solid #ddd !important;
+    width: 280px !important;
+    min-width: 280px !important;
     transition: all 0.3s ease !important;
-    position: relative !important;
-    overflow: hidden !important;
-    animation: cartela-aparecer 0.5s ease-out !important;
-    width: 100% !important;
-    min-height: auto !important;
 }
 
-/* Correção para o header das cartelas */
+#lista-cartelas-comprador .cartela-item:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+}
+
+/* Header da cartela compacto */
 #lista-cartelas-comprador .cartela-header {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    margin-bottom: 20px !important;
-    padding-bottom: 15px !important;
-    border-bottom: 2px solid #f0f0f0 !important;
+    margin-bottom: 10px !important;
+    padding: 8px 12px !important;
+    background: #f8f9fa !important;
+    border-radius: 8px !important;
+    border: 1px solid #e9ecef !important;
 }
 
 #lista-cartelas-comprador .cartela-header h3 {
-    color: #2c3e50 !important;
-    font-size: 1.4em !important;
+    color: #495057 !important;
+    font-size: 1.1em !important;
     margin: 0 !important;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1) !important;
+    font-weight: bold !important;
 }
 
-/* Grid dos números das cartelas */
-#lista-cartelas-comprador .cartela-grid {
-    display: grid !important;
-    grid-template-columns: repeat(5, 1fr) !important;
-    grid-template-rows: repeat(2, 1fr) !important;
-    gap: 8px !important;
-    margin: 15px 0 !important;
-    padding: 15px !important;
-    background: rgba(255, 255, 255, 0.3) !important;
-    border-radius: 15px !important;
-    border: 2px dashed #FF6B35 !important;
+/* Cabeçalho BINGO */
+.bingo-header {
+    display: flex !important;
+    margin-bottom: 5px !important;
 }
 
-/* Números individuais das cartelas */
-#lista-cartelas-comprador .numero-cartela {
+.bingo-letter {
+    width: 44px !important;
+    height: 30px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 45px !important;
-    height: 45px !important;
-    background: linear-gradient(135deg, #ffffff, #f8f9fa) !important;
-    border: 2px solid #e9ecef !important;
-    border-radius: 12px !important;
     font-weight: bold !important;
-    font-size: 1.1em !important;
-    color: #2c3e50 !important;
+    font-size: 1.2em !important;
+    color: white !important;
+    margin-right: 2px !important;
+    border-radius: 5px !important;
+}
+
+.bingo-letter.b { background: #dc3545 !important; }
+.bingo-letter.i { background: #fd7e14 !important; }
+.bingo-letter.n { background: #ffc107 !important; color: #333 !important; }
+.bingo-letter.g { background: #28a745 !important; }
+.bingo-letter.o { background: #007bff !important; }
+
+/* Grid dos números no estilo BINGO tradicional */
+#lista-cartelas-comprador .cartela-grid {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 2px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: none !important;
+    border: none !important;
+}
+
+/* Números das cartelas no estilo tradicional */
+#lista-cartelas-comprador .numero-cartela {
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: white !important;
+    border: 1px solid #ccc !important;
+    font-weight: bold !important;
+    font-size: 1em !important;
+    color: #333 !important;
     cursor: pointer !important;
     transition: all 0.2s ease !important;
-    user-select: none !important;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1) !important;
+    border-radius: 3px !important;
 }
 
 #lista-cartelas-comprador .numero-cartela:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3) !important;
-    border-color: #FF6B35 !important;
+    background: #f8f9fa !important;
+    border-color: #666 !important;
 }
 
-/* Número marcado */
+/* Número marcado (verde como na imagem) */
 #lista-cartelas-comprador .numero-cartela.marcado {
-    background: linear-gradient(135deg, #28a745, #20c997) !important;
+    background: #28a745 !important;
     color: white !important;
-    border-color: #28a745 !important;
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4) !important;
+    border-color: #1e7e34 !important;
+    font-weight: bold !important;
 }
 
-/* Número sorteado mas não marcado */
+/* Número sorteado mas não marcado (amarelo) */
 #lista-cartelas-comprador .numero-cartela.sorteado-pendente {
-    background: linear-gradient(135deg, #ffc107, #fd7e14) !important;
-    color: #2c3e50 !important;
-    border-color: #ffc107 !important;
-    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4) !important;
-    animation: numero-piscando 1.5s ease-in-out infinite !important;
+    background: #ffc107 !important;
+    color: #333 !important;
+    border-color: #e0a800 !important;
+    animation: numero-destaque 1.5s ease-in-out infinite !important;
 }
 
-@keyframes numero-piscando {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+@keyframes numero-destaque {
+    0%, 100% { 
+        background: #ffc107 !important;
+        transform: scale(1);
+    }
+    50% { 
+        background: #ffcd39 !important;
+        transform: scale(1.05);
+    }
 }
 
-/* Informações da cartela */
+/* Área de informações da cartela */
 #lista-cartelas-comprador .cartela-info {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    margin-top: 15px !important;
-    padding-top: 15px !important;
-    border-top: 1px solid #e9ecef !important;
-    flex-wrap: wrap !important;
-    gap: 10px !important;
+    margin-top: 10px !important;
+    padding: 8px 12px !important;
+    background: #f8f9fa !important;
+    border-radius: 8px !important;
+    border: 1px solid #e9ecef !important;
+    font-size: 0.85em !important;
 }
 
 #lista-cartelas-comprador .info-item {
-    background: rgba(255, 107, 53, 0.1) !important;
-    padding: 5px 12px !important;
-    border-radius: 15px !important;
-    font-size: 0.9em !important;
-    color: #2c3e50 !important;
-    border: 1px solid rgba(255, 107, 53, 0.2) !important;
+    color: #495057 !important;
+    font-weight: 500 !important;
 }
 
 #lista-cartelas-comprador .info-item.bingo {
-    background: linear-gradient(135deg, #FFD700, #FFA500) !important;
-    color: #2c3e50 !important;
+    background: #ffd700 !important;
+    color: #333 !important;
+    padding: 4px 8px !important;
+    border-radius: 12px !important;
     font-weight: bold !important;
-    animation: bingo-pulse 1s ease-in-out infinite !important;
+    animation: bingo-destaque 1s ease-in-out infinite !important;
 }
 
-@keyframes bingo-pulse {
+@keyframes bingo-destaque {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+    50% { transform: scale(1.1); }
 }
 
-/* Status da cartela */
+/* Status da cartela (botões pequenos) */
 #lista-cartelas-comprador .status-cartela {
-    padding: 8px 16px !important;
-    border-radius: 20px !important;
-    font-size: 0.9em !important;
+    padding: 4px 8px !important;
+    border-radius: 12px !important;
+    font-size: 0.8em !important;
     font-weight: bold !important;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1) !important;
+    text-transform: uppercase !important;
 }
 
 #lista-cartelas-comprador .status-cartela.vendida {
-    background: linear-gradient(135deg, #28a745, #20c997) !important;
+    background: #28a745 !important;
     color: white !important;
 }
 
 #lista-cartelas-comprador .status-cartela.pendente {
-    background: linear-gradient(135deg, #ffc107, #fd7e14) !important;
-    color: #2c3e50 !important;
+    background: #ffc107 !important;
+    color: #333 !important;
 }
 
-/* Responsividade específica para as correções */
+/* Responsividade para o layout tradicional */
 @media (max-width: 768px) {
     #lista-cartelas-comprador.cartelas-grid {
-        grid-template-columns: 1fr !important;
-        gap: 20px !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 15px !important;
         padding: 15px !important;
     }
     
-    #lista-cartelas-comprador .cartela-grid {
-        grid-template-columns: repeat(5, 1fr) !important;
-        gap: 6px !important;
-    }
-    
-    #lista-cartelas-comprador .numero-cartela {
-        width: 35px !important;
-        height: 35px !important;
-        font-size: 1em !important;
-    }
-    
-    #lista-cartelas-comprador .cartela-info {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 8px !important;
+    #lista-cartelas-comprador .cartela-item {
+        width: 100% !important;
+        max-width: 300px !important;
+        min-width: auto !important;
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 320px) {
     #lista-cartelas-comprador .cartela-item {
-        padding: 20px !important;
+        width: 100% !important;
+        padding: 12px !important;
     }
     
-    #lista-cartelas-comprador .numero-cartela {
-        width: 30px !important;
-        height: 30px !important;
+    #lista-cartelas-comprador .numero-cartela,
+    .bingo-letter {
+        width: 38px !important;
+        height: 38px !important;
         font-size: 0.9em !important;
     }
     
-    #lista-cartelas-comprador .cartela-header h3 {
-        font-size: 1.2em !important;
+    .bingo-letter {
+        height: 25px !important;
     }
-}
-
-/* Correção para mensagem de cartelas não encontradas */
-#lista-cartelas-comprador .sem-cartelas {
-    text-align: center !important;
-    padding: 40px 20px !important;
-    color: #6c757d !important;
-    font-size: 1.2em !important;
-    background: rgba(255, 255, 255, 0.8) !important;
-    border-radius: 15px !important;
-    border: 2px dashed #dee2e6 !important;
-    margin: 20px 0 !important;
-}
-
-/* Correção para erro de cartela */
-#lista-cartelas-comprador .erro-cartela {
-    text-align: center !important;
-    padding: 20px !important;
-    color: #dc3545 !important;
-    background: rgba(220, 53, 69, 0.1) !important;
-    border-radius: 10px !important;
-    border: 1px solid rgba(220, 53, 69, 0.2) !important;
-    font-weight: bold !important;
 }
 
 /* ===== FIM DAS CORREÇÕES ===== */
