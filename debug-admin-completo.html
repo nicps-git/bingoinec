@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Admin - Bingo INEC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+        }
+        
+        .test-results {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Debug da Página Admin - Bingo INEC</h1>
+    
+    <div class="debug-section">
+        <h2>📋 Status dos Scripts</h2>
+        <div id="script-status"></div>
+        <button onclick="verificarScripts()">🔍 Verificar Scripts</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🔥 Status do Firebase</h2>
+        <div id="firebase-status"></div>
+        <button onclick="testarFirebase()">🧪 Testar Firebase</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🔐 Status da Autenticação</h2>
+        <div id="auth-status"></div>
+        <button onclick="testarAuth()">🔑 Testar Auth</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🎯 Testes Funcionais</h2>
+        <div id="functional-tests"></div>
+        <button onclick="executarTestes()">▶️ Executar Todos os Testes</button>
+        <button onclick="limparLogs()">🗑️ Limpar Logs</button>
+    </div>
+    
+    <div class="debug-section">
+        <h2>📊 Logs do Console</h2>
+        <div class="test-results">
+            <pre id="console-logs">Logs aparecerão aqui...</pre>
+        </div>
+    </div>
+
+    <!-- Scripts necessários para teste -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config-admin.js"></script>
+    <script src="auth-simples.js"></script>
+    
+    <script>
+        // Capturar logs do console
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        let logs = [];
+        
+        function addLog(type, ...args) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            logs.push(`[${timestamp}] ${type.toUpperCase()}: ${message}`);
+            updateLogsDisplay();
+            
+            // Chamar função original
+            if (type === 'log') originalLog(...args);
+            else if (type === 'error') originalError(...args);
+            else if (type === 'warn') originalWarn(...args);
+        }
+        
+        console.log = (...args) => addLog('log', ...args);
+        console.error = (...args) => addLog('error', ...args);
+        console.warn = (...args) => addLog('warn', ...args);
+        
+        function updateLogsDisplay() {
+            const logsElement = document.getElementById('console-logs');
+            if (logsElement) {
+                logsElement.textContent = logs.slice(-50).join('\n'); // Últimos 50 logs
+                logsElement.scrollTop = logsElement.scrollHeight;
+            }
+        }
+        
+        function limparLogs() {
+            logs = [];
+            updateLogsDisplay();
+        }
+        
+        function setStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `<div class="status ${type}">${message}</div>`;
+            }
+        }
+        
+        function verificarScripts() {
+            console.log('🔍 Verificando scripts...');
+            
+            const scripts = [
+                { name: 'Firebase App', check: () => typeof firebase !== 'undefined' },
+                { name: 'Firebase Firestore', check: () => typeof firebase !== 'undefined' && firebase.firestore },
+                { name: 'Firebase Auth', check: () => typeof firebase !== 'undefined' && firebase.auth },
+                { name: 'Firebase Config', check: () => typeof firebaseConfig !== 'undefined' },
+                { name: 'Init Firebase Simple', check: () => typeof initFirebaseSimple === 'function' },
+                { name: 'Auth Simples', check: () => typeof createSimpleAuth === 'function' },
+                { name: 'Admin Auth', check: () => typeof isAdminAuthenticated === 'function' }
+            ];
+            
+            let status = '<h3>📦 Status dos Scripts:</h3>';
+            let allOk = true;
+            
+            scripts.forEach(script => {
+                const ok = script.check();
+                status += `<div class="status ${ok ? 'success' : 'error'}">
+                    ${ok ? '✅' : '❌'} ${script.name}: ${ok ? 'Carregado' : 'Não encontrado'}
+                </div>`;
+                if (!ok) allOk = false;
+            });
+            
+            status += `<div class="status ${allOk ? 'success' : 'warning'}">
+                <strong>Status Geral: ${allOk ? '✅ Todos os scripts OK' : '⚠️ Alguns scripts com problema'}</strong>
+            </div>`;
+            
+            setStatus('script-status', status);
+        }
+        
+        async function testarFirebase() {
+            console.log('🔥 Testando Firebase...');
+            
+            try {
+                // Verificar se Firebase está disponível
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                
+                // Tentar inicializar
+                let initResult = false;
+                if (typeof initFirebaseSimple === 'function') {
+                    initResult = initFirebaseSimple();
+                } else {
+                    if (!firebase.apps || !firebase.apps.length) {
+                        firebase.initializeApp(firebaseConfig);
+                    }
+                    initResult = true;
+                }
+                
+                if (!initResult) {
+                    throw new Error('Falha na inicialização do Firebase');
+                }
+                
+                // Testar conexão com Firestore
+                const db = firebase.firestore();
+                await db.collection('teste').limit(1).get();
+                
+                setStatus('firebase-status', `
+                    <div class="status success">✅ Firebase SDK: OK</div>
+                    <div class="status success">✅ Inicialização: OK</div>
+                    <div class="status success">✅ Firestore: Conectado</div>
+                    <div class="status success">✅ Auth: Disponível</div>
+                    <div class="status success"><strong>🎉 Firebase funcionando perfeitamente!</strong></div>
+                `);
+                
+            } catch (error) {
+                console.error('❌ Erro no teste do Firebase:', error);
+                setStatus('firebase-status', `
+                    <div class="status error">❌ Erro: ${error.message}</div>
+                    <div class="status warning">⚠️ Verifique sua conexão com a internet</div>
+                    <div class="status warning">⚠️ Verifique as configurações do Firebase</div>
+                `);
+            }
+        }
+        
+        function testarAuth() {
+            console.log('🔑 Testando autenticação...');
+            
+            try {
+                const hasAuth = typeof isAdminAuthenticated === 'function';
+                const hasCreateAuth = typeof createSimpleAuth === 'function';
+                const hasLogout = typeof adminLogout === 'function';
+                
+                let authStatus = '';
+                
+                if (hasAuth) {
+                    const isAuth = isAdminAuthenticated();
+                    authStatus += `<div class="status ${isAuth ? 'success' : 'info'}">
+                        ${isAuth ? '✅' : 'ℹ️'} Status atual: ${isAuth ? 'Autenticado' : 'Não autenticado'}
+                    </div>`;
+                }
+                
+                authStatus += `
+                    <div class="status ${hasAuth ? 'success' : 'error'}">
+                        ${hasAuth ? '✅' : '❌'} Verificação de auth: ${hasAuth ? 'OK' : 'Não encontrada'}
+                    </div>
+                    <div class="status ${hasCreateAuth ? 'success' : 'error'}">
+                        ${hasCreateAuth ? '✅' : '❌'} Criação de auth: ${hasCreateAuth ? 'OK' : 'Não encontrada'}
+                    </div>
+                    <div class="status ${hasLogout ? 'success' : 'error'}">
+                        ${hasLogout ? '✅' : '❌'} Logout: ${hasLogout ? 'OK' : 'Não encontrado'}
+                    </div>
+                `;
+                
+                setStatus('auth-status', authStatus);
+                
+            } catch (error) {
+                console.error('❌ Erro no teste de auth:', error);
+                setStatus('auth-status', `<div class="status error">❌ Erro: ${error.message}</div>`);
+            }
+        }
+        
+        async function executarTestes() {
+            console.log('🧪 Executando todos os testes...');
+            
+            setStatus('functional-tests', '<div class="status info">⏳ Executando testes...</div>');
+            
+            // Executar todos os testes
+            verificarScripts();
+            await testarFirebase();
+            testarAuth();
+            
+            // Teste adicional: verificar se elementos do DOM existem
+            const elementos = [
+                'numero-inicial', 'numero-final', 'preco-cartela',
+                'salvar-config', 'resetar-jogo', 'ir-para-bingo',
+                'numeros-sorteados-count', 'total-numeros'
+            ];
+            
+            let domStatus = '<h3>🏗️ Elementos do DOM:</h3>';
+            elementos.forEach(id => {
+                const existe = !!document.getElementById(id);
+                domStatus += `<div class="status ${existe ? 'success' : 'error'}">
+                    ${existe ? '✅' : '❌'} #${id}: ${existe ? 'Encontrado' : 'Não encontrado'}
+                </div>`;
+            });
+            
+            setStatus('functional-tests', domStatus);
+            
+            console.log('✅ Todos os testes concluídos');
+        }
+        
+        // Auto-executar testes na carga da página
+        window.onload = () => {
+            console.log('🚀 Página de debug carregada');
+            setTimeout(() => {
+                executarTestes();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

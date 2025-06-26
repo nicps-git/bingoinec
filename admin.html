@@ -6,22 +6,27 @@
     <title>Administração - Bingo Arraiá INEC</title>
     <link rel="stylesheet" href="admin.css">
     
-    <!-- Sistema de Autenticação -->
-    <script src="auth-simples.js"></script>
-    
     <!-- Firebase SDK v9 Compat -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     
     <!-- Firebase Configuration -->
-    <script src="firebase-config.js"></script>
-    <script src="firebase-service.js"></script>
+    <script src="firebase-config-admin.js"></script>
+    
+    <!-- Sistema de Autenticação Admin -->
+    <script src="auth-admin.js"></script>
     
     <!-- Admin Logic -->
-    <script src="admin-ultra-simples.js"></script>
+    <script src="admin.js"></script>
 </head>
 <body>
+    <script>
+        // Verificar autenticação ao carregar a página
+        if (!requireAuthentication()) {
+            window.location.href = 'index.html';
+        }
+    </script>
     <!-- Bandeirolas -->
     <div class="bandeirolas">
         <div class="bandeirola bandeirola-1"></div>
@@ -107,7 +112,11 @@
                     <div id="historico-numeros" class="historico-numeros">
                         <p class="sem-historico">Nenhum número sorteado ainda</p>
                     </div>
-                    <button id="limpar-historico" class="btn-danger">🗑️ Limpar Histórico</button>
+                    <div class="historico-actions">
+                        <button id="atualizar-numeros" class="btn-secondary">🔄 Atualizar Números</button>
+                        <button id="diagnosticar-numeros" class="btn-info">🔍 Diagnosticar</button>
+                        <button id="limpar-historico" class="btn-danger">🗑️ Limpar Histórico</button>
+                    </div>
                 </div>
             </div>
 
@@ -163,8 +172,5 @@
         <div class="estrela estrela-4">✨</div>
         <div class="estrela estrela-5">⭐</div>
     </div>
-
-    <!-- Scripts carregados no head -->
-    <script src="login.js"></script>
 </body>
 </html>

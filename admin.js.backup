@@ -1,0 +1,1436 @@
+// Função para aguardar sistema de autenticação estar disponível
+function waitForAuthSystem() {
+    return new Promise((resolve) => {
+        if (typeof window.bingoAuth !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        const checkAuth = () => {
+            if (typeof window.bingoAuth !== 'undefined') {
+                resolve();
+            } else {
+                setTimeout(checkAuth, 100);
+            }
+        };
+        
+        checkAuth();
+    });
+}
+
+// Função para aguardar todas as dependências estarem disponíveis
+function waitForAllDependencies() {
+    return new Promise((resolve, reject) => {
+        let tentativas = 0;
+        const maxTentativas = 50; // 5 segundos
+        
+        const checkDependencies = () => {
+            tentativas++;
+            
+            const dependencias = {
+                'Firebase SDK': typeof firebase !== 'undefined',
+                'Firebase Config': typeof firebaseConfig !== 'undefined', 
+                'FirebaseService': typeof FirebaseService !== 'undefined',
+                'BingoAuth': typeof window.bingoAuth !== 'undefined'
+            };
+            
+            const dependenciasFaltando = Object.entries(dependencias)
+                .filter(([nome, carregado]) => !carregado)
+                .map(([nome]) => nome);
+            
+            if (dependenciasFaltando.length === 0) {
+                console.log('✅ [DEBUG] Todas as dependências disponíveis');
+                resolve();
+                return;
+            }
+            
+            if (tentativas >= maxTentativas) {
+                reject(new Error(`Timeout: Dependências não carregaram: ${dependenciasFaltando.join(', ')}`));
+                return;
+            }
+            
+            console.log(`🔄 [DEBUG] Aguardando dependências (${tentativas}/${maxTentativas}):`, dependenciasFaltando);
+            setTimeout(checkDependencies, 100);
+        };
+        
+        checkDependencies();
+    });
+}
+
+// Função principal de inicialização
+async function initializeAdmin() {
+    console.log('🔐 [ADMIN] Inicializando área administrativa...');
+    
+    try {
+        // Tentar aguardar dependências com timeout menor
+        const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Timeout na verificação de dependências')), 3000);
+        });
+        
+        const waitDeps = waitForAllDependencies();
+        
+        await Promise.race([waitDeps, timeout]);
+        console.log('🔐 [ADMIN] Todas as dependências carregadas');
+        
+        // Verificar autenticação de forma mais flexível
+        if (typeof window.bingoAuth !== 'undefined') {
+            let autenticado = window.bingoAuth.isAuthenticated();
+            console.log('🔐 [ADMIN] Status autenticação inicial:', autenticado);
+            
+            if (!autenticado) {
+                console.log('🔐 [ADMIN] Usuário não autenticado, solicitando login...');
+                autenticado = window.bingoAuth.requireAuth();
+                console.log('🔐 [ADMIN] Resultado da autenticação:', autenticado);
+                
+                if (!autenticado) {
+                    console.log('❌ [ADMIN] Autenticação cancelada/falhou, redirecionando...');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                    return;
+                }
+            }
+            
+            console.log('✅ [ADMIN] Usuário autenticado com sucesso');
+            updateUserInfo();
+        } else {
+            console.warn('⚠️ [ADMIN] Sistema de autenticação não disponível, continuando sem autenticação');
+        }
+        
+        // Continuar com a inicialização da página admin
+        await initializeAdminPage();
+        
+    } catch (error) {
+        console.error('❌ [ADMIN] Erro na inicialização:', error);
+        throw error; // Re-throw para o catch principal
+    }
+}
+
+async function initializeAdminPage() {
+    
+    // ===== ELEMENTOS DO DOM =====
+    console.log('🔍 Buscando elementos DOM...');
+    const numeroInicialInput = document.getElementById('numero-inicial');
+    const numeroFinalInput = document.getElementById('numero-final');
+    const totalNumerosSpan = document.getElementById('total-numeros');
+    const rangeAtualSpan = document.getElementById('range-atual');
+    const numerosSorteadosCountSpan = document.getElementById('numeros-sorteados-count');
+    const numerosRestantesSpan = document.getElementById('numeros-restantes');
+    const historicoContainer = document.getElementById('historico-numeros');
+    
+    const salvarConfigBtn = document.getElementById('salvar-config');
+    const resetarJogoBtn = document.getElementById('resetar-jogo');
+    const irParaBingoBtn = document.getElementById('ir-para-bingo');
+    const limparHistoricoBtn = document.getElementById('limpar-historico');
+    const atualizarNumerosBtn = document.getElementById('atualizar-numeros');
+
+    // Elementos do sistema de cartelas
+    const precoCartelaInput = document.getElementById('preco-cartela');
+    const gerarCartelaBtn = document.getElementById('gerar-cartela');
+    const verVendasBtn = document.getElementById('ver-vendas');
+    const cartelasGeradasSpan = document.getElementById('cartelas-geradas');
+    const cartelasVendidasSpan = document.getElementById('cartelas-vendidas');
+    const totalArrecadadoSpan = document.getElementById('total-arrecadado');
+    const modalVendas = document.getElementById('modal-vendas');
+    const listaCartelas = document.getElementById('lista-cartelas');
+    const closeModal = document.querySelector('.close');
+
+    // Verificar se todos os elementos essenciais foram encontrados
+    const elementos = {
+        numeroInicialInput, numeroFinalInput, salvarConfigBtn, resetarJogoBtn, 
+        irParaBingoBtn, limparHistoricoBtn, atualizarNumerosBtn, gerarCartelaBtn, verVendasBtn, 
+        modalVendas, closeModal
+    };
+    
+    const elementosFaltando = Object.entries(elementos).filter(([nome, el]) => !el);
+    if (elementosFaltando.length > 0) {
+        console.error('❌ Elementos DOM não encontrados:', elementosFaltando.map(([nome]) => nome));
+        alert('Erro: Alguns elementos da página não foram encontrados. Recarregue a página.');
+        return;
+    }
+    
+    console.log('✅ Todos os elementos DOM encontrados');
+
+    let configuracoes = {};
+    let numerosSorteados = [];
+    let cartelas = [];
+
+    // Inicialização robusta do Firebase Service
+    console.log('🔥 [ADMIN] Inicializando Firebase Service...');
+    
+    let firebaseService = null;
+    let sistemaInicializado = false;
+    
+    // Função para inicializar Firebase Service
+    async function inicializarFirebase() {
+        try {
+            console.log('� [ADMIN] Verificando dependências...');
+            
+            // Verificar se Firebase SDK está carregado
+            if (typeof firebase === 'undefined') {
+                throw new Error('Firebase SDK não carregado');
+            }
+            console.log('✅ [ADMIN] Firebase SDK carregado');
+            
+            // Tentar criar instância do Firebase Service
+            if (typeof FirebaseService !== 'undefined') {
+                firebaseService = new FirebaseService();
+                console.log('✅ [ADMIN] Firebase Service instanciado');
+                
+                // Testar conexão
+                try {
+                    const conexaoOk = await firebaseService.verificarConexao();
+                    if (conexaoOk) {
+                        console.log('✅ [ADMIN] Conexão com Firebase estabelecida');
+                        sistemaInicializado = true;
+                        window.firebaseService = firebaseService; // Para compatibilidade
+                        return true;
+                    } else {
+                        console.warn('⚠️ [ADMIN] Conexão fraca, mas continuando...');
+                        sistemaInicializado = true;
+                        window.firebaseService = firebaseService;
+                        return true;
+                    }
+                } catch (connError) {
+                    console.warn('⚠️ [ADMIN] Erro na verificação de conexão, mas continuando:', connError.message);
+                    sistemaInicializado = true;
+                    window.firebaseService = firebaseService;
+                    return true;
+                }
+            } else {
+                throw new Error('Classe FirebaseService não encontrada');
+            }
+            
+        } catch (error) {
+            console.error('❌ [ADMIN] Erro ao inicializar Firebase:', error.message);
+            return false;
+        }
+    }
+    
+    // Tentar inicializar Firebase
+    const firebaseInicializado = await inicializarFirebase();
+    
+    if (!firebaseInicializado) {
+        console.error('❌ [ADMIN] Firebase não conseguiu inicializar');
+        alert('❌ Erro ao carregar sistema Firebase. Verifique sua conexão com a internet e recarregue a página.');
+        return;
+    }
+    
+    console.log('🎉 [ADMIN] Firebase inicializado com sucesso!');
+
+    // ===== FUNÇÕES PRINCIPAIS =====
+
+    // Função robusta para buscar números sorteados com múltiplas tentativas
+    async function buscarNumerosSorteadosRobusta() {
+        console.log('🔍 [ADMIN] Iniciando busca robusta de números sorteados...');
+        let numerosEncontrados = [];
+        
+        // Tentativa 1: FirebaseService
+        if (sistemaInicializado && firebaseService && typeof firebaseService.carregarNumerosSorteados === 'function') {
+            try {
+                console.log('🎯 [ADMIN] Tentativa 1: Via FirebaseService...');
+                numerosEncontrados = await firebaseService.carregarNumerosSorteados();
+                console.log('📊 [ADMIN] FirebaseService retornou:', numerosEncontrados.length, 'números');
+                
+                if (numerosEncontrados.length > 0) {
+                    console.log('✅ [ADMIN] Sucesso via FirebaseService:', numerosEncontrados);
+                    return numerosEncontrados;
+                }
+            } catch (error) {
+                console.warn('⚠️ [ADMIN] FirebaseService falhou:', error.message);
+            }
+        }
+        
+        // Tentativa 2: Busca direta no Firestore
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+            try {
+                console.log('🎯 [ADMIN] Tentativa 2: Busca direta no Firestore...');
+                const db = firebase.firestore();
+                
+                // Sub-tentativa 2a: Com orderBy
+                try {
+                    const snapshot = await db.collection('numeros-sorteados').orderBy('dataSorteio', 'asc').get();
+                    console.log(`📊 [ADMIN] Firestore com orderBy: ${snapshot.size} documentos`);
+                    
+                    if (snapshot.size > 0) {
+                        const numeros = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (data.numero !== undefined && data.numero !== null) {
+                                numeros.push(data.numero);
+                            }
+                        });
+                        
+                        if (numeros.length > 0) {
+                            console.log('✅ [ADMIN] Sucesso via Firestore com orderBy:', numeros);
+                            return numeros;
+                        }
+                    }
+                } catch (orderByError) {
+                    console.log('⚠️ [ADMIN] Firestore com orderBy falhou:', orderByError.message);
+                }
+                
+                // Sub-tentativa 2b: Sem orderBy
+                try {
+                    const snapshot = await db.collection('numeros-sorteados').get();
+                    console.log(`📊 [ADMIN] Firestore sem orderBy: ${snapshot.size} documentos`);
+                    
+                    if (snapshot.size > 0) {
+                        const numeros = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (data.numero !== undefined && data.numero !== null) {
+                                numeros.push(data.numero);
+                            }
+                        });
+                        
+                        if (numeros.length > 0) {
+                            // Ordenar manualmente por timestamp se disponível
+                            numeros.sort((a, b) => {
+                                // Se tiver timestamp, usar para ordenar, senão ordenar por número
+                                return a - b;
+                            });
+                            console.log('✅ [ADMIN] Sucesso via Firestore sem orderBy:', numeros);
+                            return numeros;
+                        }
+                    }
+                } catch (noOrderError) {
+                    console.warn('⚠️ [ADMIN] Firestore sem orderBy falhou:', noOrderError.message);
+                }
+                
+                // Sub-tentativa 2c: Tentar outras coleções possíveis
+                const colecoesPossiveies = ['jogo-status', 'configuracoes', 'bingo-dados'];
+                for (const colecao of colecoesPossiveies) {
+                    try {
+                        console.log(`🎯 [ADMIN] Tentando coleção: ${colecao}...`);
+                        const snapshot = await db.collection(colecao).get();
+                        console.log(`📊 [ADMIN] Coleção ${colecao}: ${snapshot.size} documentos`);
+                        
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (data.numerosSorteados && Array.isArray(data.numerosSorteados)) {
+                                if (data.numerosSorteados.length > numerosEncontrados.length) {
+                                    numerosEncontrados = data.numerosSorteados;
+                                    console.log(`✅ [ADMIN] Números encontrados em ${colecao}:`, numerosEncontrados);
+                                }
+                            }
+                        });
+                    } catch (colecaoError) {
+                        console.log(`⚠️ [ADMIN] Coleção ${colecao} falhou:`, colecaoError.message);
+                    }
+                }
+                
+                if (numerosEncontrados.length > 0) {
+                    return numerosEncontrados;
+                }
+                
+            } catch (firestoreError) {
+                console.warn('⚠️ [ADMIN] Busca no Firestore falhou:', firestoreError.message);
+            }
+        }
+        
+        // Tentativa 3: localStorage
+        try {
+            console.log('🎯 [ADMIN] Tentativa 3: localStorage...');
+            const numerosLocais = JSON.parse(localStorage.getItem('numeros_sorteados') || '[]');
+            if (numerosLocais.length > 0) {
+                console.log('✅ [ADMIN] Sucesso via localStorage:', numerosLocais);
+                return numerosLocais;
+            }
+        } catch (localStorageError) {
+            console.warn('⚠️ [ADMIN] localStorage falhou:', localStorageError.message);
+        }
+        
+        // Tentativa 4: Dados de demonstração (apenas para debug)
+        console.log('🎯 [ADMIN] Tentativa 4: Verificando se há dados demo...');
+        const dadosDemo = JSON.parse(localStorage.getItem('bingo_demo_numbers') || '[]');
+        if (dadosDemo.length > 0) {
+            console.log('📝 [ADMIN] Usando dados demo:', dadosDemo);
+            return dadosDemo;
+        }
+        
+        console.log('📭 [ADMIN] Nenhum número sorteado encontrado em todas as tentativas');
+        return [];
+    }
+
+    // Carregar dados do Firebase
+    async function carregarDados() {
+        try {
+            console.log('📦 [ADMIN] Carregando dados...');
+            
+            // Carregar configurações
+            if (sistemaInicializado && firebaseService && typeof firebaseService.carregarConfiguracoes === 'function') {
+                try {
+                    configuracoes = await firebaseService.carregarConfiguracoes();
+                    console.log('📋 [ADMIN] Configurações carregadas:', configuracoes);
+                } catch (configError) {
+                    console.warn('⚠️ [ADMIN] Erro ao carregar configurações do Firebase:', configError.message);
+                    // Fallback para configurações locais
+                    configuracoes = JSON.parse(localStorage.getItem('bingo_configuracoes') || '{"numeroInicial": 1, "numeroFinal": 75, "precoCartela": 5.00}');
+                }
+            } else {
+                configuracoes = JSON.parse(localStorage.getItem('bingo_configuracoes') || '{"numeroInicial": 1, "numeroFinal": 75, "precoCartela": 5.00}');
+                console.log('📋 [ADMIN] Configurações carregadas do localStorage:', configuracoes);
+            }
+            
+            // Carregar cartelas
+            if (sistemaInicializado && firebaseService && typeof firebaseService.carregarCartelas === 'function') {
+                try {
+                    cartelas = await firebaseService.carregarCartelas();
+                    console.log('🎫 [ADMIN] Cartelas carregadas do Firebase:', cartelas.length);
+                } catch (cartelasError) {
+                    console.warn('⚠️ [ADMIN] Erro ao carregar cartelas do Firebase:', cartelasError.message);
+                    cartelas = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
+                }
+            } else {
+                cartelas = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
+                console.log('🎫 [ADMIN] Cartelas carregadas do localStorage:', cartelas.length);
+            }
+
+            // Fallback para cartelas se necessário
+            if (cartelas.length === 0) {
+                const cartelasLocais = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
+                if (cartelasLocais.length > 0) {
+                    cartelas = cartelasLocais;
+                    console.log('📂 [ADMIN] Usando cartelas do localStorage como fallback');
+                }
+            }
+
+            // Usar função robusta para carregar números sorteados
+            console.log('🎲 [ADMIN] Carregando números sorteados com função robusta...');
+            numerosSorteados = await buscarNumerosSorteadosRobusta();
+            console.log('🎲 [ADMIN] Números sorteados carregados:', numerosSorteados.length, numerosSorteados);
+
+            // Atualizar displays com histórico robusto
+            atualizarDisplay();
+            atualizarRangeAtual();
+            atualizarEstatisticasCartelas();
+            await atualizarHistoricoRobusta();
+            
+            console.log('✅ [ADMIN] Todos os dados carregados com sucesso');
+            
+        } catch (error) {
+            console.error('❌ [ADMIN] Erro ao carregar dados:', error);
+            // Carregar dados locais como fallback final
+            carregarDadosLocais();
+        }
+    }
+
+    function carregarDadosLocais() {
+        configuracoes = JSON.parse(localStorage.getItem('bingo_configuracoes') || '{"numeroInicial": 1, "numeroFinal": 75, "precoCartela": 5.00}');
+        numerosSorteados = JSON.parse(localStorage.getItem('numeros_sorteados') || '[]');
+        cartelas = JSON.parse(localStorage.getItem('bingo_cartelas_vendidas') || '[]');
+        atualizarTodosDisplays();
+        console.log('📂 Dados carregados do localStorage');
+    }
+
+    function atualizarTodosDisplays() {
+        atualizarDisplay();
+        atualizarRangeAtual();
+        atualizarEstatisticasCartelas();
+        // Usar a versão não assíncrona para compatibilidade, a robusta será chamada quando necessário
+        atualizarHistoricoBasico();
+    }
+    
+    // Versão básica para compatibilidade
+    function atualizarHistoricoBasico() {
+        if (!historicoContainer) return;
+        
+        if (numerosSorteados.length === 0) {
+            historicoContainer.innerHTML = '<p class="sem-historico">Nenhum número sorteado ainda</p>';
+        } else {
+            const numerosHtml = numerosSorteados.map(num => 
+                `<span class="numero-sorteado" style="
+                    display: inline-block;
+                    background: linear-gradient(135deg, #28a745, #20c997);
+                    color: white;
+                    padding: 8px 12px;
+                    margin: 4px;
+                    border-radius: 50%;
+                    font-weight: bold;
+                    font-size: 16px;
+                    min-width: 40px;
+                    text-align: center;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                ">${num}</span>`
+            ).join('');
+            
+            historicoContainer.innerHTML = `
+                <div style="margin-bottom: 10px;">
+                    <strong>Total: ${numerosSorteados.length} números</strong>
+                </div>
+                <div style="max-height: 300px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9;">
+                    ${numerosHtml}
+                </div>
+            `;
+        }
+    }
+
+    function atualizarDisplay() {
+        if (!numeroInicialInput || !numeroFinalInput) return;
+        
+        const inicial = parseInt(numeroInicialInput.value) || 1;
+        const final = parseInt(numeroFinalInput.value) || 75;
+        const total = final - inicial + 1;
+        const restantes = total - numerosSorteados.length;
+
+        if (totalNumerosSpan) totalNumerosSpan.textContent = `Total de números: ${total}`;
+        if (numerosRestantesSpan) numerosRestantesSpan.textContent = restantes;
+        if (numerosSorteadosCountSpan) numerosSorteadosCountSpan.textContent = numerosSorteados.length;
+    }
+
+    function atualizarRangeAtual() {
+        if (configuracoes && rangeAtualSpan) {
+            rangeAtualSpan.textContent = `${configuracoes.numeroInicial || 1} - ${configuracoes.numeroFinal || 75}`;
+        }
+    }
+
+    function atualizarHistorico() {
+        console.log('🔄 [ADMIN] Atualizando histórico...');
+        console.log('📊 [ADMIN] numerosSorteados:', numerosSorteados);
+        console.log('📊 [ADMIN] historicoContainer:', !!historicoContainer);
+        
+        if (!historicoContainer) {
+            console.error('❌ [ADMIN] historicoContainer não encontrado!');
+            return;
+        }
+        
+        if (numerosSorteados.length === 0) {
+            console.log('📝 [ADMIN] Nenhum número sorteado, exibindo mensagem padrão');
+            historicoContainer.innerHTML = '<p class="sem-historico">Nenhum número sorteado ainda</p>';
+        } else {
+            console.log(`🎲 [ADMIN] Exibindo ${numerosSorteados.length} números sorteados`);
+            
+            const numerosHtml = numerosSorteados.map(num => 
+                `<span class="numero-sorteado" style="
+                    display: inline-block;
+                    background: linear-gradient(135deg, #28a745, #20c997);
+                    color: white;
+                    padding: 8px 12px;
+                    margin: 4px;
+                    border-radius: 50%;
+                    font-weight: bold;
+                    font-size: 16px;
+                    min-width: 40px;
+                    text-align: center;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                ">${num}</span>`
+            ).join('');
+            
+            historicoContainer.innerHTML = `
+                <div style="margin-bottom: 10px;">
+                    <strong>Total: ${numerosSorteados.length} números</strong>
+                </div>
+                <div style="max-height: 300px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9;">
+                    ${numerosHtml}
+                </div>
+            `;
+            
+            console.log('✅ [ADMIN] Histórico atualizado com sucesso');
+        }
+    }
+
+    function atualizarEstatisticasCartelas() {
+        const geradas = cartelas.length;
+        const vendidas = cartelas.filter(c => c.vendida).length;
+        const total = cartelas.filter(c => c.vendida).reduce((sum, c) => sum + (c.preco || 0), 0);
+
+        if (cartelasGeradasSpan) cartelasGeradasSpan.textContent = geradas;
+        if (cartelasVendidasSpan) cartelasVendidasSpan.textContent = vendidas;
+        if (totalArrecadadoSpan) totalArrecadadoSpan.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    }
+
+    // ===== FUNÇÕES DOS BOTÕES =====
+
+    async function salvarConfiguracoes() {
+        console.log('💾 [ADMIN] Salvando configurações...');
+        
+        if (!numeroInicialInput || !numeroFinalInput || !precoCartelaInput) {
+            alert('Erro: Elementos de input não encontrados');
+            return;
+        }
+        
+        try {
+            const config = {
+                numeroInicial: parseInt(numeroInicialInput.value),
+                numeroFinal: parseInt(numeroFinalInput.value),
+                precoCartela: parseFloat(precoCartelaInput.value),
+                jogoAtivo: true
+            };
+
+            // Tentar salvar no Firebase
+            if (sistemaInicializado && firebaseService && typeof firebaseService.salvarConfiguracoes === 'function') {
+                await firebaseService.salvarConfiguracoes(config);
+                console.log('✅ [ADMIN] Configurações salvas no Firebase');
+            } else {
+                console.warn('⚠️ [ADMIN] Firebase não disponível, salvando apenas localmente');
+            }
+            
+            // Salvar também localmente
+            localStorage.setItem('bingo_configuracoes', JSON.stringify(config));
+            configuracoes = config;
+            
+            atualizarTodosDisplays();
+            alert('✅ Configurações salvas com sucesso!');
+            console.log('✅ [ADMIN] Configurações salvas');
+            
+        } catch (error) {
+            console.error('❌ Erro ao salvar configurações:', error);
+            alert('❌ Erro ao salvar configurações: ' + error.message);
+        }
+    }
+
+    async function resetarJogo() {
+        if (!confirm('⚠️ ATENÇÃO: Isso irá resetar TODOS os dados do jogo (números sorteados, cartelas, etc.). Continuar?')) {
+            return;
+        }
+
+        console.log('🔄 [ADMIN] Resetando jogo...');
+        
+        try {
+            // Tentar resetar no Firebase
+            if (sistemaInicializado && firebaseService && typeof firebaseService.resetarJogo === 'function') {
+                await firebaseService.resetarJogo();
+                console.log('✅ [ADMIN] Jogo resetado no Firebase');
+            } else {
+                console.warn('⚠️ [ADMIN] Firebase não disponível, resetando apenas dados locais');
+            }
+            
+            // Limpar dados locais
+            localStorage.removeItem('numeros_sorteados');
+            localStorage.removeItem('bingo_cartelas_vendidas');
+            
+            numerosSorteados = [];
+            cartelas = [];
+            
+            atualizarTodosDisplays();
+            alert('✅ Jogo resetado com sucesso!');
+            console.log('✅ [ADMIN] Jogo resetado');
+            
+        } catch (error) {
+            console.error('❌ Erro ao resetar jogo:', error);
+            alert('❌ Erro ao resetar jogo: ' + error.message);
+        }
+    }
+
+    function limparHistorico() {
+        if (!confirm('Deseja limpar o histórico de números sorteados?')) {
+            return;
+        }
+
+        numerosSorteados = [];
+        localStorage.setItem('numeros_sorteados', JSON.stringify([]));
+        atualizarHistorico();
+        atualizarDisplay();
+        alert('✅ Histórico limpo!');
+    }
+
+    function irParaBingo() {
+        window.open('index.html', '_blank');
+    }
+
+    async function gerarNovaCartela() {
+        console.log('🎫 [ADMIN] Gerando nova cartela...');
+        
+        try {
+            // Verificar se sistema está inicializado
+            if (!sistemaInicializado || !firebaseService) {
+                throw new Error('Sistema Firebase não inicializado');
+            }
+            
+            const preco = parseFloat(precoCartelaInput?.value || 5);
+            const novaCartela = {
+                id: Date.now().toString(),
+                numeros: gerarNumerosCartela(),
+                preco: preco,
+                vendida: false,
+                dataGeracao: new Date().toISOString()
+            };
+
+            console.log('💾 [ADMIN] Salvando cartela no Firebase...');
+            if (firebaseService && typeof firebaseService.salvarCartela === 'function') {
+                await firebaseService.salvarCartela(novaCartela);
+                console.log('✅ [ADMIN] Cartela salva no Firebase');
+            } else {
+                console.warn('⚠️ [ADMIN] FirebaseService.salvarCartela não disponível, salvando apenas localmente');
+            }
+            
+            cartelas.push(novaCartela);
+            localStorage.setItem('bingo_cartelas_vendidas', JSON.stringify(cartelas));
+            
+            atualizarEstatisticasCartelas();
+            alert(`✅ Nova cartela gerada! ID: ${novaCartela.id}`);
+            console.log('✅ [ADMIN] Cartela gerada:', novaCartela.id);
+            
+        } catch (error) {
+            console.error('❌ [ADMIN] Erro ao gerar cartela:', error);
+            alert('❌ Erro ao gerar cartela: ' + error.message);
+        }
+    }
+
+    function gerarNumerosCartela() {
+        const numeros = [];
+        const inicial = configuracoes.numeroInicial || 1;
+        const final = configuracoes.numeroFinal || 75;
+        
+        while (numeros.length < 15) {
+            const num = Math.floor(Math.random() * (final - inicial + 1)) + inicial;
+            if (!numeros.includes(num)) {
+                numeros.push(num);
+            }
+        }
+        
+        return numeros.sort((a, b) => a - b);
+    }
+
+    function verVendas() {
+        if (!modalVendas || !listaCartelas) {
+            alert('Erro: Modal de vendas não encontrado');
+            return;
+        }
+        
+        console.log('💰 Abrindo modal de vendas...');
+        
+        const cartelasVendidas = cartelas.filter(c => c.vendida);
+        
+        if (cartelasVendidas.length === 0) {
+            listaCartelas.innerHTML = '<p>Nenhuma cartela vendida ainda.</p>';
+        } else {
+            let html = '<div class="vendas-lista">';
+            cartelasVendidas.forEach(cartela => {
+                html += `
+                    <div class="cartela-vendida">
+                        <strong>ID: ${cartela.id}</strong><br>
+                        Comprador: ${cartela.nomeComprador || 'N/A'}<br>
+                        Telefone: ${cartela.telefone || 'N/A'}<br>
+                        Preço: R$ ${(cartela.preco || 0).toFixed(2).replace('.', ',')}<br>
+                        Data: ${cartela.dataVenda ? new Date(cartela.dataVenda).toLocaleString() : 'N/A'}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            listaCartelas.innerHTML = html;
+        }
+        
+        modalVendas.style.display = 'block';
+    }
+
+    function updateUserInfo() {
+        const adminUserSpan = document.getElementById('admin-user');
+        const sessionTimeSpan = document.getElementById('session-time');
+        
+        if (window.bingoAuth && window.bingoAuth.isAuthenticated()) {
+            const user = window.bingoAuth.currentUser;
+            if (adminUserSpan) adminUserSpan.textContent = `👤 ${user.username}`;
+            
+            const authTime = localStorage.getItem('admin_auth_time');
+            if (authTime && sessionTimeSpan) {
+                const loginTime = new Date(parseInt(authTime));
+                sessionTimeSpan.textContent = `⏰ ${loginTime.toLocaleTimeString()}`;
+            }
+        }
+    }
+
+    function logout() {
+        if (confirm('Deseja realmente sair do sistema?')) {
+            window.bingoAuth.logout();
+        }
+    }
+
+    // ===== CONFIGURAR EVENT LISTENERS =====
+    console.log('🔧 Configurando event listeners...');
+    
+    // Verificar se todos os botões existem antes de adicionar listeners
+    if (salvarConfigBtn) {
+        salvarConfigBtn.addEventListener('click', salvarConfiguracoes);
+        console.log('✅ Event listener adicionado: salvar-config');
+    } else {
+        console.error('❌ Botão salvar-config não encontrado');
+    }
+    
+    if (resetarJogoBtn) {
+        resetarJogoBtn.addEventListener('click', resetarJogo);
+        console.log('✅ Event listener adicionado: resetar-jogo');
+    } else {
+        console.error('❌ Botão resetar-jogo não encontrado');
+    }
+    
+    if (limparHistoricoBtn) {
+        limparHistoricoBtn.addEventListener('click', limparHistorico);
+        console.log('✅ Event listener adicionado: limpar-historico');
+    } else {
+        console.error('❌ Botão limpar-historico não encontrado');
+    }
+    
+    if (atualizarNumerosBtn) {
+        atualizarNumerosBtn.addEventListener('click', atualizarNumerosSorteados);
+        console.log('✅ Event listener adicionado: atualizar-numeros');
+    } else {
+        console.error('❌ Botão atualizar-numeros não encontrado');
+    }
+    
+    if (irParaBingoBtn) {
+        irParaBingoBtn.addEventListener('click', irParaBingo);
+        console.log('✅ Event listener adicionado: ir-para-bingo');
+    } else {
+        console.error('❌ Botão ir-para-bingo não encontrado');
+    }
+    
+    if (gerarCartelaBtn) {
+        gerarCartelaBtn.addEventListener('click', gerarNovaCartela);
+        console.log('✅ Event listener adicionado: gerar-cartela');
+    } else {
+        console.error('❌ Botão gerar-cartela não encontrado');
+    }
+    
+    if (verVendasBtn) {
+        verVendasBtn.addEventListener('click', verVendas);
+        console.log('✅ Event listener adicionado: ver-vendas');
+    } else {
+        console.error('❌ Botão ver-vendas não encontrado');
+    }
+
+    // Atualizar total de números quando os inputs mudarem
+    if (numeroInicialInput) {
+        numeroInicialInput.addEventListener('input', atualizarDisplay);
+        console.log('✅ Event listener adicionado: numero-inicial');
+    }
+    
+    if (numeroFinalInput) {
+        numeroFinalInput.addEventListener('input', atualizarDisplay);
+        console.log('✅ Event listener adicionado: numero-final');
+    }
+
+    // Fechar modal
+    if (closeModal) {
+        closeModal.addEventListener('click', () => {
+            if (modalVendas) modalVendas.style.display = 'none';
+        });
+        console.log('✅ Event listener adicionado: close-modal');
+    }
+
+    if (modalVendas) {
+        window.addEventListener('click', (event) => {
+            if (event.target === modalVendas) {
+                modalVendas.style.display = 'none';
+            }
+        });
+    }
+
+    // Event listener para botão de atualizar números
+    const btnAtualizarNumeros = document.getElementById('atualizar-numeros');
+    if (btnAtualizarNumeros) {
+        btnAtualizarNumeros.addEventListener('click', async () => {
+            console.log('🔄 [ADMIN] Botão atualizar números clicado');
+            btnAtualizarNumeros.disabled = true;
+            btnAtualizarNumeros.textContent = '🔄 Atualizando...';
+            
+            try {
+                await atualizarHistoricoRobusta();
+                console.log('✅ [ADMIN] Números atualizados com sucesso');
+            } catch (error) {
+                console.error('❌ [ADMIN] Erro ao atualizar números:', error);
+                alert('Erro ao atualizar números: ' + error.message);
+            } finally {
+                btnAtualizarNumeros.disabled = false;
+                btnAtualizarNumeros.textContent = '🔄 Atualizar Números';
+            }
+        });
+        console.log('✅ Event listener adicionado: atualizar-numeros');
+    } else {
+        console.error('❌ Botão atualizar-numeros não encontrado');
+    }
+
+    // Event listener para botão de diagnóstico
+    const diagnosticarNumerosBtn = document.getElementById('diagnosticar-numeros');
+    if (diagnosticarNumerosBtn) {
+        diagnosticarNumerosBtn.addEventListener('click', async () => {
+            console.log('🔍 [ADMIN] Botão diagnosticar clicado');
+            diagnosticarNumerosBtn.disabled = true;
+            diagnosticarNumerosBtn.textContent = '🔍 Diagnosticando...';
+            
+            try {
+                await diagnosticarNumerosSorteados();
+                alert('✅ Diagnóstico concluído! Verifique o console (F12) para detalhes.');
+            } catch (error) {
+                console.error('❌ [ADMIN] Erro no diagnóstico:', error);
+                alert('Erro no diagnóstico: ' + error.message);
+            } finally {
+                diagnosticarNumerosBtn.disabled = false;
+                diagnosticarNumerosBtn.textContent = '🔍 Diagnosticar';
+            }
+        });
+        console.log('✅ Event listener adicionado: diagnosticar-numeros');
+    } else {
+        console.error('❌ Botão diagnosticar-numeros não encontrado');
+    }
+
+    // Tornar funções globais
+    window.logout = logout;
+
+    // CSS para animação de confete e melhorias visuais
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .vendas-lista {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .cartela-vendida {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        
+        .numero-sorteado {
+            transition: all 0.3s ease;
+        }
+        
+        .numero-sorteado:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+        }
+        
+        .carregando {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .sem-historico {
+            text-align: center;
+            color: #6c757d;
+            padding: 20px;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .sem-historico p {
+            margin: 5px 0;
+        }
+        
+        .erro-historico {
+            text-align: center;
+        }
+        
+        .erro-historico button:hover {
+            background: #c82333 !important;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268 !important;
+            transform: translateY(-1px);
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-info:hover {
+            background: #138496 !important;
+            transform: translateY(-1px);
+        }
+        
+        .btn-info:disabled {
+            background: #6c757d !important;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .historico-header {
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 10px;
+        }
+        
+        .numeros-container {
+            position: relative;
+        }
+        
+        .numeros-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #28a745, #20c997, #17a2b8, #28a745);
+            border-radius: 8px 8px 0 0;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Carregar dados iniciais
+    console.log('📊 Carregando dados iniciais...');
+    await carregarDados();
+    
+    console.log('✅ Admin panel totalmente carregado e configurado!');
+}
+
+// Função de inicialização simples como fallback
+async function initializeAdminSimple() {
+    console.log('🔄 [SIMPLE] Inicialização simples do admin...');
+    
+    // Inicializar Firebase básico
+    if (!firebase.apps.length) {
+        if (typeof firebaseConfig !== 'undefined') {
+            firebase.initializeApp(firebaseConfig);
+        } else {
+            throw new Error('firebaseConfig não encontrado');
+        }
+    }
+    
+    // Configurar variáveis globais básicas
+    window.db = window.db || firebase.firestore();
+    window.auth = window.auth || firebase.auth();
+    
+    // Pular autenticação por enquanto para debug
+    console.log('⚠️ [SIMPLE] Pulando autenticação para debug');
+    
+    // Configurar botões básicos
+    setupBasicButtons();
+    
+    console.log('✅ [SIMPLE] Inicialização simples concluída');
+}
+
+// Configurar botões básicos
+function setupBasicButtons() {
+    console.log('🔄 [SIMPLE] Configurando botões básicos...');
+    
+    // Botão salvar configurações
+    const salvarConfigBtn = document.getElementById('salvar-config');
+    if (salvarConfigBtn) {
+        salvarConfigBtn.onclick = () => {
+            console.log('🔄 Botão salvar config clicado');
+            alert('Função em desenvolvimento - modo debug');
+        };
+        console.log('✅ Botão salvar-config configurado');
+    } else {
+        console.error('❌ Botão salvar-config não encontrado');
+    }
+    
+    // Botão resetar jogo
+    const resetarJogoBtn = document.getElementById('resetar-jogo');
+    if (resetarJogoBtn) {
+        resetarJogoBtn.onclick = () => {
+            console.log('🔄 Botão resetar jogo clicado');
+            alert('Função em desenvolvimento - modo debug');
+        };
+        console.log('✅ Botão resetar-jogo configurado');
+    } else {
+        console.error('❌ Botão resetar-jogo não encontrado');
+    }
+    
+    // Botão ir para bingo
+    const irParaBingoBtn = document.getElementById('ir-para-bingo');
+    if (irParaBingoBtn) {
+        irParaBingoBtn.onclick = () => {
+            console.log('🔄 Botão ir para bingo clicado');
+            window.location.href = 'index.html';
+        };
+        console.log('✅ Botão ir-para-bingo configurado');
+    } else {
+        console.error('❌ Botão ir-para-bingo não encontrado');
+    }
+    
+    // Botão gerar cartela
+    const gerarCartelaBtn = document.getElementById('gerar-cartela');
+    if (gerarCartelaBtn) {
+        gerarCartelaBtn.onclick = () => {
+            console.log('🔄 Botão gerar cartela clicado');
+            alert('Função em desenvolvimento - modo debug');
+        };
+        console.log('✅ Botão gerar-cartela configurado');
+    } else {
+        console.error('❌ Botão gerar-cartela não encontrado');
+    }
+    
+    // Outros botões...
+    const verVendasBtn = document.getElementById('ver-vendas');
+    if (verVendasBtn) {
+        verVendasBtn.onclick = () => {
+            console.log('🔄 Botão ver vendas clicado');
+            alert('Função em desenvolvimento - modo debug');
+        };
+        console.log('✅ Botão ver-vendas configurado');
+    }
+    
+    console.log('✅ [SIMPLE] Botões básicos configurados');
+}
+
+// Função para buscar números sorteados de forma alternativa
+async function buscarNumerosSorteadosAlternativo() {
+    try {
+        console.log('🔍 [ADMIN] Iniciando busca alternativa de números sorteados...');
+        
+        if (!firebase || !firebase.firestore) {
+            throw new Error('Firebase Firestore não disponível');
+        }
+        
+        const db = firebase.firestore();
+        
+        // Método 1: Tentar a coleção padrão com orderBy
+        try {
+            console.log('🎯 [ADMIN] Método 1: numeros-sorteados com orderBy...');
+            const snapshot1 = await db.collection('numeros-sorteados').orderBy('dataSorteio', 'asc').get();
+            console.log(`📊 [ADMIN] Método 1: ${snapshot1.size} documentos encontrados`);
+            
+            if (snapshot1.size > 0) {
+                const numeros = [];
+                snapshot1.forEach(doc => {
+                    const data = doc.data();
+                    console.log(`📄 [ADMIN] Doc ${doc.id}:`, data);
+                    if (data.numero !== undefined && data.numero !== null) {
+                        numeros.push(data.numero);
+                    }
+                });
+                
+                if (numeros.length > 0) {
+                    console.log('✅ [ADMIN] Método 1 sucesso:', numeros);
+                    return numeros;
+                }
+            }
+        } catch (err) {
+            console.log('⚠️ [ADMIN] Método 1 falhou:', err.message);
+        }
+        
+        // Método 2: Sem orderBy
+        try {
+            console.log('🎯 [ADMIN] Método 2: numeros-sorteados sem orderBy...');
+            const snapshot2 = await db.collection('numeros-sorteados').get();
+            console.log(`📊 [ADMIN] Método 2: ${snapshot2.size} documentos encontrados`);
+            
+            if (snapshot2.size > 0) {
+                const numerosComData = [];
+                snapshot2.forEach(doc => {
+                    const data = doc.data();
+                    console.log(`📄 [ADMIN] Doc ${doc.id}:`, data);
+                    if (data.numero !== undefined && data.numero !== null) {
+                        numerosComData.push({
+                            numero: data.numero,
+                            dataSorteio: data.dataSorteio || data.timestamp || new Date(0),
+                            ordem: data.ordem || 0
+                        });
+                    }
+                });
+                
+                if (numerosComData.length > 0) {
+                    // Ordenar por data ou ordem
+                    numerosComData.sort((a, b) => {
+                        // Tentar ordenar por ordem primeiro
+                        if (a.ordem !== b.ordem) {
+                            return a.ordem - b.ordem;
+                        }
+                        // Senão por data
+                        const timeA = a.dataSorteio?.seconds || a.dataSorteio?.getTime?.() / 1000 || 0;
+                        const timeB = b.dataSorteio?.seconds || b.dataSorteio?.getTime?.() / 1000 || 0;
+                        return timeA - timeB;
+                    });
+                    
+                    const numeros = numerosComData.map(item => item.numero);
+                    console.log('✅ [ADMIN] Método 2 sucesso:', numeros);
+                    return numeros;
+                }
+            }
+        } catch (err) {
+            console.log('⚠️ [ADMIN] Método 2 falhou:', err.message);
+        }
+        
+        // Método 3: Outras coleções
+        const outrasColecoes = ['numerosSorteados', 'sorteio', 'bingo-sorteio'];
+        for (const colecao of outrasColecoes) {
+            try {
+                console.log(`🎯 [ADMIN] Método 3: Testando coleção "${colecao}"...`);
+                const snapshot = await db.collection(colecao).get();
+                console.log(`📊 [ADMIN] Coleção "${colecao}": ${snapshot.size} documentos`);
+                
+                if (snapshot.size > 0) {
+                    const numeros = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        console.log(`📄 [ADMIN] ${colecao}/${doc.id}:`, data);
+                        
+                        // Se é um array de números
+                        if (Array.isArray(data.numerosSorteados)) {
+                            numeros.push(...data.numerosSorteados);
+                        } else if (data.numero !== undefined) {
+                            numeros.push(data.numero);
+                        }
+                    });
+                    
+                    if (numeros.length > 0) {
+                        console.log(`✅ [ADMIN] Método 3 sucesso em "${colecao}":`, numeros);
+                        return numeros;
+                    }
+                }
+            } catch (err) {
+                console.log(`⚠️ [ADMIN] Erro na coleção "${colecao}":`, err.message);
+            }
+        }
+        
+        console.log('❌ [ADMIN] Nenhum número encontrado em busca alternativa');
+        return [];
+        
+    } catch (error) {
+        console.error('❌ [ADMIN] Erro na busca alternativa:', error);
+        return [];
+    }
+}
+
+// Função para forçar atualização dos números sorteados
+async function atualizarNumerosSorteados() {
+    console.log('🔄 [ADMIN] Forçando atualização de números sorteados...');
+    
+    try {
+        // Limpar cache atual
+        numerosSorteados = [];
+        
+        // Tentar carregar do Firebase Service primeiro
+        if (sistemaInicializado && firebaseService) {
+            console.log('🔍 [ADMIN] Tentando carregar via Firebase Service...');
+            const numerosFirebase = await firebaseService.carregarNumerosSorteados();
+            if (numerosFirebase && numerosFirebase.length > 0) {
+                numerosSorteados = numerosFirebase;
+                console.log('✅ [ADMIN] Números carregados via Firebase Service:', numerosSorteados);
+            } else {
+                console.log('⚠️ [ADMIN] Firebase Service não retornou números, tentando busca alternativa...');
+            }
+        }
+        
+        // Se ainda não temos números, tentar busca alternativa
+        if (numerosSorteados.length === 0) {
+            console.log('🔍 [ADMIN] Executando busca alternativa...');
+            const numerosAlternativos = await buscarNumerosSorteadosAlternativo();
+            if (numerosAlternativos.length > 0) {
+                numerosSorteados = numerosAlternativos;
+                console.log('✅ [ADMIN] Números encontrados via busca alternativa:', numerosSorteados);
+            }
+        }
+        
+        // Atualizar display
+        atualizarHistorico();
+        atualizarDisplay();
+        
+        if (numerosSorteados.length > 0) {
+            alert(`✅ Atualização concluída! ${numerosSorteados.length} números sorteados encontrados.`);
+        } else {
+            alert('⚠️ Nenhum número sorteado encontrado no Firebase.');
+        }
+        
+    } catch (error) {
+        console.error('❌ [ADMIN] Erro ao atualizar números:', error);
+        alert('❌ Erro ao atualizar números: ' + error.message);
+    }
+}
+
+// Função para atualizar histórico com busca robusta
+async function atualizarHistoricoRobusta() {
+    console.log('🔄 [ADMIN] Atualizando histórico robusto...');
+    
+    if (!historicoContainer) {
+        console.error('❌ [ADMIN] historicoContainer não encontrado!');
+        return;
+    }
+    
+    // Mostrar indicador de carregamento
+    historicoContainer.innerHTML = '<p class="carregando">🔄 Carregando números sorteados...</p>';
+    
+    try {
+        // Buscar números de forma robusta
+        const numerosEncontrados = await buscarNumerosSorteadosRobusta();
+        
+        if (numerosEncontrados.length === 0) {
+            console.log('📝 [ADMIN] Nenhum número encontrado, exibindo mensagem padrão');
+            historicoContainer.innerHTML = `
+                <div class="sem-historico">
+                    <p>Nenhum número sorteado ainda</p>
+                    <p><small>Os números aparecerão aqui quando o sorteio começar</small></p>
+                </div>
+            `;
+        } else {
+            console.log(`🎲 [ADMIN] Exibindo ${numerosEncontrados.length} números sorteados:`, numerosEncontrados);
+            
+            // Atualizar variável global
+            numerosSorteados = numerosEncontrados;
+            
+            // Salvar no localStorage para cache
+            localStorage.setItem('numeros_sorteados', JSON.stringify(numerosEncontrados));
+            
+            const numerosHtml = numerosEncontrados.map((num, index) => 
+                `<span class="numero-sorteado" style="
+                    display: inline-block;
+                    background: linear-gradient(135deg, #28a745, #20c997);
+                    color: white;
+                    padding: 8px 12px;
+                    margin: 4px;
+                    border-radius: 50%;
+                    font-weight: bold;
+                    font-size: 16px;
+                    min-width: 40px;
+                    text-align: center;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    animation: fadeIn 0.3s ease-in-out ${index * 0.1}s both;
+                " title="Número ${num} - Posição ${index + 1}">${num}</span>`
+            ).join('');
+            
+            historicoContainer.innerHTML = `
+                <div class="historico-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div>
+                        <strong style="color: #28a745;">✅ ${numerosEncontrados.length} números sorteados</strong>
+                        <span style="color: #6c757d; margin-left: 10px;">Última atualização: ${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <button id="atualizar-historico-btn" class="btn-secondary" style="
+                        background: #6c757d;
+                        color: white;
+                        border: none;
+                        padding: 6px 12px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 12px;
+                    ">🔄 Atualizar</button>
+                </div>
+                <div class="numeros-container" style="
+                    max-height: 300px; 
+                    overflow-y: auto; 
+                    padding: 15px; 
+                    border: 2px solid #28a745; 
+                    border-radius: 8px; 
+                    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+                    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+                ">
+                    ${numerosHtml}
+                </div>
+            `;
+            
+            // Adicionar event listener para o botão de atualizar
+            const atualizarBtn = document.getElementById('atualizar-historico-btn');
+            if (atualizarBtn) {
+                atualizarBtn.addEventListener('click', async () => {
+                    console.log('🔄 [ADMIN] Botão atualizar clicado');
+                    atualizarBtn.disabled = true;
+                    atualizarBtn.textContent = '🔄 Atualizando...';
+                    
+                    try {
+                        await atualizarHistoricoRobusta();
+                    } finally {
+                        atualizarBtn.disabled = false;
+                        atualizarBtn.textContent = '🔄 Atualizar';
+                    }
+                });
+            }
+            
+            console.log('✅ [ADMIN] Histórico robusto atualizado com sucesso');
+        }
+        
+        // Atualizar outros displays também
+        atualizarDisplay();
+        
+    } catch (error) {
+        console.error('❌ [ADMIN] Erro ao atualizar histórico robusto:', error);
+        historicoContainer.innerHTML = `
+            <div class="erro-historico" style="color: #dc3545; padding: 15px; border: 1px solid #dc3545; border-radius: 4px; background: #f8d7da;">
+                <p><strong>❌ Erro ao carregar números sorteados</strong></p>
+                <p><small>${error.message}</small></p>
+                <button onclick="location.reload()" style="margin-top: 10px; padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                    🔄 Recarregar Página
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Função para criar dados de demonstração (apenas para debug/teste)
+function criarDadosDemo() {
+    const numerosDemo = [5, 12, 23, 34, 45, 56, 67, 73];
+    localStorage.setItem('numeros_sorteados', JSON.stringify(numerosDemo));
+    localStorage.setItem('bingo_demo_numbers', JSON.stringify(numerosDemo));
+    console.log('📝 [DEBUG] Dados demo criados:', numerosDemo);
+    return numerosDemo;
+}
+
+// Função para diagnosticar estado dos números sorteados
+async function diagnosticarNumerosSorteados() {
+    console.log('🔍 [ADMIN] === DIAGNÓSTICO DE NÚMEROS SORTEADOS ===');
+    
+    // 1. Verificar localStorage
+    const numerosLocais = JSON.parse(localStorage.getItem('numeros_sorteados') || '[]');
+    console.log('📂 [ADMIN] localStorage numeros_sorteados:', numerosLocais);
+    
+    const numerosDemo = JSON.parse(localStorage.getItem('bingo_demo_numbers') || '[]');
+    console.log('📂 [ADMIN] localStorage bingo_demo_numbers:', numerosDemo);
+    
+    // 2. Verificar Firebase Service
+    if (sistemaInicializado && firebaseService) {
+        try {
+            const numerosFirebase = await firebaseService.carregarNumerosSorteados();
+            console.log('🔥 [ADMIN] Firebase Service retornou:', numerosFirebase);
+        } catch (error) {
+            console.log('❌ [ADMIN] Firebase Service falhou:', error.message);
+        }
+    }
+    
+    // 3. Verificar Firestore diretamente
+    if (typeof firebase !== 'undefined' && firebase.firestore) {
+        try {
+            const db = firebase.firestore();
+            const snapshot = await db.collection('numeros-sorteados').get();
+            console.log(`🔥 [ADMIN] Firestore direto: ${snapshot.size} documentos`);
+            
+            snapshot.forEach(doc => {
+                console.log(`📄 [ADMIN] Doc ${doc.id}:`, doc.data());
+            });
+        } catch (error) {
+            console.log('❌ [ADMIN] Firestore direto falhou:', error.message);
+        }
+    }
+    
+    // 4. Estado atual da variável
+    console.log('🔢 [ADMIN] Variável numerosSorteados atual:', numerosSorteados);
+    
+    console.log('🔍 [ADMIN] === FIM DO DIAGNÓSTICO ===');
+}
+
+// Tornar funções disponíveis globalmente para debug
+window.criarDadosDemo = criarDadosDemo;
+window.diagnosticarNumerosSorteados = diagnosticarNumerosSorteados;
+window.atualizarHistoricoRobusta = atualizarHistoricoRobusta;
+window.buscarNumerosSorteadosRobusta = buscarNumerosSorteadosRobusta;
+
+// Carregar dados iniciais
+console.log('📊 Carregando dados iniciais...');
+await carregarDados();
+    
+console.log('✅ Admin panel totalmente carregado e configurado!');
