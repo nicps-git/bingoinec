@@ -166,4 +166,8 @@ if (typeof mostrarToast === 'undefined') {
     window.mostrarToast = mostrarToast;
 }
 
+// Tornar funções de autenticação disponíveis globalmente
+window.isUserAuthenticated = isUserAuthenticated;
+window.getSessionData = getSessionData;
+
 console.log('🔐 Sistema de autenticação admin carregado');

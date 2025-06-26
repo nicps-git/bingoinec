@@ -168,23 +168,6 @@
         
         // Também verificar quando a janela carregar completamente
         window.addEventListener('load', verificarAutenticacaoRobusta);
-        
-        // Função getUserInfo para compatibilidade com admin.js
-        function getUserInfo() {
-            const sessionData = localStorage.getItem('bingoAdminSession');
-            if (sessionData) {
-                try {
-                    return JSON.parse(sessionData);
-                } catch (error) {
-                    console.error('Erro ao obter informações do usuário:', error);
-                    return null;
-                }
-            }
-            return null;
-        }
-        
-        // Tornar getUserInfo disponível globalmente
-        window.getUserInfo = getUserInfo;
     </script>
     <!-- Bandeirolas -->
     <div class="bandeirolas">

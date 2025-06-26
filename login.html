@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🔐 Login Admin - Bingo Arraiá INEC</title>
     <link rel="stylesheet" href="login.css">
+    
+    <!-- Sistema de autenticação autônomo - sem dependências externas -->
 </head>
 <body>
     <!-- Bandeirolas -->
@@ -57,7 +59,7 @@
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn-login">🚀 Entrar</button>
+                        <button type="submit" class="btn-login" id="btn-login">🚀 Entrar</button>
                     </div>
 
                     <div class="login-info">
@@ -84,14 +86,14 @@
         </div>
 
         <!-- Alert de erro -->
-        <div id="alert-erro" class="alert alert-erro">
+        <div id="alert-erro" class="alert alert-erro" style="display: none;">
             <span class="alert-icon">❌</span>
             <span class="alert-message">Credenciais inválidas! Verifique e-mail e senha.</span>
             <button class="alert-close" onclick="fecharAlert()">&times;</button>
         </div>
 
         <!-- Alert de sucesso -->
-        <div id="alert-sucesso" class="alert alert-sucesso">
+        <div id="alert-sucesso" class="alert alert-sucesso" style="display: none;">
             <span class="alert-icon">✅</span>
             <span class="alert-message">Login realizado com sucesso! Redirecionando...</span>
         </div>
@@ -112,7 +114,9 @@
     </div>
 
     <script>
-        // ===== LOGIN AUTHENTICATION SYSTEM - SEM DEPENDÊNCIAS EXTERNAS =====
+        // ===== LOGIN AUTHENTICATION SYSTEM - VERSÃO CORRIGIDA SEM CONFLITOS =====
+        
+        console.log('🔐 [LOGIN] Sistema de login iniciado - versão corrigida');
         
         // Credenciais do administrador
         const ADMIN_CREDENTIALS = {
@@ -120,33 +124,38 @@
             password: 'wooFestadeComida'
         };
         
-        // Chave para armazenar sessão no localStorage
+        // Configurações da sessão
         const SESSION_KEY = 'bingoAdminSession';
-        const SESSION_EXPIRY_HOURS = 8; // Sessão expira em 8 horas
+        const SESSION_EXPIRY_HOURS = 8;
         
         // Elementos do DOM
-        let emailInput, senhaInput, loginForm, alertErro, alertSucesso;
+        let emailInput, senhaInput, loginForm, alertErro, alertSucesso, btnLogin;
+        
+        // Estado de carregamento
+        let isLoading = false;
         
         // Inicialização quando a página carrega
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔑 Iniciando sistema de login...');
+            console.log('🔐 [LOGIN] DOM carregado, inicializando...');
             initializeLoginPage();
         });
         
         function initializeLoginPage() {
+            console.log('🔐 [LOGIN] Inicializando página de login...');
+            
             // Buscar elementos do DOM
             emailInput = document.getElementById('email');
             senhaInput = document.getElementById('senha');
             loginForm = document.getElementById('login-form');
             alertErro = document.getElementById('alert-erro');
             alertSucesso = document.getElementById('alert-sucesso');
+            btnLogin = document.getElementById('btn-login');
             
             // Verificar se já está logado
             if (isUserAuthenticated()) {
+                console.log('🔐 [LOGIN] Usuário já autenticado, redirecionando...');
                 showSuccessAlert('Você já está logado! Redirecionando...');
-                setTimeout(() => {
-                    window.location.href = 'admin.html';
-                }, 1500);
+                performRedirect();
                 return;
             }
             
@@ -154,15 +163,21 @@
             setupEventListeners();
             
             // Focar no campo de email
-            if (emailInput) emailInput.focus();
+            if (emailInput) {
+                emailInput.focus();
+                console.log('🔐 [LOGIN] Foco definido no campo email');
+            }
             
-            console.log('✅ Login page initialized');
+            console.log('🔐 [LOGIN] Página de login inicializada com sucesso');
         }
         
         function setupEventListeners() {
+            console.log('🔐 [LOGIN] Configurando event listeners...');
+            
             // Submit do formulário
             if (loginForm) {
                 loginForm.addEventListener('submit', handleLogin);
+                console.log('🔐 [LOGIN] Event listener de submit adicionado');
             }
             
             // Enter nos campos de input
@@ -176,36 +191,52 @@
             
             if (senhaInput) {
                 senhaInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !isLoading) {
                         handleLogin(e);
                     }
                 });
             }
             
             // Limpar alerts quando começar a digitar
-            if (emailInput) emailInput.addEventListener('input', clearAlerts);
-            if (senhaInput) senhaInput.addEventListener('input', clearAlerts);
+            if (emailInput) {
+                emailInput.addEventListener('input', clearAlerts);
+            }
+            if (senhaInput) {
+                senhaInput.addEventListener('input', clearAlerts);
+            }
         }
         
         function handleLogin(event) {
             event.preventDefault();
+            
+            if (isLoading) {
+                console.log('🔐 [LOGIN] Login já em andamento, ignorando...');
+                return;
+            }
+            
+            console.log('🔐 [LOGIN] Processando login...');
             
             const email = emailInput ? emailInput.value.trim() : '';
             const senha = senhaInput ? senhaInput.value : '';
             
             // Validações básicas
             if (!email || !senha) {
+                console.log('❌ [LOGIN] Campos vazios');
                 showErrorAlert('Por favor, preencha todos os campos.');
                 return;
             }
             
             if (!isValidEmail(email)) {
+                console.log('❌ [LOGIN] Email inválido');
                 showErrorAlert('Por favor, digite um e-mail válido.');
                 if (emailInput) emailInput.focus();
                 return;
             }
             
             // Verificar credenciais
+            console.log('🔐 [LOGIN] Verificando credenciais...');
+            console.log('🔐 [LOGIN] Email fornecido:', email);
+            
             if (authenticateUser(email, senha)) {
                 handleSuccessfulLogin();
             } else {
@@ -214,11 +245,18 @@
         }
         
         function authenticateUser(email, password) {
-            return email.toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase() && 
-                   password === ADMIN_CREDENTIALS.password;
+            const isValid = email.toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase() && 
+                           password === ADMIN_CREDENTIALS.password;
+            console.log('🔐 [LOGIN] Autenticação:', isValid ? 'SUCESSO' : 'FALHA');
+            return isValid;
         }
         
         function handleSuccessfulLogin() {
+            console.log('✅ [LOGIN] Login bem-sucedido, criando sessão...');
+            
+            isLoading = true;
+            updateButtonState(true);
+            
             // Criar sessão
             const sessionData = {
                 email: ADMIN_CREDENTIALS.email,
@@ -227,22 +265,35 @@
                 isAdmin: true
             };
             
-            localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-            
-            // Log de acesso
-            console.log('✅ Login successful for:', ADMIN_CREDENTIALS.email);
-            
-            // Mostrar sucesso
-            showSuccessAlert('Login realizado com sucesso! Redirecionando...');
-            
-            // Redirecionar para admin
-            setTimeout(() => {
-                window.location.href = 'admin.html';
-            }, 2000);
+            try {
+                // Salvar sessão no localStorage
+                localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+                
+                // Verificar se foi salvo corretamente
+                const savedSession = localStorage.getItem(SESSION_KEY);
+                if (!savedSession) {
+                    throw new Error('Falha ao salvar sessão no localStorage');
+                }
+                
+                console.log('✅ [LOGIN] Sessão criada com sucesso:', sessionData);
+                console.log('✅ [LOGIN] Sessão verificada no localStorage');
+                
+                // Mostrar sucesso
+                showSuccessAlert('Login realizado com sucesso! Redirecionando...');
+                
+                // Redirecionar
+                performRedirect();
+                
+            } catch (error) {
+                console.error('❌ [LOGIN] Erro ao criar sessão:', error);
+                showErrorAlert('Erro interno. Tente novamente.');
+                isLoading = false;
+                updateButtonState(false);
+            }
         }
         
         function handleFailedLogin() {
-            console.log('❌ Login failed');
+            console.log('❌ [LOGIN] Login falhou');
             
             // Mostrar erro
             showErrorAlert('Credenciais inválidas! Verifique e-mail e senha.');
@@ -251,7 +302,7 @@
             if (senhaInput) senhaInput.value = '';
             if (emailInput) emailInput.focus();
             
-            // Adicionar delay de segurança (previne ataques de força bruta)
+            // Adicionar delay de segurança
             if (loginForm) {
                 loginForm.style.pointerEvents = 'none';
                 setTimeout(() => {
@@ -260,10 +311,34 @@
             }
         }
         
+        function performRedirect() {
+            console.log('🔄 [LOGIN] Iniciando redirecionamento...');
+            
+            // Aguardar um pouco para garantir que o localStorage foi salvo
+            setTimeout(() => {
+                console.log('🔄 [LOGIN] Redirecionando para admin.html...');
+                
+                // Forçar refresh para evitar problemas de cache
+                window.location.href = 'admin.html?t=' + Date.now();
+                
+                // Fallback caso o redirecionamento não funcione
+                setTimeout(() => {
+                    console.log('🔄 [LOGIN] Fallback: tentando replace...');
+                    window.location.replace('admin.html?t=' + Date.now());
+                }, 1000);
+                
+            }, 1000);
+        }
+        
         function isUserAuthenticated() {
+            console.log('🔍 [LOGIN] Verificando autenticação existente...');
+            
             try {
                 const sessionData = localStorage.getItem(SESSION_KEY);
-                if (!sessionData) return false;
+                if (!sessionData) {
+                    console.log('🔍 [LOGIN] Nenhuma sessão encontrada');
+                    return false;
+                }
                 
                 const data = JSON.parse(sessionData);
                 
@@ -272,16 +347,31 @@
                 const expiry = new Date(data.expiryTime);
                 
                 if (now >= expiry) {
-                    // Sessão expirada, remover
+                    console.log('🔍 [LOGIN] Sessão expirada, removendo...');
                     localStorage.removeItem(SESSION_KEY);
                     return false;
                 }
                 
+                console.log('🔍 [LOGIN] Sessão válida encontrada');
                 return true;
             } catch (error) {
-                console.error('Erro ao ler dados da sessão:', error);
+                console.error('❌ [LOGIN] Erro ao verificar sessão:', error);
                 localStorage.removeItem(SESSION_KEY);
                 return false;
+            }
+        }
+        
+        function updateButtonState(loading) {
+            if (btnLogin) {
+                if (loading) {
+                    btnLogin.textContent = '⏳ Entrando...';
+                    btnLogin.disabled = true;
+                    btnLogin.style.opacity = '0.7';
+                } else {
+                    btnLogin.textContent = '🚀 Entrar';
+                    btnLogin.disabled = false;
+                    btnLogin.style.opacity = '1';
+                }
             }
         }
         
@@ -309,6 +399,7 @@
         
         // Funções para alerts
         function showErrorAlert(message) {
+            console.log('⚠️ [LOGIN] Exibindo erro:', message);
             clearAlerts();
             
             if (alertErro) {
@@ -324,6 +415,7 @@
         }
         
         function showSuccessAlert(message) {
+            console.log('✅ [LOGIN] Exibindo sucesso:', message);
             clearAlerts();
             
             if (alertSucesso) {
@@ -342,10 +434,7 @@
             clearAlerts();
         }
         
-        // Tornar isUserAuthenticated disponível globalmente para outras páginas
-        window.isUserAuthenticated = isUserAuthenticated;
-        
-        console.log('🔑 Login authentication system loaded - standalone version');
+        console.log('🔐 [LOGIN] Sistema de autenticação carregado - versão corrigida');
     </script>
 </body>
 </html>

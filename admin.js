@@ -668,10 +668,17 @@ function atualizarStatusCarregamento() {
     const timeSpan = document.getElementById('session-time');
     
     if (userSpan) {
-        const userInfo = getUserInfo();
-        if (userInfo) {
-            userSpan.textContent = `👤 ${userInfo.email}`;
-            userSpan.style.color = '#4CAF50';
+        // Obter informações da sessão do localStorage
+        const sessionData = localStorage.getItem('bingoAdminSession');
+        if (sessionData) {
+            try {
+                const userInfo = JSON.parse(sessionData);
+                userSpan.textContent = `👤 ${userInfo.email}`;
+                userSpan.style.color = '#4CAF50';
+            } catch (error) {
+                userSpan.textContent = '👤 Admin Conectado';
+                userSpan.style.color = '#4CAF50';
+            }
         } else {
             userSpan.textContent = '👤 Admin Conectado';
             userSpan.style.color = '#4CAF50';
