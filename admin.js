@@ -393,7 +393,7 @@ async function initializeAdminPage() {
     }
 
     function irParaBingo() {
-        window.open('index.html', '_blank');
+        window.open('bingo-original.html', '_blank');
     }
 
     async function gerarNovaCartela() {
@@ -675,7 +675,7 @@ function setupBasicButtons() {
     if (irParaBingoBtn) {
         irParaBingoBtn.onclick = () => {
             console.log('🔄 Botão ir para bingo clicado');
-            window.location.href = 'index.html';
+            window.location.href = 'bingo-original.html';
         };
         console.log('✅ Botão ir-para-bingo configurado');
     } else {
