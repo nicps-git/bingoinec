@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Teste Mínimo - Login Cartelas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            display: none;
+        }
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .alert.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .cartela {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .numeros-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            margin: 10px 0;
+        }
+        .numero {
+            background: #e9ecef;
+            border: 1px solid #adb5bd;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .numero.sorteado {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        .numero.marcado {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+            font-weight: bold;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 3px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste Mínimo - Login de Cartelas</h1>
+        
+        <div class="input-group">
+            <label for="telefone">📱 Telefone:</label>
+            <input type="tel" id="telefone" placeholder="11999999999" value="11999999999">
+        </div>
+        
+        <div>
+            <button onclick="testarLogin()">🔍 Buscar Cartelas</button>
+            <button onclick="criarDadosTeste()">➕ Criar Dados de Teste</button>
+            <button onclick="limparLog()">🗑️ Limpar Log</button>
+        </div>
+        
+        <div id="alerta" class="alert"></div>
+        
+        <div id="resultados"></div>
+        
+        <div class="log" id="log-console"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        // Variáveis globais
+        let db;
+        let numerosSorteados = [];
+        
+        // Log personalizado
+        function log(message) {
+            const logEl = document.getElementById('log-console');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.innerHTML += `[${timestamp}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+        
+        function limparLog() {
+            document.getElementById('log-console').innerHTML = '';
+        }
+        
+        // Mostrar alerta
+        function mostrarAlerta(message, type = 'info') {
+            const alertEl = document.getElementById('alerta');
+            alertEl.textContent = message;
+            alertEl.className = `alert ${type}`;
+            alertEl.style.display = 'block';
+            setTimeout(() => {
+                alertEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Inicializar Firebase
+        async function inicializarFirebase() {
+            try {
+                log('🔄 Inicializando Firebase...');
+                
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK não carregado');
+                }
+                
+                if (!firebase.apps.length) {
+                    if (typeof firebaseConfig !== 'undefined') {
+                        firebase.initializeApp(firebaseConfig);
+                        log('✅ Firebase inicializado');
+                    } else {
+                        throw new Error('firebaseConfig não encontrado');
+                    }
+                } else {
+                    log('✅ Firebase já inicializado');
+                }
+                
+                db = firebase.firestore();
+                log('✅ Firestore conectado');
+                
+                return true;
+            } catch (error) {
+                log(`❌ Erro ao inicializar Firebase: ${error.message}`);
+                mostrarAlerta(`Erro Firebase: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // Buscar cartelas
+        async function buscarCartelas(telefone) {
+            try {
+                log(`🔍 Buscando cartelas para telefone: ${telefone}`);
+                
+                const telefoneNormalizado = telefone.replace(/\D/g, '');
+                log(`📱 Telefone normalizado: ${telefoneNormalizado}`);
+                
+                const query = await db.collection('cartelas').where('telefone', '==', telefoneNormalizado).get();
+                
+                if (query.empty) {
+                    log('❌ Nenhuma cartela encontrada');
+                    return [];
+                }
+                
+                const cartelas = [];
+                query.forEach(doc => {
+                    const data = doc.data();
+                    cartelas.push({ id: doc.id, ...data });
+                    log(`📋 Cartela encontrada: ID=${doc.id}, Nome=${data.nome}`);
+                });
+                
+                return cartelas;
+                
+            } catch (error) {
+                log(`❌ Erro ao buscar cartelas: ${error.message}`);
+                throw error;
+            }
+        }
+        
+        // Buscar números sorteados
+        async function buscarNumerosSorteados() {
+            try {
+                log('🎲 Buscando números sorteados...');
+                
+                const snapshot = await db.collection('numeros-sorteados').get();
+                
+                if (snapshot.empty) {
+                    log('⚠️ Nenhum número sorteado encontrado');
+                    return [];
+                }
+                
+                const numeros = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const numero = data.numero || parseInt(doc.id);
+                    if (!isNaN(numero)) {
+                        numeros.push(numero);
+                    }
+                });
+                
+                numeros.sort((a, b) => a - b);
+                log(`✅ ${numeros.length} números sorteados encontrados: ${numeros.join(', ')}`);
+                
+                return numeros;
+                
+            } catch (error) {
+                log(`❌ Erro ao buscar números: ${error.message}`);
+                return [];
+            }
+        }
+        
+        // Exibir cartelas
+        function exibirCartelas(cartelas) {
+            const resultadosEl = document.getElementById('resultados');
+            
+            if (cartelas.length === 0) {
+                resultadosEl.innerHTML = '<p><strong>❌ Nenhuma cartela encontrada</strong></p>';
+                return;
+            }
+            
+            let html = `<h3>✅ ${cartelas.length} cartela(s) encontrada(s):</h3>`;
+            
+            cartelas.forEach(cartela => {
+                let numeros = [];
+                if (Array.isArray(cartela.numeros)) {
+                    numeros = cartela.numeros;
+                } else if (typeof cartela.numeros === 'string') {
+                    try {
+                        numeros = JSON.parse(cartela.numeros);
+                    } catch (e) {
+                        numeros = [];
+                    }
+                }
+                
+                html += `
+                    <div class="cartela">
+                        <h4>🎫 Cartela ${cartela.id}</h4>
+                        <p><strong>👤 Nome:</strong> ${cartela.nome}</p>
+                        <p><strong>📱 Telefone:</strong> ${cartela.telefone}</p>
+                        <p><strong>📧 Email:</strong> ${cartela.email || 'Não informado'}</p>
+                        <p><strong>💰 Status:</strong> ${cartela.vendida ? '✅ Paga' : '⏳ Pendente'}</p>
+                        <p><strong>🎯 Números:</strong></p>
+                        <div class="numeros-grid">
+                            ${numeros.map(num => {
+                                const sorteado = numerosSorteados.includes(num);
+                                return `<div class="numero ${sorteado ? 'sorteado' : ''}">${num}</div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            resultadosEl.innerHTML = html;
+        }
+        
+        // Teste principal
+        async function testarLogin() {
+            try {
+                const telefone = document.getElementById('telefone').value.trim();
+                
+                if (!telefone) {
+                    mostrarAlerta('❌ Digite um telefone', 'error');
+                    return;
+                }
+                
+                mostrarAlerta('🔍 Buscando cartelas...', 'info');
+                log('🚀 Iniciando teste de login...');
+                
+                // Garantir que Firebase está inicializado
+                if (!db) {
+                    const sucesso = await inicializarFirebase();
+                    if (!sucesso) return;
+                }
+                
+                // Buscar números sorteados primeiro
+                numerosSorteados = await buscarNumerosSorteados();
+                
+                // Buscar cartelas
+                const cartelas = await buscarCartelas(telefone);
+                
+                if (cartelas.length === 0) {
+                    mostrarAlerta('❌ Nenhuma cartela encontrada com este telefone', 'error');
+                } else {
+                    mostrarAlerta(`✅ ${cartelas.length} cartela(s) encontrada(s)!`, 'success');
+                }
+                
+                // Exibir resultados
+                exibirCartelas(cartelas);
+                
+            } catch (error) {
+                log(`❌ Erro no teste: ${error.message}`);
+                mostrarAlerta(`❌ Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        // Criar dados de teste
+        async function criarDadosTeste() {
+            try {
+                log('📝 Criando dados de teste...');
+                mostrarAlerta('📝 Criando dados de teste...', 'info');
+                
+                if (!db) {
+                    const sucesso = await inicializarFirebase();
+                    if (!sucesso) return;
+                }
+                
+                // Criar cartela de teste
+                const cartelaTeste = {
+                    nome: 'João Silva Teste',
+                    telefone: '11999999999',
+                    email: 'joao.teste@email.com',
+                    numeros: [1, 5, 12, 23, 34, 45, 56, 67, 78, 89],
+                    vendida: true,
+                    status: 'vendida',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                const docRef = await db.collection('cartelas').add(cartelaTeste);
+                log(`✅ Cartela criada com ID: ${docRef.id}`);
+                
+                // Criar números sorteados
+                const numerosTeste = [1, 5, 12, 23, 34];
+                const batch = db.batch();
+                
+                for (const numero of numerosTeste) {
+                    const numRef = db.collection('numeros-sorteados').doc(numero.toString());
+                    batch.set(numRef, {
+                        numero: numero,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                
+                await batch.commit();
+                log(`✅ ${numerosTeste.length} números sorteados criados: ${numerosTeste.join(', ')}`);
+                
+                mostrarAlerta('✅ Dados de teste criados! Use telefone: 11999999999', 'success');
+                
+            } catch (error) {
+                log(`❌ Erro ao criar dados: ${error.message}`);
+                mostrarAlerta(`❌ Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        // Inicializar quando carregar
+        window.onload = async function() {
+            log('🚀 Página carregada');
+            await inicializarFirebase();
+        };
+    </script>
+</body>
+</html>

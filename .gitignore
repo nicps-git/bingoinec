@@ -32,3 +32,10 @@ Thumbs.db
 
 # Netlify
 .netlify/
+
+# Arquivo de documentação histórica
+docs-archive/
+
+# Backups
+backup-*/
+*.backup

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Teste - Minhas Cartelas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .teste-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 3px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste - Sistema de Cartelas</h1>
+        <p>Esta página permite testar o sistema de cartelas sem precisar configurar dados no Firebase.</p>
+        
+        <div class="teste-section">
+            <h2>📊 Status do Sistema</h2>
+            <div id="status-firebase" class="log">Verificando Firebase...</div>
+            <button onclick="verificarFirebase()">🔍 Verificar Firebase</button>
+            <button onclick="listarColecoes()">📋 Listar Coleções</button>
+        </div>
+        
+        <div class="teste-section">
+            <h2>🎫 Adicionar Cartela de Teste</h2>
+            <div class="input-group">
+                <label for="teste-nome">Nome:</label>
+                <input type="text" id="teste-nome" value="João da Silva" placeholder="Nome do comprador">
+            </div>
+            <div class="input-group">
+                <label for="teste-telefone">Telefone:</label>
+                <input type="tel" id="teste-telefone" value="11999999999" placeholder="11999999999">
+            </div>
+            <div class="input-group">
+                <label for="teste-email">Email:</label>
+                <input type="email" id="teste-email" value="joao@email.com" placeholder="email@exemplo.com">
+            </div>
+            <div class="input-group">
+                <label for="teste-numeros">Números da Cartela (separados por vírgula):</label>
+                <input type="text" id="teste-numeros" value="1,5,12,23,34,45,56,67,78,89" placeholder="1,5,12,23,34...">
+            </div>
+            <button onclick="adicionarCartelaTeste()">➕ Adicionar Cartela</button>
+            <div id="log-cartela" class="log"></div>
+        </div>
+        
+        <div class="teste-section">
+            <h2>🎲 Adicionar Números Sorteados</h2>
+            <div class="input-group">
+                <label for="numeros-sorteados">Números (separados por vírgula):</label>
+                <input type="text" id="numeros-sorteados" value="1,5,12,23,34" placeholder="1,5,12,23,34...">
+            </div>
+            <button onclick="adicionarNumerosSorteados()">🎯 Adicionar Números</button>
+            <div id="log-numeros" class="log"></div>
+        </div>
+        
+        <div class="teste-section">
+            <h2>🔍 Teste de Busca</h2>
+            <div class="input-group">
+                <label for="busca-telefone">Telefone para buscar:</label>
+                <input type="tel" id="busca-telefone" value="11999999999" placeholder="11999999999">
+            </div>
+            <button onclick="testarBusca()">🔍 Buscar Cartelas</button>
+            <div id="log-busca" class="log"></div>
+        </div>
+        
+        <div class="teste-section">
+            <h2>🎯 Ações Rápidas</h2>
+            <button onclick="limparTodosDados()">🗑️ Limpar Todos os Dados</button>
+            <button onclick="irParaMinhasCartelas()">🎫 Ir para Minhas Cartelas</button>
+            <div id="log-acoes" class="log"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        // Funções de log
+        function log(containerId, message) {
+            const container = document.getElementById(containerId);
+            const timestamp = new Date().toLocaleTimeString();
+            container.innerHTML += `[${timestamp}] ${message}\n`;
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Verificar Firebase
+        async function verificarFirebase() {
+            try {
+                log('status-firebase', '🔄 Verificando Firebase...');
+                
+                if (typeof firebase === 'undefined') {
+                    log('status-firebase', '❌ Firebase SDK não carregado');
+                    return;
+                }
+                
+                if (!firebase.apps.length) {
+                    if (typeof firebaseConfig !== 'undefined') {
+                        await firebase.initializeApp(firebaseConfig);
+                        log('status-firebase', '✅ Firebase inicializado com sucesso');
+                    } else {
+                        log('status-firebase', '❌ Configuração Firebase não encontrada');
+                        return;
+                    }
+                } else {
+                    log('status-firebase', '✅ Firebase já inicializado');
+                }
+                
+                const db = firebase.firestore();
+                log('status-firebase', '✅ Firestore conectado');
+                
+                // Testar acesso básico
+                const testDoc = await db.collection('_test').doc('connection').get();
+                log('status-firebase', '✅ Acesso ao Firestore funcionando');
+                
+            } catch (error) {
+                log('status-firebase', `❌ Erro: ${error.message}`);
+                console.error('Erro Firebase:', error);
+            }
+        }
+        
+        // Listar coleções (aproximado)
+        async function listarColecoes() {
+            try {
+                log('status-firebase', '🔄 Verificando coleções...');
+                
+                const db = firebase.firestore();
+                
+                // Tentar acessar coleções conhecidas
+                const colecoes = ['cartelas', 'numeros-sorteados', 'numerosSorteados'];
+                
+                for (const colecao of colecoes) {
+                    try {
+                        const snapshot = await db.collection(colecao).limit(1).get();
+                        const count = snapshot.size;
+                        log('status-firebase', `✅ Coleção '${colecao}': ${count} documento(s) encontrado(s)`);
+                    } catch (error) {
+                        log('status-firebase', `⚠️ Coleção '${colecao}': não acessível (${error.code})`);
+                    }
+                }
+                
+            } catch (error) {
+                log('status-firebase', `❌ Erro ao listar coleções: ${error.message}`);
+            }
+        }
+        
+        // Adicionar cartela de teste
+        async function adicionarCartelaTeste() {
+            try {
+                log('log-cartela', '🔄 Adicionando cartela de teste...');
+                
+                const nome = document.getElementById('teste-nome').value.trim();
+                const telefone = document.getElementById('teste-telefone').value.trim();
+                const email = document.getElementById('teste-email').value.trim();
+                const numerosStr = document.getElementById('teste-numeros').value.trim();
+                
+                if (!nome || !telefone || !numerosStr) {
+                    log('log-cartela', '❌ Preencha todos os campos obrigatórios');
+                    return;
+                }
+                
+                const numeros = numerosStr.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+                
+                if (numeros.length === 0) {
+                    log('log-cartela', '❌ Números inválidos');
+                    return;
+                }
+                
+                const db = firebase.firestore();
+                
+                const cartela = {
+                    nome: nome,
+                    telefone: telefone.replace(/\D/g, ''),
+                    email: email || '',
+                    numeros: numeros,
+                    vendida: true,
+                    status: 'vendida',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                const docRef = await db.collection('cartelas').add(cartela);
+                log('log-cartela', `✅ Cartela adicionada com ID: ${docRef.id}`);
+                log('log-cartela', `📱 Telefone: ${cartela.telefone}`);
+                log('log-cartela', `🎯 Números: ${numeros.join(', ')}`);
+                
+            } catch (error) {
+                log('log-cartela', `❌ Erro: ${error.message}`);
+                console.error('Erro ao adicionar cartela:', error);
+            }
+        }
+        
+        // Adicionar números sorteados
+        async function adicionarNumerosSorteados() {
+            try {
+                log('log-numeros', '🔄 Adicionando números sorteados...');
+                
+                const numerosStr = document.getElementById('numeros-sorteados').value.trim();
+                
+                if (!numerosStr) {
+                    log('log-numeros', '❌ Digite os números sorteados');
+                    return;
+                }
+                
+                const numeros = numerosStr.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+                
+                if (numeros.length === 0) {
+                    log('log-numeros', '❌ Números inválidos');
+                    return;
+                }
+                
+                const db = firebase.firestore();
+                
+                // Limpar números existentes
+                const existentes = await db.collection('numeros-sorteados').get();
+                const batch = db.batch();
+                existentes.forEach(doc => batch.delete(doc.ref));
+                
+                // Adicionar novos números
+                for (const numero of numeros) {
+                    const docRef = db.collection('numeros-sorteados').doc(numero.toString());
+                    batch.set(docRef, {
+                        numero: numero,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                
+                await batch.commit();
+                log('log-numeros', `✅ ${numeros.length} números sorteados adicionados: ${numeros.join(', ')}`);
+                
+            } catch (error) {
+                log('log-numeros', `❌ Erro: ${error.message}`);
+                console.error('Erro ao adicionar números:', error);
+            }
+        }
+        
+        // Testar busca
+        async function testarBusca() {
+            try {
+                log('log-busca', '🔄 Testando busca de cartelas...');
+                
+                const telefone = document.getElementById('busca-telefone').value.trim().replace(/\D/g, '');
+                
+                if (!telefone) {
+                    log('log-busca', '❌ Digite um telefone para buscar');
+                    return;
+                }
+                
+                const db = firebase.firestore();
+                
+                log('log-busca', `🔍 Buscando cartelas para telefone: ${telefone}`);
+                
+                const query = await db.collection('cartelas').where('telefone', '==', telefone).get();
+                
+                if (query.empty) {
+                    log('log-busca', '❌ Nenhuma cartela encontrada');
+                } else {
+                    log('log-busca', `✅ ${query.size} cartela(s) encontrada(s):`);
+                    
+                    query.forEach(doc => {
+                        const data = doc.data();
+                        log('log-busca', `  📋 ID: ${doc.id}`);
+                        log('log-busca', `  👤 Nome: ${data.nome}`);
+                        log('log-busca', `  📱 Telefone: ${data.telefone}`);
+                        log('log-busca', `  🎯 Números: ${Array.isArray(data.numeros) ? data.numeros.join(', ') : data.numeros}`);
+                    });
+                }
+                
+                // Buscar números sorteados também
+                log('log-busca', '🎲 Buscando números sorteados...');
+                const numerosSnapshot = await db.collection('numeros-sorteados').get();
+                
+                if (numerosSnapshot.empty) {
+                    log('log-busca', '⚠️ Nenhum número sorteado encontrado');
+                } else {
+                    const numeros = [];
+                    numerosSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        const numero = data.numero || parseInt(doc.id);
+                        if (!isNaN(numero)) numeros.push(numero);
+                    });
+                    numeros.sort((a, b) => a - b);
+                    log('log-busca', `🎯 ${numeros.length} números sorteados: ${numeros.join(', ')}`);
+                }
+                
+            } catch (error) {
+                log('log-busca', `❌ Erro: ${error.message}`);
+                console.error('Erro na busca:', error);
+            }
+        }
+        
+        // Limpar todos os dados
+        async function limparTodosDados() {
+            if (!confirm('⚠️ Tem certeza que deseja limpar TODOS os dados?')) {
+                return;
+            }
+            
+            try {
+                log('log-acoes', '🔄 Limpando todos os dados...');
+                
+                const db = firebase.firestore();
+                
+                // Limpar cartelas
+                const cartelas = await db.collection('cartelas').get();
+                const batch1 = db.batch();
+                cartelas.forEach(doc => batch1.delete(doc.ref));
+                await batch1.commit();
+                log('log-acoes', `🗑️ ${cartelas.size} cartelas removidas`);
+                
+                // Limpar números sorteados
+                const numeros = await db.collection('numeros-sorteados').get();
+                const batch2 = db.batch();
+                numeros.forEach(doc => batch2.delete(doc.ref));
+                await batch2.commit();
+                log('log-acoes', `🗑️ ${numeros.size} números sorteados removidos`);
+                
+                log('log-acoes', '✅ Todos os dados foram limpos');
+                
+            } catch (error) {
+                log('log-acoes', `❌ Erro: ${error.message}`);
+                console.error('Erro ao limpar dados:', error);
+            }
+        }
+        
+        // Ir para página de cartelas
+        function irParaMinhasCartelas() {
+            window.open('minhas-cartelas.html', '_blank');
+        }
+        
+        // Inicializar quando a página carregar
+        window.onload = function() {
+            setTimeout(verificarFirebase, 1000);
+        };
+    </script>
+</body>
+</html>

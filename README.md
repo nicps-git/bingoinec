@@ -80,23 +80,59 @@ Senha: wooFestadeComida
 ## 📁 Estrutura do Projeto
 
 ```
-/
-├── index.html          # Página principal do bingo
-├── cartelas.html       # Sistema de compra de cartelas
-├── admin.html          # Tela de administração (PROTEGIDA)
-├── login.html          # Sistema de login (NOVO)
-├── style.css           # Estilos da página principal
-├── cartelas.css        # Estilos da página de cartelas
-├── admin.css           # Estilos da administração
-├── login.css           # Estilos da página de login (NOVO)
-├── script.js           # JavaScript da página principal
-├── cartelas.js         # JavaScript da página de cartelas
-├── admin.js            # JavaScript da administração
-├── login.js            # Sistema de autenticação (NOVO)
-├── inec.png            # Logo da empresa
-├── netlify.toml        # Configuração de deploy
-└── README.md           # Este arquivo
+🎪 Bingo Arraiá INEC/
+├── 📄 Páginas Principais
+│   ├── index.html          # Página principal do sorteio
+│   ├── cartelas.html       # Sistema de cartelas
+│   ├── login.html          # Página de autenticação
+│   ├── admin.html          # Painel administrativo
+│   └── minhas-cartelas.html # Visualização de cartelas
+├── 🎨 Estilos
+│   ├── style.css           # Estilos da página principal
+│   ├── cartelas.css        # Estilos da página de cartelas
+│   ├── admin.css           # Estilos da administração
+│   ├── login.css           # Estilos da página de login
+│   └── minhas-cartelas.css # Estilos de visualização
+├── ⚙️ JavaScript
+│   ├── script.js           # Lógica da página principal
+│   ├── cartelas.js         # Lógica da página de cartelas
+│   ├── admin.js            # Sistema administrativo consolidado
+│   ├── login.js            # Sistema de autenticação
+│   ├── minhas-cartelas.js  # Visualização de cartelas
+│   ├── auth-admin.js       # Autenticação administrativa
+│   ├── firebase-service.js # Serviços Firebase
+│   └── firebase-config*.js # Configurações Firebase
+├── 🖼️ Recursos
+│   ├── inec.png           # Logo da empresa
+│   ├── inec.jpeg          # Logo alternativa
+│   └── padre.jpeg         # Imagem temática
+├── 🔧 Configuração
+│   ├── package.json       # Dependências Node.js
+│   ├── firebase.json      # Configuração Firebase
+│   ├── netlify.toml       # Configuração de deploy
+│   └── .gitignore         # Arquivos ignorados
+└── 📚 Documentação
+    ├── README.md          # Este arquivo
+    └── docs-archive/      # Arquivo histórico (não versionado)
 ```
+
+## 🧹 Organização e Limpeza
+
+O projeto foi **totalmente limpo e organizado**:
+
+### ✅ Arquivos Mantidos (Essenciais)
+- **5 páginas HTML** funcionais
+- **10 arquivos JavaScript** consolidados
+- **5 arquivos CSS** otimizados
+- **1 README.md** principal
+- **Arquivos de configuração** necessários
+
+### 🗂️ Arquivos Arquivados (201 itens)
+- Documentação histórica de correções
+- Arquivos de teste e debug
+- Versões antigas e temporárias
+- Scripts de investigação
+- **Localização**: `docs-archive/` (não versionado)
 
 ## 🔧 Tecnologias
 
