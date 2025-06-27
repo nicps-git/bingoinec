@@ -66,13 +66,15 @@
                     return;
                 }
                 
-                // Fallback 1: Aguardar função carregar
-                console.log('⏳ Função corrigida não encontrada, aguardando...');
+                // Aguardar função carregar (máximo 5 segundos)
+                console.log('⏳ Função corrigida não encontrada, aguardando carregamento...');
                 let tentativas = 0;
-                while (typeof window.gerarCartelaCorrigida !== 'function' && tentativas < 10) {
+                const maxTentativas = 25; // 5 segundos (25 x 200ms)
+                
+                while (typeof window.gerarCartelaCorrigida !== 'function' && tentativas < maxTentativas) {
                     await new Promise(resolve => setTimeout(resolve, 200));
                     tentativas++;
-                    console.log(`⏳ Tentativa ${tentativas}/10`);
+                    console.log(`⏳ Aguardando... ${tentativas}/${maxTentativas}`);
                 }
                 
                 if (typeof window.gerarCartelaCorrigida === 'function') {
@@ -81,9 +83,9 @@
                     return;
                 }
                 
-                // Fallback 2: Usar geração simples COM Firebase
-                console.warn('⚠️ Usando fallback com Firebase...');
-                await gerarCartelaFallbackComFirebase();
+                // Se ainda não encontrou, usar função simples como backup
+                console.warn('⚠️ Função principal não carregou, usando geração simples');
+                gerarCartelaSimples();
                 
             } catch (error) {
                 console.error('❌ Erro em gerarCartela:', error);
@@ -91,152 +93,109 @@
             }
         }
         
-        // Função fallback que usa Firebase mas é mais simples
-        async function gerarCartelaFallbackComFirebase() {
-            console.log('🎲 Executando fallback com Firebase...');
+        function gerarCartelaSimples() {
+            console.log('🎲 Gerando cartela com PADRÃO BINGO...');
             
             try {
-                // Verificar Firebase novamente
-                if (typeof firebase === 'undefined') {
-                    throw new Error('Firebase não disponível');
+                // Gerar números seguindo o padrão BINGO tradicional
+                const colunasBingo = {
+                    'B': { min: 1, max: 15, count: 5, numeros: [] },
+                    'I': { min: 16, max: 30, count: 5, numeros: [] },
+                    'N': { min: 31, max: 45, count: 4, numeros: [] }, // 4 números + LIVRE
+                    'G': { min: 46, max: 60, count: 5, numeros: [] },
+                    'O': { min: 61, max: 75, count: 5, numeros: [] }
+                };
+                
+                // Gerar números para cada coluna
+                for (const [coluna, config] of Object.entries(colunasBingo)) {
+                    const numerosDisponiveis = [];
+                    for (let i = config.min; i <= config.max; i++) {
+                        numerosDisponiveis.push(i);
+                    }
+                    
+                    for (let i = 0; i < config.count; i++) {
+                        const indice = Math.floor(Math.random() * numerosDisponiveis.length);
+                        const numeroEscolhido = numerosDisponiveis.splice(indice, 1)[0];
+                        config.numeros.push(numeroEscolhido);
+                    }
+                    
+                    config.numeros.sort((a, b) => a - b);
                 }
                 
-                // Gerar números
-                const numeros = [];
-                const disponiveis = [];
-                for (let i = 1; i <= 75; i++) {
-                    disponiveis.push(i);
+                // Criar grid 5x5 respeitando as posições corretas
+                const grid = [];
+                for (let linha = 0; linha < 5; linha++) {
+                    const linhaGrid = [];
+                    
+                    // Coluna B
+                    linhaGrid.push(colunasBingo.B.numeros[linha] || null);
+                    
+                    // Coluna I
+                    linhaGrid.push(colunasBingo.I.numeros[linha] || null);
+                    
+                    // Coluna N (posição 2,2 é sempre LIVRE)
+                    if (linha === 2) {
+                        linhaGrid.push('LIVRE');
+                    } else if (linha < 2) {
+                        linhaGrid.push(colunasBingo.N.numeros[linha] || null);
+                    } else {
+                        linhaGrid.push(colunasBingo.N.numeros[linha - 1] || null);
+                    }
+                    
+                    // Coluna G
+                    linhaGrid.push(colunasBingo.G.numeros[linha] || null);
+                    
+                    // Coluna O
+                    linhaGrid.push(colunasBingo.O.numeros[linha] || null);
+                    
+                    grid.push(linhaGrid);
                 }
-                for (let i = 0; i < 24; i++) {
-                    const indice = Math.floor(Math.random() * disponiveis.length);
-                    numeros.push(disponiveis.splice(indice, 1)[0]);
-                }
-                numeros.sort((a, b) => a - b);
                 
+                // Criar array dos números para compatibilidade
+                const numerosCartela = [];
+                Object.values(colunasBingo).forEach(coluna => {
+                    numerosCartela.push(...coluna.numeros);
+                });
+                numerosCartela.sort((a, b) => a - b);
+                
+                // Criar cartela
                 const cartela = {
-                    id: `FALLBACK-${Date.now()}`,
-                    numeros: numeros,
+                    id: `SIMPL-${Date.now()}`,
+                    numeros: numerosCartela,
+                    colunasBingo: colunasBingo,
+                    grid: grid,
                     preco: 5.00,
                     status: 'preview'
                 };
                 
-                console.log('📋 Cartela gerada (fallback):', cartela);
+                // Armazenar globalmente
+                window.numerosCartelaAtual = numerosCartela;
+                window.cartelaAtual = cartela;
+                console.log('💾 Cartela simples armazenada:', cartela);
                 
-                // Tentar gravar no Firebase
-                if (firebase.firestore) {
-                    const db = firebase.firestore();
-                    const reservaTemporaria = {
-                        id: cartela.id,
-                        numeros: cartela.numeros,
-                        preco: cartela.preco,
-                        status: 'reservada-temporariamente',
-                        dataReserva: firebase.firestore.FieldValue.serverTimestamp(),
-                        expiracaoReserva: new Date(Date.now() + 30 * 60 * 1000),
-                        sessao: `fallback-${Date.now()}`,
-                        fallback: true
-                    };
-                    
-                    await db.collection('cartelas').doc(cartela.id).set(reservaTemporaria);
-                    console.log('✅ Reserva temporária criada (fallback)');
-                    
-                    // Armazenar globalmente
-                    window.cartelaReservada = cartela;
-                    window.numerosCartelaAtual = numeros;
-                }
-                
-                // Mostrar na interface
-                mostrarCartelaFallback(cartela);
-                
-            } catch (error) {
-                console.error('❌ Erro no fallback:', error);
-                throw error;
-            }
-        }
-        
-        // Função para mostrar cartela do fallback
-        function mostrarCartelaFallback(cartela) {
-            console.log('🎫 Exibindo cartela (fallback):', cartela);
-            
-            const container = document.getElementById('cartela-preview');
-            if (!container) {
-                console.error('❌ Container não encontrado');
-                return;
-            }
-            
-            container.innerHTML = `
-                <div style="background: white; color: black; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-                    <h3 style="margin: 0 0 15px 0; text-align: center;">🎫 Cartela ${cartela.id.substring(9, 15)} (FALLBACK)</h3>
-                    
-                    <!-- Status da Reserva -->
-                    <div style="background: #ffc107; color: black; padding: 8px; border-radius: 5px; text-align: center; margin-bottom: 15px; font-weight: bold;">
-                        ⚠️ Modo Fallback - Firebase Ativo
-                    </div>
-                    
-                    <!-- Header BINGO -->
-                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px 0;">
-                        <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">B</div>
-                        <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">I</div>
-                        <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">N</div>
-                        <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">G</div>
-                        <div style="background: #e74c3c; color: white; text-align: center; font-size: 1.2em; font-weight: bold; padding: 8px; border-radius: 5px;">O</div>
-                    </div>
-                    
-                    <!-- Grid de números -->
-                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 15px 0;">
-                        ${cartela.numeros.slice(0, 12).map(num => 
-                            `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
-                        ).join('')}
-                        <div style="background: #f39c12; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 14px;">⭐<br>LIVRE</div>
-                        ${cartela.numeros.slice(12).map(num => 
-                            `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
-                        ).join('')}
-                    </div>
-                    
-                    <p style="text-align: center; margin: 15px 0 0 0; font-size: 18px; font-weight: bold;">
-                        💰 Preço: R$ ${cartela.preco.toFixed(2)} | 🎯 ${cartela.numeros.length} números
-                    </p>
-                </div>
-            `;
-            
-            // Habilitar botão comprar
-            const btnComprar = document.getElementById('comprar-cartela');
-            if (btnComprar) {
-                btnComprar.disabled = false;
-                btnComprar.textContent = '🛒 Adicionar ao Carrinho';
-            }
-            
-            console.log('✅ Cartela exibida (fallback)');
-        }
-        
-        function gerarCartelaSimples() {
-            console.log('🎲 Gerando cartela simples com 24 números...');
-            
-            try {
-                // Gerar 24 números únicos
-                const numeros = [];
-                const disponiveis = [];
-                
-                // Criar array de 1 a 75
-                for (let i = 1; i <= 75; i++) {
-                    disponiveis.push(i);
-                }
-                
-                // Escolher 24 números únicos
-                for (let i = 0; i < 24; i++) {
-                    const indice = Math.floor(Math.random() * disponiveis.length);
-                    numeros.push(disponiveis.splice(indice, 1)[0]);
-                }
-                numeros.sort((a, b) => a - b);
-                
-                // IMPORTANTE: Armazenar números globalmente para referência
-                window.numerosCartelaAtual = numeros;
-                console.log('💾 Números armazenados globalmente:', numeros);
+                // Gerar HTML da cartela
+                const gridHTML = grid.map(linha => 
+                    linha.map(celula => {
+                        if (celula === 'LIVRE') {
+                            return `<div style="background: #f39c12; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 14px;">⭐<br>LIVRE</div>`;
+                        } else if (celula !== null) {
+                            return `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${celula}</div>`;
+                        } else {
+                            return `<div style="background: #ccc; color: #666; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">-</div>`;
+                        }
+                    }).join('')
+                ).join('');
                 
                 const container = document.getElementById('cartela-preview');
                 if (container) {
                     container.innerHTML = `
                         <div style="background: white; color: black; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-                            <h3 style="margin: 0 0 15px 0; text-align: center;">🎫 Cartela ${Date.now().toString().slice(-6)} (${numeros.length} números)</h3>
+                            <h3 style="margin: 0 0 15px 0; text-align: center;">🎫 Cartela ${cartela.id.substring(6, 12)}</h3>
+                            
+                            <!-- Status -->
+                            <div style="background: #17a2b8; color: white; padding: 8px; border-radius: 5px; text-align: center; margin-bottom: 15px; font-weight: bold;">
+                                🎯 Padrão BINGO Simplificado
+                            </div>
                             
                             <!-- Header BINGO -->
                             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px 0;">
@@ -249,26 +208,36 @@
                             
                             <!-- Grid de números -->
                             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 15px 0;">
-                                ${numeros.slice(0, 12).map(num => 
-                                    `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
-                                ).join('')}
-                                <div style="background: #f39c12; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 14px;">⭐<br>LIVRE</div>
-                                ${numeros.slice(12).map(num => 
-                                    `<div style="background: #4CAF50; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 16px;">${num}</div>`
-                                ).join('')}
+                                ${gridHTML}
                             </div>
                             
                             <p style="text-align: center; margin: 15px 0 0 0; font-size: 18px; font-weight: bold;">
-                                💰 Preço: R$ 5,00 | 🎯 ${numeros.length} números
+                                💰 Preço: R$ ${cartela.preco.toFixed(2)} | 🎯 ${cartela.numeros.length} números
                             </p>
+                            
+                            <!-- Informações das colunas -->
+                            <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 12px; text-align: center;">
+                                <strong>Distribuição:</strong> 
+                                B(1-15): ${colunasBingo.B.numeros.length} | 
+                                I(16-30): ${colunasBingo.I.numeros.length} | 
+                                N(31-45): ${colunasBingo.N.numeros.length} | 
+                                G(46-60): ${colunasBingo.G.numeros.length} | 
+                                O(61-75): ${colunasBingo.O.numeros.length}
+                            </div>
                         </div>
                     `;
                     
-                    // Habilitar botão comprar
+                    // Habilitar botões
                     const btnComprar = document.getElementById('comprar-cartela');
                     if (btnComprar) {
                         btnComprar.disabled = false;
                         btnComprar.textContent = '🛒 Adicionar ao Carrinho';
+                    }
+                    
+                    const btnGerar = document.getElementById('gerar-cartela');
+                    if (btnGerar) {
+                        btnGerar.disabled = false;
+                        btnGerar.textContent = '🎲 Gerar Nova Cartela';
                     }
                     
                     console.log('✅ Cartela simples gerada com sucesso!');

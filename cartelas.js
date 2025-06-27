@@ -230,13 +230,7 @@ function configurarOutrosBotoes() {
     if (btnComprar) {
         btnComprar.addEventListener('click', function() {
             console.log('🛒 Botão comprar clicado');
-            if (typeof adicionarAoCarrinhoCorrigida === 'function') {
-                console.log('✅ Usando adicionarAoCarrinhoCorrigida');
-                adicionarAoCarrinhoCorrigida();
-            } else {
-                console.warn('⚠️ adicionarAoCarrinhoCorrigida não disponível, usando fallback');
-                adicionarAoCarrinho();
-            }
+            adicionarAoCarrinhoCorrigida();
         });
         console.log('✅ Botão comprar configurado com versão corrigida');
     }
@@ -257,17 +251,10 @@ function configurarOutrosBotoes() {
         formCheckout.removeEventListener('submit', processarCompra);
         formCheckout.removeEventListener('submit', processarCompraCorrigida);
         
-        // Função para garantir que a versão corrigida seja usada
+        // Função para processar compra sempre com versão corrigida
         const processarCompraWrapper = async function(event) {
-            console.log('💳 Wrapper de compra chamado');
-            
-            if (typeof processarCompraCorrigida === 'function') {
-                console.log('✅ Usando processarCompraCorrigida');
-                return await processarCompraCorrigida(event);
-            } else {
-                console.warn('⚠️ processarCompraCorrigida não disponível, usando fallback');
-                return await processarCompra(event);
-            }
+            console.log('💳 Processando compra');
+            return await processarCompraCorrigida(event);
         };
         
         // Adicionar listener wrapper
@@ -289,7 +276,8 @@ function configurarOutrosBotoes() {
     }
 }
 
-// Adicionar cartela ao carrinho
+// FUNÇÃO FALLBACK REMOVIDA - usar apenas adicionarAoCarrinhoCorrigida
+/*
 function adicionarAoCarrinho() {
     if (!cartelaAtual) {
         alert('Gere uma cartela primeiro!');
@@ -352,6 +340,7 @@ function adicionarAoCarrinho() {
     
     console.log('✅ Cartela adicionada ao carrinho');
 }
+*/
 
 // Função completa para adicionar ao carrinho (com integração Firebase)
 function adicionarAoCarrinhoCompleta() {
@@ -754,7 +743,7 @@ async function gravarReservaTemporaria(cartela) {
         return { 
             success: true, 
             id: cartela.id, 
-            modo: 'local-fallback',
+            modo: 'local-simplificado',
             erro: error.message 
         };
     }
@@ -1067,9 +1056,9 @@ function mostrarCartelaCorrigida(cartela, resultadoReserva = null) {
         if (resultadoReserva.modo === 'firebase') {
             statusReserva = '✅ Reservada no banco';
             corStatus = '#28a745';
-        } else if (resultadoReserva.modo === 'local-fallback') {
-            statusReserva = '⚠️ Fallback local';
-            corStatus = '#ffc107';
+        } else if (resultadoReserva.modo === 'local-simplificado') {
+            statusReserva = '🎯 Modo simplificado - PADRÃO BINGO';
+            corStatus = '#17a2b8';
         } else if (resultadoReserva.modo === 'local-simplificado') {
             statusReserva = '🎯 Modo simplificado - PADRÃO BINGO';
             corStatus = '#17a2b8';
