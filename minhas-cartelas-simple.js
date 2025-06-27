@@ -439,6 +439,29 @@ function atualizarStatusSorteio(numerosSorteados) {
 }
 
 // Função para exibir cartelas do comprador
+// Função helper para gerar célula de número
+function gerarCelulaNumero(numero, marcado) {
+    return `<div class="numero-cell ${marcado ? 'marcado' : ''}" 
+                 data-numero="${numero}" 
+                 style="
+                     background: ${marcado ? '#4CAF50' : '#f8f9fa'};
+                     color: ${marcado ? 'white' : '#495057'};
+                     text-align: center;
+                     font-weight: bold;
+                     padding: 12px;
+                     border-radius: 5px;
+                     cursor: pointer;
+                     display: flex;
+                     align-items: center;
+                     justify-content: center;
+                     transition: all 0.3s ease;
+                     font-size: 16px;
+                     border: ${marcado ? '2px solid #1e7e34' : '1px solid #dee2e6'};
+                     box-shadow: ${marcado ? '0 0 10px rgba(40, 167, 69, 0.5)' : '0 2px 4px rgba(0,0,0,0.1)'};
+                 "
+                 onclick="toggleNumero(this, ${numero})">${numero}</div>`;
+}
+
 function exibirCartelas(cartelas, numerosSorteados) {
     console.log('🎫 [REAL] Exibindo cartelas do comprador...');
     console.log('🎫 [REAL] Cartelas:', cartelas.length);
@@ -475,67 +498,94 @@ function exibirCartelas(cartelas, numerosSorteados) {
         
         console.log(`🎫 [REAL] Processando cartela ${index + 1}:`, cartela.numeros);
         
-        // Criar grid BINGO com formatação correta
+        // Criar grid BINGO com formatação correta seguindo padrão das colunas
         const headerHtml = `
-            <div class="bingo-header" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 5px;">
-                <div class="bingo-letra" style="background: #dc3545; color: white; text-align: center; font-weight: bold; padding: 8px; border-radius: 4px;">B</div>
-                <div class="bingo-letra" style="background: #dc3545; color: white; text-align: center; font-weight: bold; padding: 8px; border-radius: 4px;">I</div>
-                <div class="bingo-letra" style="background: #dc3545; color: white; text-align: center; font-weight: bold; padding: 8px; border-radius: 4px;">N</div>
-                <div class="bingo-letra" style="background: #dc3545; color: white; text-align: center; font-weight: bold; padding: 8px; border-radius: 4px;">G</div>
-                <div class="bingo-letra" style="background: #dc3545; color: white; text-align: center; font-weight: bold; padding: 8px; border-radius: 4px;">O</div>
+            <div class="bingo-header" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 8px;">
+                <div class="bingo-letra" style="background: #e74c3c; color: white; text-align: center; font-weight: bold; padding: 8px; border-radius: 5px; font-size: 1.2em;">B</div>
+                <div class="bingo-letra" style="background: #e74c3c; color: white; text-align: center; font-weight: bold; padding: 8px; border-radius: 5px; font-size: 1.2em;">I</div>
+                <div class="bingo-letra" style="background: #e74c3c; color: white; text-align: center; font-weight: bold; padding: 8px; border-radius: 5px; font-size: 1.2em;">N</div>
+                <div class="bingo-letra" style="background: #e74c3c; color: white; text-align: center; font-weight: bold; padding: 8px; border-radius: 5px; font-size: 1.2em;">G</div>
+                <div class="bingo-letra" style="background: #e74c3c; color: white; text-align: center; font-weight: bold; padding: 8px; border-radius: 5px; font-size: 1.2em;">O</div>
             </div>
         `;
         
-        // Criar grid de números (formato BINGO 5x5)
+        // Reorganizar números por colunas BINGO (se possível)
+        const colunasBingo = {
+            B: [], I: [], N: [], G: [], O: []
+        };
+        
+        // Separar números por colunas BINGO
+        cartela.numeros.forEach(num => {
+            if (num >= 1 && num <= 15) colunasBingo.B.push(num);
+            else if (num >= 16 && num <= 30) colunasBingo.I.push(num);
+            else if (num >= 31 && num <= 45) colunasBingo.N.push(num);
+            else if (num >= 46 && num <= 60) colunasBingo.G.push(num);
+            else if (num >= 61 && num <= 75) colunasBingo.O.push(num);
+        });
+        
+        // Criar grid 5x5 respeitando as colunas
         let gridHtml = '<div class="bingo-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 10px 0;">';
         
-        // Assumindo que temos 24 números + 1 espaço livre
-        // Ordem: primeiras 12, então LIVRE, depois últimas 12
-        for (let i = 0; i < 25; i++) {
-            if (i === 12) {
-                // Espaço livre no centro
+        for (let linha = 0; linha < 5; linha++) {
+            // Coluna B
+            const numB = colunasBingo.B[linha];
+            if (numB !== undefined) {
+                const marcado = numerosSorteados.includes(numB);
+                gridHtml += gerarCelulaNumero(numB, marcado);
+            } else {
+                gridHtml += `<div style="background: #f8f9fa; padding: 12px; text-align: center; border-radius: 5px; color: #6c757d;">-</div>`;
+            }
+            
+            // Coluna I
+            const numI = colunasBingo.I[linha];
+            if (numI !== undefined) {
+                const marcado = numerosSorteados.includes(numI);
+                gridHtml += gerarCelulaNumero(numI, marcado);
+            } else {
+                gridHtml += `<div style="background: #f8f9fa; padding: 12px; text-align: center; border-radius: 5px; color: #6c757d;">-</div>`;
+            }
+            
+            // Coluna N (centro sempre LIVRE)
+            if (linha === 2) {
                 gridHtml += `<div class="numero-cell livre" style="
-                    background: linear-gradient(135deg, #ffc107, #ffca28);
+                    background: #f39c12;
                     color: white;
                     text-align: center;
                     font-weight: bold;
-                    padding: 10px 5px;
-                    border-radius: 6px;
-                    min-height: 35px;
+                    padding: 12px;
+                    border-radius: 5px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 1.2em;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                ">⭐</div>`;
+                    font-size: 14px;
+                    flex-direction: column;
+                ">⭐<br><small>LIVRE</small></div>`;
             } else {
-                const numeroIndex = i < 12 ? i : i - 1;
-                const numero = cartela.numeros[numeroIndex];
-                
-                if (numero !== undefined) {
-                    const marcado = numerosSorteados.includes(numero);
-                    const baseStyle = `
-                        background: ${marcado ? 'linear-gradient(135deg, #28a745, #20c997)' : 'linear-gradient(135deg, #f8f9fa, #e9ecef)'};
-                        color: ${marcado ? 'white' : '#495057'};
-                        text-align: center;
-                        font-weight: bold;
-                        padding: 10px 5px;
-                        border-radius: 6px;
-                        cursor: pointer;
-                        min-height: 35px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        transition: all 0.3s ease;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                        ${marcado ? 'animation: pulse-marcado 1s ease-out;' : ''}
-                    `;
-                    
-                    gridHtml += `<div class="numero-cell ${marcado ? 'marcado' : ''}" 
-                                      data-numero="${numero}" 
-                                      style="${baseStyle}"
-                                      onclick="toggleNumero(this, ${numero})">${numero}</div>`;
+                const numN = colunasBingo.N[linha < 2 ? linha : linha - 1];
+                if (numN !== undefined) {
+                    const marcado = numerosSorteados.includes(numN);
+                    gridHtml += gerarCelulaNumero(numN, marcado);
+                } else {
+                    gridHtml += `<div style="background: #f8f9fa; padding: 12px; text-align: center; border-radius: 5px; color: #6c757d;">-</div>`;
                 }
+            }
+            
+            // Coluna G
+            const numG = colunasBingo.G[linha];
+            if (numG !== undefined) {
+                const marcado = numerosSorteados.includes(numG);
+                gridHtml += gerarCelulaNumero(numG, marcado);
+            } else {
+                gridHtml += `<div style="background: #f8f9fa; padding: 12px; text-align: center; border-radius: 5px; color: #6c757d;">-</div>`;
+            }
+            
+            // Coluna O
+            const numO = colunasBingo.O[linha];
+            if (numO !== undefined) {
+                const marcado = numerosSorteados.includes(numO);
+                gridHtml += gerarCelulaNumero(numO, marcado);
+            } else {
+                gridHtml += `<div style="background: #f8f9fa; padding: 12px; text-align: center; border-radius: 5px; color: #6c757d;">-</div>`;
             }
         }
         
@@ -583,6 +633,14 @@ function exibirCartelas(cartelas, numerosSorteados) {
                 <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                     <span><strong>Preço:</strong> R$ ${(cartela.preco || 0).toFixed(2)}</span>
                     <span style="color: ${statusColor}; font-weight: bold;">${status}</span>
+                </div>
+                <div style="background: #f8f9fa; padding: 8px; border-radius: 5px; margin: 8px 0; font-size: 0.75em; text-align: center;">
+                    <strong>Distribuição BINGO:</strong><br>
+                    B(1-15): ${colunasBingo.B.length} | 
+                    I(16-30): ${colunasBingo.I.length} | 
+                    N(31-45): ${colunasBingo.N.length} | 
+                    G(46-60): ${colunasBingo.G.length} | 
+                    O(61-75): ${colunasBingo.O.length}
                 </div>
                 <div style="font-size: 0.8em; color: #6c757d;">
                     Data: ${cartela.timestamp ? new Date(cartela.timestamp.seconds * 1000).toLocaleDateString('pt-BR') : 'N/A'}
